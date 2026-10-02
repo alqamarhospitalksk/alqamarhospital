@@ -1,0 +1,755 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  OPERATOR
+  MANAGEMENT
+  LAB
+  MEDICAL_STORE
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  ONLINE
+  FREE
+}
+
+enum PaymentStatus {
+  PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  CANCEL
+  DISCOUNT
+  REFUND
+  LOGIN
+  LOGOUT
+}
+
+enum OtStatus {
+  BOOKED
+  IN_PROGRESS
+  READY_FOR_DISCHARGE
+  DISCHARGED
+  CANCELLED
+}
+
+enum StockTransactionType {
+  OPENING_STOCK
+  PURCHASE
+  SALE
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  SALE_RETURN
+  PURCHASE_RETURN
+}
+
+model User {
+  id                       Int                       @id @default(autoincrement())
+  name                     String?                   @db.VarChar(150)
+  username                 String                    @unique @db.VarChar(80)
+  passwordHash             String                    @map("password_hash") @db.VarChar(255)
+  role                     UserRole
+  active                   Boolean                   @default(true)
+  // Set true whenever an admin resets a password to the one-time "AlQamarPass-###" value —
+  // forces the user to pick their own password before they can use the app at all.
+  mustChangePassword       Boolean                   @default(false) @map("must_change_password")
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+  auditLogs                AuditLog[]
+  patients                 Patient[]
+  opdVisits                OpdVisit[]
+  payments                 Payment[]
+  receipts                 DiagnosticReceipt[]
+  sessions                 Session[]
+  otCases                  OtCase[]
+  inventoryTransactions    InventoryTransaction[]
+  expenses                 Expense[]
+  uploadedResultItems      DiagnosticReceiptItem[]
+  printedReceipts          DiagnosticReceipt[]       @relation("DiagnosticReceiptPrintedBy")
+  emergencyVisits          EmergencyVisit[]
+  medicinePurchases        MedicinePurchase[]
+  medicineSales            MedicineSale[]
+  medicineStockAdjustments MedicineStockAdjustment[]
+  medicineStockTransactions MedicineStockTransaction[]
+  medicineSaleReturns      MedicineSaleReturn[]
+  medicinePurchaseReturns  MedicinePurchaseReturn[]
+  supplierPayments         SupplierPayment[]
+  medicineDayClosings      MedicineDayClosing[]
+
+  @@map("users")
+}
+
+model Patient {
+  id              Int                 @id @default(autoincrement())
+  mrNumber        String              @unique @map("mr_number") @db.VarChar(30)
+  name            String              @db.VarChar(150)
+  fatherName      String              @map("father_name") @db.VarChar(150)
+  cnic            String?             @db.VarChar(20)
+  mobile          String              @db.VarChar(30)
+  dateOfBirth     DateTime?           @map("date_of_birth") @db.Date
+  gender          String              @db.VarChar(30)
+  address         String?             @db.VarChar(500)
+  createdById     Int                 @map("created_by_id")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  createdBy       User                @relation(fields: [createdById], references: [id])
+  opdVisits       OpdVisit[]
+  receipts        DiagnosticReceipt[]
+  otCases         OtCase[]
+  emergencyVisits EmergencyVisit[]
+  medicineSales   MedicineSale[]
+
+  @@index([cnic])
+  @@index([mobile])
+  @@map("patients")
+}
+
+model Doctor {
+  id                     Int                 @id @default(autoincrement())
+  name                   String              @db.VarChar(150)
+  specialization         String              @db.VarChar(150)
+  nameUrdu               String?             @map("name_urdu") @db.VarChar(150)
+  specializationUrdu     String?             @map("specialization_urdu") @db.VarChar(150)
+  qualifications         String?             @db.VarChar(500)
+  qualificationsUrdu     String?             @map("qualifications_urdu") @db.VarChar(500)
+  availability           String?             @db.VarChar(500)
+  availabilityDays       String              @default("[]") @map("availability_days") @db.VarChar(80)
+  availabilityFrom       String?             @map("availability_from") @db.VarChar(5)
+  availabilityTo         String?             @map("availability_to") @db.VarChar(5)
+  consultationFee        Decimal             @map("consultation_fee") @db.Decimal(12, 2)
+  hospitalSplitType      String              @default("PERCENTAGE") @map("hospital_split_type") @db.VarChar(20)
+  hospitalSplitValue     Decimal             @map("hospital_split_value") @db.Decimal(12, 2)
+  labSharePercent        Decimal             @default(0) @map("lab_share_percent") @db.Decimal(5, 2)
+  xraySharePercent       Decimal             @default(0) @map("xray_share_percent") @db.Decimal(5, 2)
+  ultrasoundSharePercent Decimal             @default(0) @map("ultrasound_share_percent") @db.Decimal(5, 2)
+  ecgSharePercent        Decimal             @default(0) @map("ecg_share_percent") @db.Decimal(5, 2)
+  ecoSharePercent        Decimal             @default(0) @map("eco_share_percent") @db.Decimal(5, 2)
+  active                 Boolean             @default(true)
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+  opdVisits              OpdVisit[]
+  receipts               DiagnosticReceipt[]
+  otCases                OtCase[]
+  expenses               Expense[]
+
+  @@map("doctors")
+}
+
+model OpdVisit {
+  id              Int                 @id @default(autoincrement())
+  opdNumber       String              @unique @map("opd_number") @db.VarChar(40)
+  visitDate       DateTime            @map("visit_date") @db.Date
+  dailyToken      Int                 @map("daily_token")
+  patientId       Int                 @map("patient_id")
+  doctorId        Int                 @map("doctor_id")
+  consultationFee Decimal             @map("consultation_fee") @db.Decimal(12, 2)
+  createdById     Int                 @map("created_by_id")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  patient         Patient             @relation(fields: [patientId], references: [id])
+  doctor          Doctor              @relation(fields: [doctorId], references: [id])
+  createdBy       User                @relation(fields: [createdById], references: [id])
+  payments        Payment[]
+  receipts        DiagnosticReceipt[]
+
+  @@unique([doctorId, visitDate, dailyToken])
+  @@index([patientId, visitDate])
+  @@map("opd_visits")
+}
+
+model EmergencyVisit {
+  id          Int       @id @default(autoincrement())
+  visitNumber String    @unique @map("visit_number") @db.VarChar(40)
+  visitDate   DateTime  @map("visit_date") @db.Date
+  dailyToken  Int       @map("daily_token")
+  patientId   Int       @map("patient_id")
+  reason      String    @db.VarChar(500)
+  amount      Decimal   @db.Decimal(12, 2)
+  createdById Int       @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  payments    Payment[]
+
+  @@unique([visitDate, dailyToken])
+  @@index([patientId, visitDate])
+  @@map("emergency_visits")
+}
+
+model DiagnosticCatalogItem {
+  id        Int                     @id @default(autoincrement())
+  module    String                  @db.VarChar(30)
+  name      String                  @db.VarChar(150)
+  price     Decimal                 @db.Decimal(12, 2)
+  active    Boolean                 @default(true)
+  createdAt DateTime                @default(now()) @map("created_at")
+  updatedAt DateTime                @updatedAt @map("updated_at")
+  items     DiagnosticReceiptItem[]
+
+  @@unique([module, name])
+  @@map("diagnostic_catalog_items")
+}
+
+model DiagnosticReceipt {
+  id             Int                     @id @default(autoincrement())
+  receiptNumber  String                  @unique @map("receipt_number") @db.VarChar(40)
+  module         String                  @db.VarChar(30)
+  moduleToken    Int                     @map("module_token")
+  opdVisitId     Int                     @map("opd_visit_id")
+  patientId      Int                     @map("patient_id")
+  doctorId       Int                     @map("doctor_id")
+  subtotal       Decimal                 @db.Decimal(12, 2)
+  discount       Decimal                 @default(0) @db.Decimal(12, 2)
+  discountReason String?                 @map("discount_reason") @db.VarChar(500)
+  total          Decimal                 @db.Decimal(12, 2)
+  status         PaymentStatus           @default(PAID)
+  result         String?                 @db.Text
+  printedAt      DateTime?               @map("printed_at")
+  printedById    Int?                    @map("printed_by_id")
+  createdById    Int                     @map("created_by_id")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  opdVisit       OpdVisit                @relation(fields: [opdVisitId], references: [id])
+  patient        Patient                 @relation(fields: [patientId], references: [id])
+  doctor         Doctor                  @relation(fields: [doctorId], references: [id])
+  createdBy      User                    @relation(fields: [createdById], references: [id])
+  printedBy      User?                   @relation("DiagnosticReceiptPrintedBy", fields: [printedById], references: [id])
+  items          DiagnosticReceiptItem[]
+  payments       Payment[]
+
+  @@unique([module, createdAt, moduleToken])
+  @@index([opdVisitId])
+  @@map("diagnostic_receipts")
+}
+
+model DiagnosticReceiptItem {
+  id                 Int                   @id @default(autoincrement())
+  receiptId          Int                   @map("receipt_id")
+  catalogItemId      Int                   @map("catalog_item_id")
+  nameAtSale         String                @map("name_at_sale") @db.VarChar(150)
+  priceAtSale        Decimal               @map("price_at_sale") @db.Decimal(12, 2)
+  result             String?               @db.Text
+  resultFileName     String?               @map("result_file_name") @db.VarChar(255)
+  resultFileDataUrl  String?               @map("result_file_data_url") @db.LongText
+  resultUploadedAt   DateTime?             @map("result_uploaded_at")
+  resultUploadedById Int?                  @map("result_uploaded_by_id")
+  receipt            DiagnosticReceipt     @relation(fields: [receiptId], references: [id])
+  catalogItem        DiagnosticCatalogItem @relation(fields: [catalogItemId], references: [id])
+  resultUploadedBy   User?                 @relation(fields: [resultUploadedById], references: [id])
+
+  @@map("diagnostic_receipt_items")
+}
+
+model Payment {
+  id               Int                @id @default(autoincrement())
+  amount           Decimal            @db.Decimal(12, 2)
+  method           PaymentMethod      @default(CASH)
+  status           PaymentStatus      @default(PAID)
+  reference        String?            @db.VarChar(100)
+  note             String?            @db.VarChar(500)
+  opdVisitId       Int?               @map("opd_visit_id")
+  receiptId        Int?               @map("receipt_id")
+  otCaseId         Int?               @map("ot_case_id")
+  emergencyVisitId Int?               @map("emergency_visit_id")
+  medicineSaleId   Int?               @map("medicine_sale_id")
+  createdById      Int                @map("created_by_id")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  opdVisit         OpdVisit?          @relation(fields: [opdVisitId], references: [id])
+  receipt          DiagnosticReceipt? @relation(fields: [receiptId], references: [id])
+  otCase           OtCase?            @relation(fields: [otCaseId], references: [id])
+  emergencyVisit   EmergencyVisit?    @relation(fields: [emergencyVisitId], references: [id])
+  medicineSale     MedicineSale?      @relation(fields: [medicineSaleId], references: [id])
+  createdBy        User               @relation(fields: [createdById], references: [id])
+
+  @@index([createdAt, status])
+  @@map("payments")
+}
+
+model Employee {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(150)
+  designation   String    @db.VarChar(120)
+  contact       String?   @db.VarChar(40)
+  joiningDate   DateTime? @map("joining_date") @db.Date
+  monthlySalary Decimal   @map("monthly_salary") @db.Decimal(12, 2)
+  paymentCycleDay Int?    @map("payment_cycle_day") // day of month (1-31) salary is due; null = not set
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  expenses      Expense[]
+
+  @@map("employees")
+}
+
+model Expense {
+  id          Int           @id @default(autoincrement())
+  category    String        @db.VarChar(40)
+  amount      Decimal       @db.Decimal(12, 2)
+  method      PaymentMethod @default(CASH)
+  expenseDate DateTime      @map("expense_date") @db.Date
+  note        String?       @db.VarChar(500)
+  doctorId    Int?          @map("doctor_id")
+  employeeId  Int?          @map("employee_id")
+  // Salary-payout breakdown (SALARY category only) — `amount` above stays the actual
+  // total paid (base + incentive - deduction) so every existing sum/report is unaffected;
+  // these are purely for showing/auditing how that total was made up. Null for every
+  // other expense category and for older salary payouts recorded before this existed.
+  baseAmount      Decimal? @map("base_amount") @db.Decimal(12, 2)
+  incentiveAmount Decimal? @map("incentive_amount") @db.Decimal(12, 2)
+  incentiveNote   String?  @map("incentive_note") @db.VarChar(255)
+  deductionAmount Decimal? @map("deduction_amount") @db.Decimal(12, 2)
+  deductionNote   String?  @map("deduction_note") @db.VarChar(255)
+  createdById Int           @map("created_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  doctor      Doctor?       @relation(fields: [doctorId], references: [id])
+  employee    Employee?     @relation(fields: [employeeId], references: [id])
+  createdBy   User          @relation(fields: [createdById], references: [id])
+
+  @@index([expenseDate, category])
+  @@map("expenses")
+}
+
+model RoomBed {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  roomType  String   @map("room_type") @db.VarChar(80)
+  dailyRate Decimal  @map("daily_rate") @db.Decimal(12, 2)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  otCases   OtCase[]
+
+  @@unique([name])
+  @@map("room_beds")
+}
+
+model OtCase {
+  id               Int          @id @default(autoincrement())
+  caseNumber       String       @unique @map("case_number") @db.VarChar(40)
+  patientId        Int          @map("patient_id")
+  doctorId         Int          @map("doctor_id")
+  roomBedId        Int?         @map("room_bed_id")
+  roomLabel        String?      @map("room_label") @db.VarChar(150)
+  admissionDate    DateTime     @map("admission_date")
+  procedureAt      DateTime?    @map("procedure_at")
+  dischargeDate    DateTime?    @map("discharge_date")
+  doctorFee        Decimal      @map("doctor_fee") @db.Decimal(12, 2)
+  theaterFee       Decimal      @map("theater_fee") @db.Decimal(12, 2)
+  anesthesiaFee    Decimal      @default(0) @map("anesthesia_fee") @db.Decimal(12, 2)
+  roomFee          Decimal      @default(0) @map("room_fee") @db.Decimal(12, 2)
+  hospitalFee      Decimal      @default(0) @map("hospital_fee") @db.Decimal(12, 2)
+  otMedicineFee    Decimal      @default(0) @map("ot_medicine_fee") @db.Decimal(12, 2)
+  otMedicineNote   String?      @map("ot_medicine_note") @db.VarChar(500)
+  homeMedicineFee  Decimal      @default(0) @map("home_medicine_fee") @db.Decimal(12, 2)
+  homeMedicineNote String?      @map("home_medicine_note") @db.VarChar(500)
+  recommendations  String?      @db.VarChar(1000)
+  total            Decimal      @default(0) @db.Decimal(12, 2)
+  lastInvoicedAt   DateTime?    @map("last_invoiced_at")
+  status           OtStatus     @default(BOOKED)
+  diagnosis        String?      @db.VarChar(500)
+  procedureName    String?      @map("procedure_name") @db.VarChar(200)
+  createdById      Int          @map("created_by_id")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  patient          Patient      @relation(fields: [patientId], references: [id])
+  doctor           Doctor       @relation(fields: [doctorId], references: [id])
+  roomBed          RoomBed?     @relation(fields: [roomBedId], references: [id])
+  createdBy        User         @relation(fields: [createdById], references: [id])
+  lineItems        OtLineItem[]
+  payments         Payment[]
+
+  @@index([patientId, status])
+  @@index([roomBedId, status])
+  @@map("ot_cases")
+}
+
+model OtLineItem {
+  id              Int            @id @default(autoincrement())
+  otCaseId        Int            @map("ot_case_id")
+  inventoryItemId Int?           @map("inventory_item_id")
+  description     String         @db.VarChar(200)
+  category        String         @db.VarChar(30)
+  quantity        Decimal        @db.Decimal(12, 2)
+  unitPrice       Decimal        @map("unit_price") @db.Decimal(12, 2)
+  total           Decimal        @db.Decimal(12, 2)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  otCase          OtCase         @relation(fields: [otCaseId], references: [id], onDelete: Cascade)
+  inventoryItem   InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+
+  @@map("ot_line_items")
+}
+
+model InventoryItem {
+  id           Int                    @id @default(autoincrement())
+  name         String                 @db.VarChar(150)
+  category     String                 @db.VarChar(30)
+  unit         String                 @db.VarChar(30)
+  quantity     Decimal                @default(0) @db.Decimal(12, 2)
+  lowStockAt   Decimal                @default(0) @map("low_stock_at") @db.Decimal(12, 2)
+  unitPrice    Decimal                @default(0) @map("unit_price") @db.Decimal(12, 2)
+  active       Boolean                @default(true)
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  lineItems    OtLineItem[]
+  transactions InventoryTransaction[]
+
+  @@unique([name, category])
+  @@map("inventory_items")
+}
+
+model InventoryTransaction {
+  id              Int           @id @default(autoincrement())
+  inventoryItemId Int           @map("inventory_item_id")
+  userId          Int           @map("user_id")
+  type            String        @db.VarChar(20)
+  quantity        Decimal       @db.Decimal(12, 2)
+  reason          String?       @db.VarChar(500)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
+
+  @@index([inventoryItemId, createdAt])
+  @@map("inventory_transactions")
+}
+
+model AuditLog {
+  id         Int         @id @default(autoincrement())
+  action     AuditAction
+  entity     String      @db.VarChar(80)
+  entityId   String      @map("entity_id") @db.VarChar(80)
+  reason     String?     @db.VarChar(500)
+  beforeJson String?     @map("before_json") @db.Text
+  afterJson  String?     @map("after_json") @db.Text
+  userId     Int         @map("user_id")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  user       User        @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique @map("token_hash") @db.VarChar(64)
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model HospitalSettings {
+  id          Int      @id @default(autoincrement())
+  name        String   @default("CareLedger Clinic") @db.VarChar(150)
+  nameUrdu    String?  @map("name_urdu") @db.VarChar(150)
+  address     String?  @db.VarChar(500)
+  addressUrdu String?  @map("address_urdu") @db.VarChar(500)
+  phone       String?  @db.VarChar(100)
+  email       String?  @db.VarChar(150)
+  logoDataUrl String?  @map("logo_data_url") @db.LongText
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("hospital_settings")
+}
+
+model DailySequence {
+  id          Int      @id @default(autoincrement())
+  sequenceKey String   @unique @map("sequence_key") @db.VarChar(100)
+  nextValue   Int      @default(1) @map("next_value")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("daily_sequences")
+}
+
+// ---------------------------------------------------------------------------
+// Medical Store — a standalone pharmacy subsystem. Deliberately independent
+// of InventoryItem/InventoryTransaction (which remain OT's generic
+// tools/consumables tracker); this module owns its own catalog, suppliers,
+// batch/expiry-tracked stock, and point-of-sale receipts.
+// ---------------------------------------------------------------------------
+
+model Supplier {
+  id            Int                @id @default(autoincrement())
+  name          String             @db.VarChar(150)
+  contactPerson String?            @map("contact_person") @db.VarChar(150)
+  phone         String?            @db.VarChar(40)
+  address       String?            @db.VarChar(500)
+  active        Boolean            @default(true)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  purchases     MedicinePurchase[]
+  purchaseReturns MedicinePurchaseReturn[]
+  payments      SupplierPayment[]
+
+  @@map("suppliers")
+}
+
+// Money paid to a supplier against what they're owed. Balance owed =
+// purchases − payments − purchase returns taken as CREDIT (see MedicinePurchaseReturn.refundMode).
+model SupplierPayment {
+  id          Int           @id @default(autoincrement())
+  supplierId  Int           @map("supplier_id")
+  amount      Decimal       @db.Decimal(12, 2)
+  method      PaymentMethod @default(CASH)
+  paidOn      DateTime      @map("paid_on") @db.Date
+  note        String?       @db.VarChar(500)
+  createdById Int           @map("created_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  supplier    Supplier      @relation(fields: [supplierId], references: [id])
+  createdBy   User          @relation(fields: [createdById], references: [id])
+
+  @@index([supplierId])
+  @@map("supplier_payments")
+}
+
+// End-of-day cash reconciliation for the medical store counter — one row per day
+// (re-closing the same day overwrites it).
+model MedicineDayClosing {
+  id           Int      @id @default(autoincrement())
+  closingDate  DateTime @unique @map("closing_date") @db.Date
+  cashSales    Decimal  @map("cash_sales") @db.Decimal(12, 2)
+  cashRefunds  Decimal  @map("cash_refunds") @db.Decimal(12, 2)
+  expectedCash Decimal  @map("expected_cash") @db.Decimal(12, 2)
+  countedCash  Decimal  @map("counted_cash") @db.Decimal(12, 2)
+  difference   Decimal  @db.Decimal(12, 2)
+  note         String?  @db.VarChar(500)
+  closedById   Int      @map("closed_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  closedBy     User     @relation(fields: [closedById], references: [id])
+
+  @@map("medicine_day_closings")
+}
+
+model MedicineItem {
+  id           Int                       @id @default(autoincrement())
+  name         String                    @db.VarChar(150)
+  genericName  String?                   @map("generic_name") @db.VarChar(150)
+  category     String                    @db.VarChar(30)
+  unit         String                    @db.VarChar(30)
+  salePrice    Decimal                   @default(0) @map("sale_price") @db.Decimal(12, 2)
+  reorderLevel Decimal                   @default(0) @map("reorder_level") @db.Decimal(12, 2)
+  active       Boolean                   @default(true)
+  createdAt    DateTime                  @default(now()) @map("created_at")
+  updatedAt    DateTime                  @updatedAt @map("updated_at")
+  batches      MedicineBatch[]
+  saleItems    MedicineSaleItem[]
+  adjustments  MedicineStockAdjustment[]
+  packagingLevels    MedicinePackagingLevel[]
+  stockTransactions  MedicineStockTransaction[]
+
+  @@unique([name, category])
+  @@map("medicine_items")
+}
+
+model MedicinePackagingLevel {
+  id             Int          @id @default(autoincrement())
+  medicineItemId Int          @map("medicine_item_id")
+  level          Int
+  name           String       @db.VarChar(30)
+  unitsInLevel   Decimal      @map("units_in_level") @db.Decimal(12, 2)
+  medicineItem   MedicineItem @relation(fields: [medicineItemId], references: [id], onDelete: Cascade)
+
+  @@unique([medicineItemId, level])
+  @@map("medicine_packaging_levels")
+}
+
+model MedicinePurchase {
+  id             Int             @id @default(autoincrement())
+  purchaseNumber String          @unique @map("purchase_number") @db.VarChar(40)
+  supplierId     Int             @map("supplier_id")
+  totalCost      Decimal         @default(0) @map("total_cost") @db.Decimal(12, 2)
+  createdById    Int             @map("created_by_id")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  supplier       Supplier        @relation(fields: [supplierId], references: [id])
+  createdBy      User            @relation(fields: [createdById], references: [id])
+  batches        MedicineBatch[]
+
+  @@map("medicine_purchases")
+}
+
+model MedicineBatch {
+  id                Int                       @id @default(autoincrement())
+  medicineItemId    Int                       @map("medicine_item_id")
+  purchaseId        Int                       @map("purchase_id")
+  batchNumber       String?                   @map("batch_number") @db.VarChar(60)
+  packsReceived     Decimal?                  @map("packs_received") @db.Decimal(12, 2)
+  unitsPerPack      Decimal                   @default(1) @map("units_per_pack") @db.Decimal(12, 2)
+  quantityReceived  Decimal                   @map("quantity_received") @db.Decimal(12, 2)
+  quantityRemaining Decimal                   @map("quantity_remaining") @db.Decimal(12, 2)
+  // 4 decimals: cost per single tablet/strip is often a fraction of a rupee (PKR 1,000 / 3,000 = 0.3333).
+  purchasePrice     Decimal                   @map("purchase_price") @db.Decimal(14, 4)
+  salePriceOverride Decimal?                  @map("sale_price_override") @db.Decimal(12, 2)
+  expiryDate        DateTime                  @map("expiry_date") @db.Date
+  receivedLevelName String?                   @map("received_level_name") @db.VarChar(30)
+  receivedAt        DateTime                  @default(now()) @map("received_at")
+  medicineItem      MedicineItem              @relation(fields: [medicineItemId], references: [id])
+  purchase          MedicinePurchase          @relation(fields: [purchaseId], references: [id])
+  saleItems         MedicineSaleItem[]
+  adjustments       MedicineStockAdjustment[]
+  stockTransactions   MedicineStockTransaction[]
+  saleReturnItems     MedicineSaleReturnItem[]
+  purchaseReturnItems MedicinePurchaseReturnItem[]
+
+  @@index([medicineItemId, expiryDate])
+  @@map("medicine_batches")
+}
+
+model MedicineSale {
+  id             Int                @id @default(autoincrement())
+  saleNumber     String             @unique @map("sale_number") @db.VarChar(40)
+  dailyToken     Int                @map("daily_token")
+  saleDate       DateTime           @map("sale_date") @db.Date
+  patientId      Int?               @map("patient_id")
+  customerName   String?            @map("customer_name") @db.VarChar(150)
+  subtotal       Decimal            @db.Decimal(12, 2)
+  discount       Decimal            @default(0) @db.Decimal(12, 2)
+  discountReason String?            @map("discount_reason") @db.VarChar(500)
+  total          Decimal            @db.Decimal(12, 2)
+  status         PaymentStatus      @default(PAID)
+  createdById    Int                @map("created_by_id")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  patient        Patient?           @relation(fields: [patientId], references: [id])
+  createdBy      User               @relation(fields: [createdById], references: [id])
+  items          MedicineSaleItem[]
+  payments       Payment[]
+  returns        MedicineSaleReturn[]
+
+  @@unique([saleDate, dailyToken])
+  @@map("medicine_sales")
+}
+
+model MedicineSaleItem {
+  id             Int           @id @default(autoincrement())
+  saleId         Int           @map("sale_id")
+  medicineItemId Int           @map("medicine_item_id")
+  batchId        Int           @map("batch_id")
+  quantity       Decimal       @db.Decimal(12, 2)
+  unitPrice      Decimal       @map("unit_price") @db.Decimal(12, 2)
+  total          Decimal       @db.Decimal(12, 2)
+  // Snapshot of the batch's purchase (cost) price at the moment of sale — internal
+  // profit-margin tracking only. Never surfaced on the printed customer receipt.
+  // Nullable so existing sale items recorded before this field existed stay valid.
+  costPriceAtSale Decimal?     @map("cost_price_at_sale") @db.Decimal(14, 4)
+  sale           MedicineSale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  medicineItem   MedicineItem  @relation(fields: [medicineItemId], references: [id])
+  batch          MedicineBatch @relation(fields: [batchId], references: [id])
+  returnItems    MedicineSaleReturnItem[]
+
+  @@map("medicine_sale_items")
+}
+
+model MedicineStockAdjustment {
+  id             Int           @id @default(autoincrement())
+  medicineItemId Int           @map("medicine_item_id")
+  batchId        Int           @map("batch_id")
+  type           String        @db.VarChar(20)
+  quantity       Decimal       @db.Decimal(12, 2)
+  reason         String?       @db.VarChar(500)
+  adjustedById   Int           @map("adjusted_by_id")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  medicineItem   MedicineItem  @relation(fields: [medicineItemId], references: [id])
+  batch          MedicineBatch @relation(fields: [batchId], references: [id])
+  adjustedBy     User          @relation(fields: [adjustedById], references: [id])
+
+  @@map("medicine_stock_adjustments")
+}
+
+model MedicineStockTransaction {
+  id             Int                  @id @default(autoincrement())
+  medicineItemId Int                  @map("medicine_item_id")
+  batchId        Int                  @map("batch_id")
+  type           StockTransactionType
+  quantity       Decimal              @db.Decimal(12, 2)
+  beforeQuantity Decimal              @map("before_quantity") @db.Decimal(12, 2)
+  afterQuantity  Decimal              @map("after_quantity") @db.Decimal(12, 2)
+  referenceType  String?              @map("reference_type") @db.VarChar(30)
+  referenceId    Int?                 @map("reference_id")
+  notes          String?              @db.VarChar(500)
+  createdById    Int                  @map("created_by_id")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  medicineItem   MedicineItem         @relation(fields: [medicineItemId], references: [id])
+  batch          MedicineBatch        @relation(fields: [batchId], references: [id])
+  createdBy      User                 @relation(fields: [createdById], references: [id])
+
+  @@index([medicineItemId, createdAt])
+  @@index([batchId])
+  @@map("medicine_stock_transactions")
+}
+
+model MedicineSaleReturn {
+  id           Int                      @id @default(autoincrement())
+  returnNumber String                   @unique @map("return_number") @db.VarChar(40)
+  saleId       Int                      @map("sale_id")
+  reason       String                   @db.VarChar(500)
+  restock      Boolean                  @default(false)
+  totalRefund  Decimal                  @default(0) @map("total_refund") @db.Decimal(12, 2)
+  createdById  Int                      @map("created_by_id")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  sale         MedicineSale             @relation(fields: [saleId], references: [id])
+  createdBy    User                     @relation(fields: [createdById], references: [id])
+  items        MedicineSaleReturnItem[]
+
+  @@map("medicine_sale_returns")
+}
+
+model MedicineSaleReturnItem {
+  id         Int                @id @default(autoincrement())
+  returnId   Int                @map("return_id")
+  saleItemId Int                @map("sale_item_id")
+  batchId    Int                @map("batch_id")
+  quantity   Decimal            @db.Decimal(12, 2)
+  unitPrice  Decimal            @map("unit_price") @db.Decimal(12, 2)
+  total      Decimal            @db.Decimal(12, 2)
+  return     MedicineSaleReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  saleItem   MedicineSaleItem   @relation(fields: [saleItemId], references: [id])
+  batch      MedicineBatch      @relation(fields: [batchId], references: [id])
+
+  @@map("medicine_sale_return_items")
+}
+
+model MedicinePurchaseReturn {
+  id           Int                          @id @default(autoincrement())
+  returnNumber String                       @unique @map("return_number") @db.VarChar(40)
+  supplierId   Int                          @map("supplier_id")
+  reason       String                       @db.VarChar(500)
+  totalAmount  Decimal                      @default(0) @map("total_amount") @db.Decimal(12, 2)
+  // CASH = supplier handed the money back (adds to cash); CREDIT = deducted from what we owe
+  // the supplier (no cash moves). Existing returns were all cash refunds, hence the default.
+  refundMode   String                       @default("CASH") @map("refund_mode") @db.VarChar(10)
+  createdById  Int                          @map("created_by_id")
+  createdAt    DateTime                     @default(now()) @map("created_at")
+  supplier     Supplier                     @relation(fields: [supplierId], references: [id])
+  createdBy    User                         @relation(fields: [createdById], references: [id])
+  items        MedicinePurchaseReturnItem[]
+
+  @@map("medicine_purchase_returns")
+}
+
+model MedicinePurchaseReturnItem {
+  id       Int                    @id @default(autoincrement())
+  returnId Int                    @map("return_id")
+  batchId  Int                    @map("batch_id")
+  quantity Decimal                @db.Decimal(12, 2)
+  unitCost Decimal                @map("unit_cost") @db.Decimal(14, 4)
+  total    Decimal                @db.Decimal(12, 2)
+  return   MedicinePurchaseReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  batch    MedicineBatch          @relation(fields: [batchId], references: [id])
+
+  @@map("medicine_purchase_return_items")
+}

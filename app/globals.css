@@ -1,0 +1,338 @@
+@import "tailwindcss";
+
+:root {
+  --background: #eef2f0;
+  --foreground: #0e2420;
+
+  /* Brand */
+  --brand-400: #4ade80;
+  --brand-500: #2da08b;
+  --brand-600: #1a8070;
+  --brand-700: #0f5a52;
+  --brand-900: #0e2a27;
+
+  /* Sidebar */
+  --sidebar-bg:     #0e2a27;
+  --sidebar-border: rgba(255,255,255,0.06);
+  --sidebar-muted:  #4a7a72;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(14,36,32,0.08);
+  --shadow-md: 0 4px 16px rgba(14,36,32,0.10);
+  --shadow-lg: 0 8px 32px rgba(14,36,32,0.12);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #a8c5be; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #7aa09a; }
+
+/* ── Selection ──────────────────────────────────────────────────── */
+::selection { background: #d5f3ec; color: #0c3a35; }
+
+/* ── Focus ring ─────────────────────────────────────────────────── */
+/* Form fields are excluded: Chakra already draws their focus ring (via outline), and this
+   unlayered rule would override it with an offset outline — a second box around the field. */
+:focus-visible:not(input):not(textarea):not(select) {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+
+/* ── Animations ─────────────────────────────────────────────────── */
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position:  200% center; }
+}
+
+/* Hide back icon if header link */
+header > div:first-child > a:first-child {
+  display: none;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   UNIVERSAL PAGE ENHANCEMENTS
+   These CSS rules upgrade every inner page (patients, doctors, OPD,
+   lab, employees, expenses, etc.) at once without touching TSX files.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Sticky page header → glass ─────────────────────────────────────── */
+header {
+  background: rgba(255, 255, 255, 0.90) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-bottom-color: rgba(14, 36, 32, 0.07) !important;
+  box-shadow: 0 1px 0 rgba(14, 36, 32, 0.04), 0 4px 20px rgba(14, 36, 32, 0.04) !important;
+}
+
+/* ── Table header row ────────────────────────────────────────────────── */
+thead tr th,
+thead tr td {
+  background: #f2f7f5 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  color: #5a8078 !important;
+  padding-top: 11px !important;
+  padding-bottom: 11px !important;
+  border-bottom: 2px solid rgba(14, 36, 32, 0.07) !important;
+}
+
+/* ── Table body rows ─────────────────────────────────────────────────── */
+tbody tr {
+  border-bottom: 1px solid rgba(14, 36, 32, 0.04) !important;
+  transition: background 0.12s ease !important;
+}
+tbody tr:hover {
+  background: rgba(45, 160, 139, 0.04) !important;
+}
+
+/* ── Search input wrapper focus ring ─────────────────────────────────── */
+/* HStack used as input group: border="1px solid #dbe5e1" */
+[style*="border: 1px solid rgb(219, 229, 225)"],
+[style*="border: 1px solid rgb(225, 233, 230)"] {
+  border-radius: 10px !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+[style*="border: 1px solid rgb(219, 229, 225)"]:focus-within,
+[style*="border: 1px solid rgb(225, 233, 230)"]:focus-within {
+  border-color: #2da08b !important;
+  box-shadow: 0 0 0 3px rgba(45, 160, 139, 0.12) !important;
+}
+
+/* ── Card section headers (px/py inside white box) ───────────────────── */
+[style*="border-bottom: 1px solid rgb(237, 242, 240)"],
+[style*="border-bottom: 1px solid rgb(241, 245, 243)"] {
+  border-bottom-color: rgba(14, 36, 32, 0.06) !important;
+  background: #fafcfb !important;
+}
+
+/* ── White cards (common bg="white" border="1px solid #e1e9e6") ──────── */
+div[style*="border: 1px solid rgb(225, 233, 230)"],
+div[style*="border: 1px solid rgb(226, 233, 230)"] {
+  border-color: rgba(14, 36, 32, 0.07) !important;
+  box-shadow: 0 2px 12px rgba(14, 36, 32, 0.05) !important;
+}
+
+/* ── CTA button gradient (bg="#123d3b") ──────────────────────────────── */
+button[style*="background: rgb(18, 61, 59)"],
+button[style*="background-color: rgb(18, 61, 59)"],
+a[style*="background: rgb(18, 61, 59)"],
+a[style*="background-color: rgb(18, 61, 59)"] {
+  background: linear-gradient(135deg, #1a8070 0%, #0f5a52 100%) !important;
+  box-shadow: 0 3px 12px rgba(26, 128, 112, 0.28) !important;
+  border-radius: 9px !important;
+  transition: all 0.18s ease !important;
+}
+button[style*="background: rgb(18, 61, 59)"]:hover,
+button[style*="background-color: rgb(18, 61, 59)"]:hover {
+  box-shadow: 0 5px 20px rgba(26, 128, 112, 0.42) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── Outline action buttons → rounded ───────────────────────────────── */
+button[data-variant="outline"] {
+  border-radius: 7px !important;
+  transition: all 0.15s ease !important;
+}
+
+/* ── Small / XS icon+action buttons ─────────────────────────────────── */
+button[data-size="xs"] {
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+}
+
+/* ── Red action buttons (delete / danger) ────────────────────────────── */
+button[style*="background: rgb(163, 66, 88)"],
+button[style*="background-color: rgb(163, 66, 88)"] {
+  background: linear-gradient(135deg, #c05070 0%, #8a2442 100%) !important;
+  box-shadow: 0 3px 12px rgba(163, 66, 88, 0.28) !important;
+  border-radius: 9px !important;
+}
+
+/* Print CSS setup */
+@media print {
+  html,
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  aside,
+  header,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* OPD/Emergency render their print modal as a sibling *after* `<main>`, so hiding
+     `main` outright (below) is enough to stop the underlying form/table from printing
+     alongside the slip. OT nests its modals *inside* `<main>` instead — hiding `main`
+     unconditionally there would hide the open print modal too (this printed a fully
+     blank page). Handle both layouts: hide `main` only when it has no active print
+     modal inside it; when it does, leave `main` itself alone but hide its other
+     (non-modal) children so just the modal prints. */
+  main:not(:has(.print-modal-overlay)) {
+    display: none !important;
+  }
+
+  main:has(.print-modal-overlay) > *:not(.print-modal-overlay) {
+    display: none !important;
+  }
+
+  body,
+  html,
+  div,
+  main {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* The slip-preview modals wrap `.printable-slip` in a `position: fixed; inset: 0`
+     backdrop (for on-screen centering). A `position: fixed` ancestor still establishes
+     the containing block for an absolutely-positioned descendant, and Chrome's print
+     engine doesn't reliably stretch a fixed+inset:0 flex container to the full page box —
+     it can collapse to the centered card's own (much narrower) intrinsic width instead.
+     Neutralize the whole modal-wrapper chain during print so `.printable-slip` falls back
+     to the page box itself, both for width and so overflow can paginate instead of clip. */
+  .print-modal-overlay {
+    position: static !important;
+    inset: auto !important;
+    background: none !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .print-modal-card {
+    max-width: none !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-modal-body {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Deliberately `position: static` (not `absolute`): an absolutely-positioned box is taken
+     out of normal flow, so if content ever runs taller than one printable page, the browser
+     has nowhere to paginate the overflow to — it just gets silently clipped instead of
+     flowing onto a second page. */
+  .printable-slip {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    padding: 20px !important;
+    background: white !important;
+    color: black !important;
+    font-size: 12pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Full page height on purpose: this is a physical letterhead slip the doctor writes on
+     by hand after printing (see the blank area below Patient Information), so it should
+     fill a real page, not shrink-wrap to just the header. Safe now that `.printable-slip`
+     is `position: static` (previous rule) and `main` is hidden during print (below) — those
+     two are what made this look "clipped" / show the wrong content, not the page height. */
+  .printable-slip.opd-doctor-slip,
+  .printable-slip.full-page-slip {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 250mm !important;
+  }
+
+  /* The blanket `div { background: white }` rule above turns every nested div into an
+     opaque white rectangle, which paints over the absolutely-positioned watermark sitting
+     behind them. Keep the slip's own divs transparent so the watermark stays visible. */
+  .printable-slip.opd-doctor-slip div,
+  .printable-slip.full-page-slip div {
+    background: transparent !important;
+  }
+
+  .printable-slip * {
+    color: black !important;
+  }
+
+  .printable-slip .slip-inset-block {
+    margin-left: 12px !important;
+  }
+
+  .printable-slip .slip-doctor-en {
+    margin-top: 8px !important;
+  }
+
+  .printable-slip .slip-doctor-ur {
+    margin-top: 8px !important;
+    margin-right: 12px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .printable-slip .slip-token-block {
+    margin-bottom: 0 !important;
+  }
+
+  .printable-slip .slip-header-grid {
+    padding-bottom: 0 !important;
+    margin-bottom: 4px !important;
+  }
+
+  body.diagnostic-thermal-print .diagnostic-printable-slip {
+    width: 72mm !important;
+    min-height: 0 !important;
+    padding: 4mm !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    font-size: 9pt !important;
+  }
+
+  body.diagnostic-thermal-print .diagnostic-printable-slip h2 {
+    font-size: 16pt !important;
+  }
+
+  body.diagnostic-thermal-print .diagnostic-printable-slip svg {
+    display: none !important;
+  }
+
+  @page {
+    size: portrait;
+    margin: 10mm;
+  }
+}
