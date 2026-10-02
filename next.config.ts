@@ -12,6 +12,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   devIndicators: false,
   poweredByHeader: false,
+  // GoDaddy's preview runs the dev server behind its own address; without this Next blocks its live-reload requests.
+  allowedDevOrigins: ["*.airoapp.ai"],
   // Lets a second build (e.g. a production test run) use its own folder without touching the
   // `next dev` cache in .next. Unset in normal use.
   distDir: process.env.NEXT_DIST_DIR || ".next",
