@@ -116,27 +116,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Enter a valid date of birth." }, { status: 400 });
   }
 
-  const duplicateConditions = [];
-  if (cnic) duplicateConditions.push({ cnic });
-  if (mobile) duplicateConditions.push({ mobile });
-
-  if (duplicateConditions.length > 0) {
-    const duplicate = await db.patient.findFirst({
-      where: {
-        OR: duplicateConditions,
-      },
-      select: { mrNumber: true, name: true, mobile: true, cnic: true },
-    });
-
-    if (duplicate) {
-      return NextResponse.json(
-        { error: `A patient with this ${duplicate.cnic === cnic && cnic ? "CNIC" : "mobile number"} already exists (${duplicate.mrNumber}).` },
-        { status: 409 },
-      );
-    }
-  }
-
   try {
+    const duplicateConditions = [];
+    if (cnic) duplicateConditions.push({ cnic });
+    if (mobile) duplicateConditions.push({ mobile });
+
+    if (duplicateConditions.length > 0) {
+      const duplicate = await db.patient.findFirst({
+        where: {
+          OR: duplicateConditions,
+        },
+        select: { mrNumber: true, name: true, mobile: true, cnic: true },
+      });
+
+      if (duplicate) {
+        return NextResponse.json(
+          { error: `A patient with this ${duplicate.cnic === cnic && cnic ? "CNIC" : "mobile number"} already exists (${duplicate.mrNumber}).` },
+          { status: 409 },
+        );
+      }
+    }
+
     const patient = await db.$transaction(async (transaction) => {
       const created = await transaction.patient.create({
         data: {
