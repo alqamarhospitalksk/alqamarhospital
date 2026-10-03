@@ -22,13 +22,34 @@
       "@/*": ["./*"]
     }
   },
+  // Only the real application folders are type-checked. A stray file anywhere else in the project
+  // (for example a test-runner config that imports a package this app does not use) must not be
+  // able to fail the production build.
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "lib/**/*.ts",
+    "scripts/**/*.ts",
+    "prisma/**/*.ts",
+    "proxy.ts",
+    "instrumentation.ts",
+    "next.config.ts",
+    "prisma.config.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**",
+    "vitest.config.*",
+    "vitest.workspace.*",
+    "vite.config.*",
+    "jest.config.*",
+    "playwright.config.*"
+  ]
 }
