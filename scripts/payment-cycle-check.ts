@@ -1,10 +1,10 @@
 // Standalone regression check for the salary payment-cycle logic (due date, status,
-// and first-cycle proration). No test framework is set up in this project, so this runs
+// and first-cycle proration). This is deliberately not named *.test.ts: hosting build tools treat that name as a sign of a test runner (vitest/jest) and fail when one is missing. It runs
 // as a plain script against the real exported function — not a reimplementation of it.
 //
-// Run with:  npx tsx lib/payment-cycle.test.ts
+// Run with:  npx tsx scripts/payment-cycle-check.ts
 
-import { getPaymentCycleInfo, type PaymentCycleInfo } from "./payment-cycle";
+import { getPaymentCycleInfo, type PaymentCycleInfo } from "../lib/payment-cycle";
 
 let failures = 0;
 let passed = 0;
