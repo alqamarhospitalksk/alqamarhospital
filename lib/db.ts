@@ -16,10 +16,14 @@ const adapter = new PrismaMariaDb({
   database: setting("DB_NAME", "clinicdb"),
   connectionLimit: 5,
   connectTimeout: 10000,
-  // Some hosted databases only accept encrypted connections. Set DB_SSL=true to turn that on
-  // (DB_SSL=strict also verifies the server certificate).
-  ...(process.env.DB_SSL === "true" ? { ssl: { rejectUnauthorized: false } } : {}),
-  ...(process.env.DB_SSL === "strict" ? { ssl: true } : {}),
+  // Hosted MySQL (GoDaddy and most others) refuses an unencrypted login, so production connects
+  // over SSL by default. Set DB_SSL=off to turn it off (e.g. a database on the same machine),
+  // or DB_SSL=strict to also verify the server's certificate. Local development stays unencrypted.
+  ...(process.env.DB_SSL === "strict"
+    ? { ssl: true }
+    : process.env.DB_SSL === "off" || (process.env.NODE_ENV !== "production" && process.env.DB_SSL !== "true")
+      ? {}
+      : { ssl: { rejectUnauthorized: false } }),
 });
 
 export const db = globalForPrisma.prisma ?? new PrismaClient({ adapter });
