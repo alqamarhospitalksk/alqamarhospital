@@ -2,6 +2,11 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "postcss": {
+    "plugins": {
+      "@tailwindcss/postcss": {}
+    }
+  },
   "scripts": {
     "predev": "node scripts/ensure-deps.cjs",
     "dev": "next dev --webpack",
