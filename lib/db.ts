@@ -12,6 +12,11 @@ const adapter = new PrismaMariaDb({
   password: process.env.DB_PASSWORD ?? "",
   database: process.env.DB_NAME ?? "clinicdb",
   connectionLimit: 5,
+  connectTimeout: 10000,
+  // Some hosted databases only accept encrypted connections. Set DB_SSL=true to turn that on
+  // (DB_SSL=strict also verifies the server certificate).
+  ...(process.env.DB_SSL === "true" ? { ssl: { rejectUnauthorized: false } } : {}),
+  ...(process.env.DB_SSL === "strict" ? { ssl: true } : {}),
 });
 
 export const db = globalForPrisma.prisma ?? new PrismaClient({ adapter });
