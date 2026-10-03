@@ -92,11 +92,30 @@ function npm(args) {
   }).status;
 }
 
+// The database client is generated code (npx prisma generate), not a downloadable package. A fresh or
+// repaired node_modules does not have it until someone generates it, and without it every page that
+// touches the database fails with "Cannot find module '.prisma/client/default'". The build step
+// generates it, but the preview server (next dev) does not, so it is checked here.
+function ensurePrismaClient() {
+  const generated = path.join(root, "node_modules", ".prisma", "client", "default.js");
+  if (fs.existsSync(generated)) return;
+  console.log("[ensure-deps] database client not generated - running prisma generate");
+  const cache = path.join(os.tmpdir(), "careledger-npm-cache");
+  const status = spawnSync("npx", ["prisma", "generate"], {
+    cwd: root,
+    stdio: "inherit",
+    shell: true,
+    env: { ...process.env, npm_config_cache: cache },
+  }).status;
+  console.log(fs.existsSync(generated) ? "[ensure-deps] database client generated" : `[ensure-deps] prisma generate did not complete (exit ${status})`);
+}
+
 try {
   if (!fs.existsSync(lockFile)) process.exit(0);
   let { problems, checked } = findProblems();
   if (problems.length === 0) {
     console.log(`[ensure-deps] ok (${checked} packages checked)`);
+    ensurePrismaClient();
     process.exit(0);
   }
 
@@ -115,6 +134,7 @@ try {
   // the whole node_modules folder, which is too risky to do while the app is starting.)
   const status = npm(["install", "--include=optional"]);
   ({ problems } = findProblems());
+  ensurePrismaClient();
   console.log(problems.length === 0 ? "[ensure-deps] repair finished" : `[ensure-deps] still broken: ${problems.map((p) => `${p.key} (${p.problem})`).slice(0, 15).join(", ")} (npm exit ${status})`);
 } catch (error) {
   // Never block start-up: the application reports its own, clearer error if something is wrong.
