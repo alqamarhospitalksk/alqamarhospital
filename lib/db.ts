@@ -5,12 +5,15 @@ const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
 
+// Hosting panels sometimes save a secret with a trailing space, a line break or surrounding quotes.
+const setting = (name: string, fallback: string) => (process.env[name] ?? fallback).trim().replace(/^["']|["']$/g, "");
+
 const adapter = new PrismaMariaDb({
-  host: process.env.DB_HOST ?? "localhost",
-  port: Number(process.env.DB_PORT ?? 3306),
-  user: process.env.DB_USER ?? "root",
-  password: process.env.DB_PASSWORD ?? "",
-  database: process.env.DB_NAME ?? "clinicdb",
+  host: setting("DB_HOST", "localhost"),
+  port: Number(setting("DB_PORT", "3306")),
+  user: setting("DB_USER", "root"),
+  password: setting("DB_PASSWORD", ""),
+  database: setting("DB_NAME", "clinicdb"),
   connectionLimit: 5,
   connectTimeout: 10000,
   // Some hosted databases only accept encrypted connections. Set DB_SSL=true to turn that on
