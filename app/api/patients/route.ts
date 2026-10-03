@@ -136,34 +136,42 @@ export async function POST(request: Request) {
     }
   }
 
-  const patient = await db.$transaction(async (transaction) => {
-    const created = await transaction.patient.create({
+  try {
+    const patient = await db.$transaction(async (transaction) => {
+      const created = await transaction.patient.create({
+        data: {
+          // Temporary value, replaced with the real MR number just below. Must fit mr_number (30 characters).
+          mrNumber: `TMP-${crypto.randomUUID().replaceAll("-", "").slice(0, 24)}`,
+          name,
+          fatherName,
+          cnic: cnic || null,
+          mobile: mobile || "",
+          gender,
+          address,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+          createdById: user.id,
+        },
+      });
+
+      const mrNumber = `MR-${new Date().getFullYear()}-${String(created.id).padStart(6, "0")}`;
+      return transaction.patient.update({ where: { id: created.id }, data: { mrNumber } });
+    });
+
+    await db.auditLog.create({
       data: {
-        mrNumber: `PENDING-${crypto.randomUUID()}`,
-        name,
-        fatherName,
-        cnic: cnic || null,
-        mobile: mobile || "",
-        gender,
-        address,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-        createdById: user.id,
+        action: "CREATE",
+        entity: "Patient",
+        entityId: String(patient.id),
+        userId: user.id,
+        afterJson: JSON.stringify({ mrNumber: patient.mrNumber, name: patient.name, mobile: patient.mobile }),
       },
     });
 
-    const mrNumber = `MR-${new Date().getFullYear()}-${String(created.id).padStart(6, "0")}`;
-    return transaction.patient.update({ where: { id: created.id }, data: { mrNumber } });
-  });
-
-  await db.auditLog.create({
-    data: {
-      action: "CREATE",
-      entity: "Patient",
-      entityId: String(patient.id),
-      userId: user.id,
-      afterJson: JSON.stringify({ mrNumber: patient.mrNumber, name: patient.name, mobile: patient.mobile }),
-    },
-  });
-
-  return NextResponse.json({ patient }, { status: 201 });
+    return NextResponse.json({ patient }, { status: 201 });
+  } catch (error) {
+    // Logged in full for the server log; the screen gets only a short code (never a password or address).
+    console.error("Unable to save the patient", error);
+    const code = (error as { code?: string; cause?: { code?: string } } | null)?.cause?.code ?? (error as { code?: string } | null)?.code ?? "UNKNOWN";
+    return NextResponse.json({ error: `Unable to save the patient. Please try again. (error ${code})` }, { status: 500 });
+  }
 }
