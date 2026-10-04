@@ -81,6 +81,7 @@ export default function DiagnosticsPage() {
   const opdSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [catalog, setCatalog] = useState<Item[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
+  const [testSearch, setTestSearch] = useState("");
   const [visit, setVisit] = useState<Visit | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [discount, setDiscount] = useState("");
@@ -173,6 +174,7 @@ export default function DiagnosticsPage() {
       setVisit(data.visit);
       setTodayVisits(data.todayVisits ?? []);
       setSelected([]);
+      setTestSearch("");
     } catch {
       toast.error("Unable to connect to clinic server.");
     }
@@ -344,6 +346,10 @@ export default function DiagnosticsPage() {
     0
   );
   const total = Math.max(0, subtotal - Number(discount || 0));
+  // Filters the test list as you type (any part of the name, any case). Ticked tests stay ticked
+  // and counted in the bill even while the search hides them.
+  const testQuery = testSearch.trim().toLowerCase();
+  const filteredCatalog = testQuery ? catalog.filter((item) => item.name.toLowerCase().includes(testQuery)) : catalog;
   const title = serviceModule === "LABORATORY" ? "laboratory" : serviceModule.toLowerCase();
 
   const filteredHistory = receiptsHistory.filter((r) => {
@@ -506,13 +512,44 @@ export default function DiagnosticsPage() {
           <Text fontSize="sm" fontWeight="700" mb="3">
             Select Tests to Bill ({serviceModule})
           </Text>
+          {catalog.length > 0 && (
+            <Box mb="3">
+              <Flex gap="3" align="center" wrap="wrap">
+                <Box position="relative" flex="1" minW="220px">
+                  <Input
+                    placeholder={`Search ${title} tests by name…`}
+                    value={testSearch}
+                    autoComplete="off"
+                    onChange={(event) => setTestSearch(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") setTestSearch("");
+                    }}
+                    fontSize="sm"
+                  />
+                </Box>
+                {testSearch && (
+                  <Button size="sm" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => setTestSearch("")}>
+                    Clear
+                  </Button>
+                )}
+              </Flex>
+              <Text fontSize="xs" color="#607d76" mt="2">
+                {testQuery ? `Showing ${filteredCatalog.length} of ${catalog.length} tests` : `${catalog.length} tests`}
+                {selected.length > 0 ? ` · ${selected.length} selected` : ""}
+              </Text>
+            </Box>
+          )}
           <SimpleGrid columns={{ base: 1, md: 2 }} gap="3" mb="6">
             {catalog.length === 0 ? (
               <Text color="#77908b" fontSize="sm">
                 No tests active in this module catalog.
               </Text>
+            ) : filteredCatalog.length === 0 ? (
+              <Text color="#77908b" fontSize="sm">
+                No tests found for &ldquo;{testSearch}&rdquo;.
+              </Text>
             ) : (
-              catalog.map((item) => (
+              filteredCatalog.map((item) => (
                 <Checkbox.Root
                   key={item.id}
                   checked={selected.includes(item.id)}
