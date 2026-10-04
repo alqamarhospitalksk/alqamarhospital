@@ -566,6 +566,7 @@ export default function OpdPage() {
                   if (doctorId) setDoctorId("");
                 }}
                 onFocus={() => setShowDoctorDropdown(true)}
+                onClick={() => setShowDoctorDropdown(true)}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") setShowDoctorDropdown(false);
                   if (e.key === "Enter" && showDoctorDropdown && filteredDoctors.length > 0 && !doctorId) {
