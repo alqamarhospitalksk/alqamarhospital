@@ -26,6 +26,7 @@ export default function ConfigurationPage() {
   const [editing, setEditing] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -95,7 +96,10 @@ export default function ConfigurationPage() {
     await loadItems();
   }
 
-  const visible = items.filter((item) => item.module === module);
+  const moduleItems = items.filter((item) => item.module === module);
+  // Search matches any part of the test name, in any case; it only narrows the list on screen.
+  const searchQuery = search.trim().toLowerCase();
+  const visible = searchQuery ? moduleItems.filter((item) => item.name.toLowerCase().includes(searchQuery)) : moduleItems;
   const pageCount = Math.max(1, Math.ceil(visible.length / pageSize));
   const pagedVisible = visible.slice((page - 1) * pageSize, page * pageSize);
   const firstRecord = visible.length === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -147,7 +151,8 @@ export default function ConfigurationPage() {
       {/* Main Content */}
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
 
-        <HStack gap="2" mb="5" overflowX="auto">
+        <Flex gap="3" mb="5" align="center" justify="space-between" direction={{ base: "column", md: "row" }}>
+        <HStack gap="2" overflowX="auto" w={{ base: "full", md: "auto" }}>
           {moduleOptions.map((option) => (
             <Button
               key={option}
@@ -162,6 +167,7 @@ export default function ConfigurationPage() {
               onClick={() => {
                 setModule(option);
                 setEditing(null);
+                setSearch("");
                 setPage(1);
               }}
             >
@@ -169,6 +175,42 @@ export default function ConfigurationPage() {
             </Button>
           ))}
         </HStack>
+
+        <Flex gap="2" align="center" w={{ base: "full", md: "320px" }} flexShrink="0">
+          <Input
+            placeholder={`Search ${module === "LABORATORY" ? "lab" : module.toLowerCase()} tests by name…`}
+            value={search}
+            autoComplete="off"
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setSearch("");
+                setPage(1);
+              }
+            }}
+            bg="white"
+            fontSize="sm"
+          />
+          {search && (
+            <Button
+              size="sm"
+              variant="outline"
+              borderColor="#c8dad5"
+              color="#126b68"
+              flexShrink="0"
+              onClick={() => {
+                setSearch("");
+                setPage(1);
+              }}
+            >
+              Clear
+            </Button>
+          )}
+        </Flex>
+        </Flex>
 
 
 
@@ -202,7 +244,7 @@ export default function ConfigurationPage() {
                   <Table.Row>
                     <Table.Cell colSpan={4}>
                       <Text py="8" textAlign="center" color="#77908b">
-                        No tests configured for this module.
+                        {moduleItems.length > 0 ? `No tests found for "${search.trim()}".` : "No tests configured for this module."}
                       </Text>
                     </Table.Cell>
                   </Table.Row>
