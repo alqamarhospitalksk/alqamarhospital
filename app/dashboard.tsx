@@ -26,6 +26,9 @@ type Summary = {
   collected: number;
   doctorShare: number;
   doctorPayouts: number;
+  doctorRemaining: number;
+  doctorEarnedTotal: number;
+  doctorPaidTotal: number;
   totalExpenses: number;
   medicineWastage: number;
   supplierRefunds: number;
@@ -42,6 +45,9 @@ const emptySummary: Summary = {
   collected: 0,
   doctorShare: 0,
   doctorPayouts: 0,
+  doctorRemaining: 0,
+  doctorEarnedTotal: 0,
+  doctorPaidTotal: 0,
   totalExpenses: 0,
   medicineWastage: 0,
   supplierRefunds: 0,
@@ -285,11 +291,19 @@ export default function Dashboard() {
             </VStack>
           </Flex>
 
-          {/* Top row: all five figures move with the Today/Weekly/Monthly/Custom period picker above. */}
-          <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap="4" mb="4">
+          {/* Top rows: these figures move with the Today/Weekly/Monthly/Custom period picker above, except Doctor remaining amount, which is always the all-time balance. */}
+          <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }} gap="4" mb="4">
             <StatCard compact label="Total collected (gross)" value={money(summary.collected)} icon={faArrowTrendUp} color="#22633e" />
             <StatCard compact label="Patients seen" value={summary.patientsSeen} icon={faUserGroup} color="#126b68" />
-            <StatCard compact label="Doctor share" value={money(summary.doctorShare)} icon={faUserDoctor} color="#4a3aa7" footnote={`${money(summary.doctorPayouts)} paid out so far`} />
+            <StatCard compact label="Doctor share" value={money(summary.doctorShare)} icon={faUserDoctor} color="#4a3aa7" />
+            <StatCard
+              compact
+              label="Doctor remaining amount"
+              value={money(summary.doctorRemaining)}
+              icon={faUserDoctor}
+              color={summary.doctorRemaining > 0 ? "#a34258" : "#22633e"}
+              valueColor={summary.doctorRemaining > 0 ? "#a34258" : "#22633e"}
+            />
             <StatCard compact label="Net revenue (hospital)" value={money(summary.netRevenue)} icon={faSackDollar} color="#22633e" />
             <StatCard compact label="Total Expenses" value={money(summary.totalExpenses)} icon={faCoins} color="#b26732" />
             <StatCard
@@ -300,6 +314,7 @@ export default function Dashboard() {
               color={summary.supplierRefunds - summary.medicineWastage >= 0 ? "#22633e" : "#a34258"}
               valueColor={summary.supplierRefunds - summary.medicineWastage >= 0 ? "#22633e" : "#a34258"}
             />
+            <StatCard compact label="Paid to doctors" value={money(summary.doctorPayouts)} icon={faCoins} color="#4a3aa7" />
           </Grid>
 
           {/* Lifetime figures — not tied to the period picker. */}

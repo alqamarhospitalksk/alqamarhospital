@@ -65,3 +65,24 @@ export async function doctorShareForPeriod(since: Date, until: Date, dateColSinc
   const byDoctor = doctors.map((doc) => ({ id: doc.id, name: doc.name, ...computeDoctorShare(doc, visits, cases, receipts) }));
   return { total: byDoctor.reduce((sum, d) => sum + d.doctorShare, 0), byDoctor };
 }
+
+// What the hospital still owes its doctors RIGHT NOW: every active doctor's lifetime share minus
+// everything already paid to them. Not tied to any date range. These are the same rules, and so the
+// same numbers, as "Balance Due" on the Payouts page (app/api/finance/route.ts), summed over doctors.
+export async function doctorBalancesLifetime() {
+  const [doctors, visits, cases, receipts, payouts] = await Promise.all([
+    db.doctor.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    db.opdVisit.findMany({ select: { doctorId: true, consultationFee: true, visitDate: true } }),
+    db.otCase.findMany({ where: { status: "DISCHARGED" }, select: { doctorId: true, doctorFee: true, dischargeDate: true } }),
+    db.diagnosticReceipt.findMany({ where: { status: "PAID" }, select: { doctorId: true, module: true, total: true, createdAt: true } }),
+    db.expense.findMany({ where: { category: "DOCTOR_PAYOUT" }, select: { doctorId: true, amount: true } }),
+  ]);
+  const byDoctor = doctors.map((doc) => {
+    const earned = computeDoctorShare(doc, visits, cases, receipts).doctorShare;
+    const paid = payouts.filter((p) => p.doctorId === doc.id).reduce((sum, p) => sum + Number(p.amount), 0);
+    return { id: doc.id, name: doc.name, earned, paid, balance: earned - paid };
+  });
+  const totalEarned = byDoctor.reduce((sum, d) => sum + d.earned, 0);
+  const totalPaid = byDoctor.reduce((sum, d) => sum + d.paid, 0);
+  return { totalEarned, totalPaid, totalRemaining: totalEarned - totalPaid, byDoctor };
+}

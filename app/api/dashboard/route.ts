@@ -3,7 +3,7 @@ import { getCurrentUser } from "../../../lib/auth";
 import { roleError } from "../../../lib/roles";
 import { db } from "../../../lib/db";
 import { toDateColumnBoundary } from "../../../lib/date-range";
-import { doctorShareForPeriod } from "../../../lib/doctor-share";
+import { doctorBalancesLifetime, doctorShareForPeriod } from "../../../lib/doctor-share";
 import { storeRefundsForPeriod } from "../../../lib/store-refunds";
 import { describePaymentParty, paymentInclude, paymentSource, serviceKeys, serviceLabels } from "../../../lib/payment-source";
 
@@ -38,7 +38,8 @@ export async function GET(request: Request) {
   const dateColStart = toDateColumnBoundary(start);
   const dateColEnd = toDateColumnBoundary(end);
 
-  const [storeRefunds, doctorShares, payments, allExpenses, patientsSeen, patientCount, doctorCount, labTestCount, otCaseCount, recentPayments, revenueHistory] = await Promise.all([
+  const [doctorBalances, storeRefunds, doctorShares, payments, allExpenses, patientsSeen, patientCount, doctorCount, labTestCount, otCaseCount, recentPayments, revenueHistory] = await Promise.all([
+    doctorBalancesLifetime(),
     storeRefundsForPeriod(start, end),
     doctorShareForPeriod(start, end, dateColStart, dateColEnd),
     db.payment.findMany({ where: { createdAt: { gte: start, lt: end }, status: "PAID" }, orderBy: { createdAt: "asc" }, include: paymentInclude }),
@@ -142,6 +143,10 @@ export async function GET(request: Request) {
     doctorShare,
     hospitalShare,
     doctorPayouts,
+    // All-time, not tied to the period picker: what doctors have earned, been paid and are still owed.
+    doctorRemaining: doctorBalances.totalRemaining,
+    doctorEarnedTotal: doctorBalances.totalEarned,
+    doctorPaidTotal: doctorBalances.totalPaid,
     storeRefunds: storeRefunds.total,
     totalExpenses,
     medicineWastage,
