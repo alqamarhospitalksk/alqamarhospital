@@ -69,6 +69,9 @@ export async function POST(request: Request) {
   // No fallback default here on purpose — a payment method must be explicitly chosen
   // so a case can never silently end up marked "paid" when nothing was collected.
   const paymentMethod = text(body?.paymentMethod);
+  // How much is handed over at admission. Left out = the whole bill. A smaller amount is an advance:
+  // the rest stays as the case balance and is collected later with "Record Payment", in any number of parts.
+  const paidNowRaw = body?.paidNow !== undefined && body.paidNow !== null && body.paidNow !== "" ? Number(body.paidNow) : null;
 
   if (![patientId, doctorId].every(Number.isInteger) || !roomLabel || !methods.includes(paymentMethod)) {
     return NextResponse.json({ error: "Select a patient, doctor, enter a room/bed, and a valid payment method." }, { status: 400 });
@@ -123,12 +126,15 @@ export async function POST(request: Request) {
       // "DUE" means the patient couldn't pay yet, so no payment is recorded here —
       // staff record it later via the Record Payment action once it's actually collected.
       if (paymentMethod !== "DUE") {
+        const received = paidNowRaw === null ? total : Math.round(paidNowRaw * 100) / 100;
+        if (!Number.isFinite(received) || received <= 0) throw new Error("Enter the amount received now, or choose Due if nothing is paid yet.");
+        if (received > total + 0.005) throw new Error(`The amount received (PKR ${received}) is more than the bill (PKR ${total}).`);
         await transaction.payment.create({
           data: {
-            amount: total,
+            amount: received,
             method: paymentMethod as "CASH",
             status: "PAID",
-            note: `OT admission ${createdCase.caseNumber}`,
+            note: received < total ? `OT admission ${createdCase.caseNumber} — advance, balance PKR ${Math.round((total - received) * 100) / 100}` : `OT admission ${createdCase.caseNumber}`,
             otCaseId: createdCase.id,
             createdById: user.id,
           },
@@ -136,7 +142,7 @@ export async function POST(request: Request) {
       }
       return { createdCase, patient, doctor };
     });
-    await db.auditLog.create({ data: { action: "CREATE", entity: "OtCase", entityId: String(created.createdCase.id), userId: user.id, afterJson: JSON.stringify({ caseNumber: created.createdCase.caseNumber, patientId, roomLabel, paymentMethod }) } });
+    await db.auditLog.create({ data: { action: "CREATE", entity: "OtCase", entityId: String(created.createdCase.id), userId: user.id, afterJson: JSON.stringify({ caseNumber: created.createdCase.caseNumber, patientId, roomLabel, paymentMethod, paidNow: paidNowRaw }) } });
     return NextResponse.json({ case: { id: created.createdCase.id, caseNumber: created.createdCase.caseNumber, total: created.createdCase.total.toString(), patient: { name: created.patient.name, mrNumber: created.patient.mrNumber }, doctor: { name: created.doctor.name }, roomBed: { name: roomLabel } } }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to admit patient." }, { status: 409 });

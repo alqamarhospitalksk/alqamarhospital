@@ -79,23 +79,28 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (!otCase) throw new Error("OT case not found.");
 
       if (action === "RECORD_PAYMENT") {
-        // Collects whatever is still outstanding: the full bill for a case admitted as "Due", or the
-        // cost of items added later and left unpaid.
+        // Collects all or PART of what is still outstanding. A family can pay in as many instalments as
+        // they like: each one is its own payment (counted as income on the day it is received) until
+        // the balance reaches zero. Leaving the amount out pays the whole balance.
         const balance = round2(Number(otCase.total) - paidSoFar(otCase.payments));
         if (balance <= 0) throw new Error("Nothing is outstanding on this case — it is fully paid.");
         const paymentMethod = text(body?.paymentMethod).toUpperCase();
         if (!paymentMethods.includes(paymentMethod)) throw new Error("Select a valid payment method.");
+        const requested = body?.amount !== undefined && body.amount !== null && body.amount !== "" ? round2(Number(body.amount)) : balance;
+        if (!Number.isFinite(requested) || requested <= 0) throw new Error("Enter the amount being paid now (more than zero).");
+        if (requested > balance + 0.005) throw new Error(`That is more than what is still due (PKR ${balance}).`);
+        const amountNow = Math.min(requested, balance);
         const payment = await transaction.payment.create({
           data: {
-            amount: balance,
+            amount: amountNow,
             method: paymentMethod as "CASH",
             status: "PAID",
-            note: `OT payment recorded — ${otCase.caseNumber}`,
+            note: amountNow < balance ? `OT part-payment — ${otCase.caseNumber}, balance PKR ${round2(balance - amountNow)}` : `OT payment recorded — ${otCase.caseNumber}`,
             otCaseId: caseId,
             createdById: user.id,
           },
         });
-        return { kind: action, case: otCase, payment, amountPaid: balance };
+        return { kind: action, case: otCase, payment, amountPaid: amountNow, balanceAfter: round2(balance - amountNow) };
       }
 
       if (action === "CONSUME") {
@@ -147,8 +152,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const paymentMethod = "payment" in result ? result.payment?.method : undefined;
     const amountPaid = "amountPaid" in result ? result.amountPaid : undefined;
-    await db.auditLog.create({ data: { action: result.kind === "DISCHARGE" ? "UPDATE" : "CREATE", entity: "OtCase", entityId: String(caseId), userId: user.id, afterJson: JSON.stringify({ action: result.kind, caseNumber: result.case.caseNumber, paymentMethod }) } });
-    return NextResponse.json({ result: { action: result.kind, caseNumber: result.case.caseNumber, status: result.case.status, total: result.case.total.toString(), paymentMethod, amountPaid } });
+    const balanceAfter = "balanceAfter" in result ? result.balanceAfter : undefined;
+    await db.auditLog.create({ data: { action: result.kind === "DISCHARGE" ? "UPDATE" : "CREATE", entity: "OtCase", entityId: String(caseId), userId: user.id, afterJson: JSON.stringify({ action: result.kind, caseNumber: result.case.caseNumber, paymentMethod, amountPaid }) } });
+    return NextResponse.json({ result: { action: result.kind, caseNumber: result.case.caseNumber, status: result.case.status, total: result.case.total.toString(), paymentMethod, amountPaid, balanceAfter } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to update OT case." }, { status: 409 });
   }

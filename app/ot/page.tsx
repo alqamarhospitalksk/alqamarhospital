@@ -54,7 +54,7 @@ type OtCase = {
   total: string;
   lastInvoicedAt?: string | null;
   lineItems?: { description: string; quantity: string; unitPrice: string; total: string; createdAt?: string }[];
-  payments?: { method: string; amount?: string; status?: string }[];
+  payments?: { method: string; amount?: string; status?: string; createdAt?: string }[];
   paymentMethod?: string | null;
   // From /api/ot/all: what has been paid so far and what is still outstanding.
   paid?: number;
@@ -125,6 +125,8 @@ export default function OtPage() {
   const [homeMedicineNote, setHomeMedicineNote] = useState("");
   const [recommendations, setRecommendations] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
+  // Amount handed over at admission; empty = the whole bill. Less than the bill = an advance.
+  const [paidNow, setPaidNow] = useState("");
 
   const [selectedCase, setSelectedCase] = useState("");
   const [showDischargeBillModal, setShowDischargeBillModal] = useState(false);
@@ -134,6 +136,7 @@ export default function OtPage() {
   const [medicineCase, setMedicineCase] = useState<OtCase | null>(null);
   const [recordPaymentCase, setRecordPaymentCase] = useState<OtCase | null>(null);
   const [recordPaymentMethod, setRecordPaymentMethod] = useState("CASH");
+  const [recordPaymentAmount, setRecordPaymentAmount] = useState("");
   const [recordingPayment, setRecordingPayment] = useState(false);
 
   const [itemDescription, setItemDescription] = useState("");
@@ -291,6 +294,7 @@ export default function OtPage() {
           homeMedicineNote,
           recommendations,
           paymentMethod,
+          paidNow: paymentMethod !== "DUE" && paidNow !== "" ? Number(paidNow) : undefined,
         }),
       });
       const data = await response.json();
@@ -304,6 +308,7 @@ export default function OtPage() {
       setAnesthesiaFee(""); setRoomFee(""); setHospitalFee("");
       setOtMedicineFee(""); setOtMedicineNote(""); setHomeMedicineFee(""); setHomeMedicineNote("");
       setPaymentMethod("");
+      setPaidNow("");
       setRecommendations("");
       setPatientSearch(""); setSelectedPatient(null); setPatientResults([]);
       setShowAdmitModal(false);
@@ -327,7 +332,7 @@ export default function OtPage() {
     }
   }
 
-  async function caseAction(action: string, caseId = selectedCase, extraPaymentMethod?: string) {
+  async function caseAction(action: string, caseId = selectedCase, extraPaymentMethod?: string, extraAmount?: number) {
     if (!caseId) return;
     setSaving(true);
     try {
@@ -338,7 +343,7 @@ export default function OtPage() {
           action === "CONSUME"
             ? { action, description: itemDescription, category: itemCategory, unitPrice: Number(itemUnitPrice), quantity: Number(quantity), paymentMethod: itemPaymentMethod }
             : action === "RECORD_PAYMENT"
-            ? { action, paymentMethod: extraPaymentMethod }
+            ? { action, paymentMethod: extraPaymentMethod, amount: extraAmount }
             : { action }
         ),
       });
@@ -366,7 +371,7 @@ export default function OtPage() {
 
       toast.success(
         action === "RECORD_PAYMENT"
-          ? `${data.result.caseNumber}: payment recorded · PKR ${data.result.amountPaid ?? data.result.total} via ${paymentMethodLabels[data.result.paymentMethod] ?? data.result.paymentMethod}`
+          ? `${data.result.caseNumber}: PKR ${data.result.amountPaid ?? data.result.total} received via ${paymentMethodLabels[data.result.paymentMethod] ?? data.result.paymentMethod} · ${data.result.balanceAfter > 0 ? `PKR ${data.result.balanceAfter} still due` : "fully paid"}`
           : `${data.result.caseNumber}: ${data.result.status.replaceAll("_", " ")}${
               data.result.total ? ` · PKR ${data.result.total}` : ""
             }`
@@ -415,6 +420,14 @@ export default function OtPage() {
     ? (dischargeBillCase.lineItems ?? []).filter((item) => item.createdAt && new Date(item.createdAt) > new Date(dischargeBillCase.lastInvoicedAt!))
     : [];
   const newLineItemsTotal = newLineItems.reduce((sum, item) => sum + Number(item.total), 0);
+  // Admission form: the bill being entered, and what is being handed over now.
+  const admitTotal = [doctorFee, theaterFee, anesthesiaFee, roomFee, hospitalFee, otMedicineFee, homeMedicineFee].reduce((sum, value) => sum + Number(value || 0), 0);
+  const paidNowNumber = paidNow === "" ? admitTotal : Number(paidNow);
+  const paidNowInvalid = paymentMethod !== "" && paymentMethod !== "DUE" && paidNow !== "" && (!Number.isFinite(paidNowNumber) || paidNowNumber <= 0 || paidNowNumber > admitTotal + 0.005);
+  // Record Payment dialog: how much is being paid now vs. what is due.
+  const dueNow = recordPaymentCase ? Number(recordPaymentCase.balance ?? recordPaymentCase.total) : 0;
+  const recordAmountNumber = Number(recordPaymentAmount);
+  const recordAmountInvalid = !Number.isFinite(recordAmountNumber) || recordAmountNumber <= 0 || recordAmountNumber > dueNow + 0.005;
   // Paid so far vs. the bill — items added after admission can leave a balance.
   const billPaid = (dischargeBillCase?.payments ?? []).filter((p) => !p.status || p.status === "PAID").reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
   const billBalance = dischargeBillCase ? Math.max(0, Math.round((Number(dischargeBillCase.total) - billPaid) * 100) / 100) : 0;
@@ -758,9 +771,30 @@ export default function OtPage() {
                     No payment will be recorded yet — you can record it later from the records table once collected.
                   </Text>
                 )}
+                {paymentMethod !== "" && paymentMethod !== "DUE" && (
+                  <Box mt="3">
+                    <Text fontSize="sm" fontWeight="700" mb="2">Amount received now (PKR)</Text>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={admitTotal > 0 ? `Full bill: ${admitTotal}` : "Full bill"}
+                      value={paidNow}
+                      onChange={(event) => setPaidNow(event.target.value)}
+                      borderColor={paidNowInvalid ? "#d9534f" : undefined}
+                    />
+                    <Text fontSize="xs" mt="2" color={paidNowInvalid ? "#c0392b" : "#607d76"}>
+                      {paidNowInvalid
+                        ? `Enter an amount between 1 and ${admitTotal}.`
+                        : paidNow !== "" && paidNowNumber < admitTotal
+                        ? `Bill PKR ${admitTotal} · receiving PKR ${paidNowNumber} now · PKR ${Math.round((admitTotal - paidNowNumber) * 100) / 100} stays due and can be paid later in parts.`
+                        : "Leave empty to receive the full bill now, or enter less if the family is paying part of it."}
+                    </Text>
+                  </Box>
+                )}
               </Box>
 
-              <Button onClick={admit} loading={saving} disabled={!patientId || !doctorId || !roomLabel.trim() || !paymentMethod} bg="#123d3b" color="white" _hover={{ bg: "#255d58" }}>
+              <Button onClick={admit} loading={saving} disabled={!patientId || !doctorId || !roomLabel.trim() || !paymentMethod || paidNowInvalid} bg="#123d3b" color="white" _hover={{ bg: "#255d58" }}>
                 <FontAwesomeIcon icon={faCheck} />
                 &nbsp; Admit and Book OT Case
               </Button>
@@ -993,9 +1027,12 @@ export default function OtPage() {
                           </Badge>
                         ) : (
                           <VStack align="flex-start" gap="1">
-                            <Badge colorPalette="red" borderRadius="full">
-                              Balance Due{item.balance ? ` · PKR ${item.balance.toLocaleString("en-PK", { maximumFractionDigits: 2 })}` : ""}
+                            <Badge colorPalette={item.paid && item.paid > 0 ? "orange" : "red"} borderRadius="full">
+                              {item.paid && item.paid > 0 ? "Part paid" : "Balance Due"}{item.balance ? ` · PKR ${item.balance.toLocaleString("en-PK", { maximumFractionDigits: 2 })} due` : ""}
                             </Badge>
+                            {item.paid && item.paid > 0 ? (
+                              <Text fontSize="10px" color="#607d76">Paid PKR {item.paid.toLocaleString("en-PK", { maximumFractionDigits: 2 })} of {Number(item.total).toLocaleString("en-PK", { maximumFractionDigits: 2 })}</Text>
+                            ) : null}
                             <Button
                               size="2xs"
                               variant="outline"
@@ -1004,6 +1041,7 @@ export default function OtPage() {
                               onClick={() => {
                                 setRecordPaymentCase(item);
                                 setRecordPaymentMethod("CASH");
+                                setRecordPaymentAmount(String(item.balance ?? item.total));
                               }}
                             >
                               Record Payment
@@ -1138,11 +1176,31 @@ export default function OtPage() {
               </Button>
             </Flex>
             <Box p="24px">
-              <Text fontSize="sm" color="#556e68" mb="1">Amount due</Text>
+              <Text fontSize="sm" color="#556e68" mb="1">Still due</Text>
               <Text fontSize="xl" fontWeight="900" color="#123d3b" mb="1">PKR {recordPaymentCase.balance ?? recordPaymentCase.total}</Text>
-              {recordPaymentCase.paid ? (
-                <Text fontSize="xs" color="#607d76" mb="4">Bill PKR {recordPaymentCase.total} · already paid PKR {recordPaymentCase.paid}</Text>
-              ) : <Box mb="4" />}
+              <Text fontSize="xs" color="#607d76" mb="4">Bill PKR {recordPaymentCase.total}{recordPaymentCase.paid ? ` · already paid PKR ${recordPaymentCase.paid}` : ""}</Text>
+              <Flex justify="space-between" align="center" mb="2">
+                <Text fontSize="sm" fontWeight="700">Amount paying now (PKR)</Text>
+                <Button size="2xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => setRecordPaymentAmount(String(dueNow))}>
+                  Pay full balance
+                </Button>
+              </Flex>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={recordPaymentAmount}
+                onChange={(event) => setRecordPaymentAmount(event.target.value)}
+                borderColor={recordAmountInvalid ? "#d9534f" : undefined}
+                mb="2"
+              />
+              <Text fontSize="xs" mb="4" color={recordAmountInvalid ? "#c0392b" : "#607d76"}>
+                {recordAmountInvalid
+                  ? `Enter an amount between 1 and ${dueNow}.`
+                  : recordAmountNumber < dueNow
+                  ? `After this payment PKR ${Math.round((dueNow - recordAmountNumber) * 100) / 100} will still be due.`
+                  : "This clears the whole balance."}
+              </Text>
               <Text fontSize="sm" fontWeight="700" mb="2">Payment Method</Text>
               <NativeSelect.Root>
                 <NativeSelect.Field value={recordPaymentMethod} onChange={(event) => setRecordPaymentMethod(event.target.value)}>
@@ -1160,9 +1218,10 @@ export default function OtPage() {
                 color="white"
                 _hover={{ bg: "#255d58" }}
                 loading={recordingPayment}
+                disabled={recordAmountInvalid}
                 onClick={async () => {
                   setRecordingPayment(true);
-                  await caseAction("RECORD_PAYMENT", String(recordPaymentCase.id), recordPaymentMethod);
+                  await caseAction("RECORD_PAYMENT", String(recordPaymentCase.id), recordPaymentMethod, recordAmountNumber);
                   setRecordingPayment(false);
                 }}
               >
@@ -1352,21 +1411,38 @@ export default function OtPage() {
                       </Box>
                     )}
 
-                    <Flex justify="space-between" align="center" borderTop="2px solid #123d3b" pt="3">
-                      <Box>
-                        <Text fontSize="md" fontWeight="900" color={billBalance > 0 ? "#a34258" : undefined}>
-                          {billBalance > 0 ? "Balance Due — Not Yet Paid" : "Total Amount Paid"}
+                    <Box borderTop="2px solid #123d3b" pt="3">
+                      <Flex justify="space-between" align="center">
+                        <Text fontSize="md" fontWeight="900">Total Bill</Text>
+                        <Text fontSize="md" fontWeight="900">{Number(dischargeBillCase.total).toLocaleString("en-PK", { maximumFractionDigits: 2 })} PKR</Text>
+                      </Flex>
+                      {(dischargeBillCase.payments ?? []).filter((p) => !p.status || p.status === "PAID").length > 0 && (
+                        <Box mt="2">
+                          <Text fontSize="10px" textTransform="uppercase" fontWeight="800" color="#77908b" mb="1">Payments received</Text>
+                          {[...(dischargeBillCase.payments ?? [])]
+                            .filter((p) => !p.status || p.status === "PAID")
+                            .sort((x, y) => new Date(x.createdAt ?? 0).getTime() - new Date(y.createdAt ?? 0).getTime())
+                            .map((p, idx) => (
+                              <Flex key={idx} justify="space-between" fontSize="xs" color="#3e5e58" py="0.5">
+                                <Text>{p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-PK") : ""} · {paymentMethodLabels[p.method] ?? p.method}</Text>
+                                <Text fontWeight="700">{Number(p.amount ?? 0).toLocaleString("en-PK", { maximumFractionDigits: 2 })} PKR</Text>
+                              </Flex>
+                            ))}
+                          <Flex justify="space-between" fontSize="xs" fontWeight="800" color="#123d3b" pt="1" mt="1" borderTop="1px dashed #c8dad5">
+                            <Text>Total paid</Text>
+                            <Text>{billPaid.toLocaleString("en-PK", { maximumFractionDigits: 2 })} PKR</Text>
+                          </Flex>
+                        </Box>
+                      )}
+                      <Flex justify="space-between" align="center" mt="2" pt="2" borderTop="1px solid #e1e9e6">
+                        <Text fontSize="md" fontWeight="900" color={billBalance > 0 ? "#a34258" : "#22633e"}>
+                          {billBalance > 0 ? "Balance Due" : "Fully Paid"}
                         </Text>
-                        {billPaid > 0 && (
-                          <Text fontSize="10px" color="#556e68">
-                            Paid PKR {billPaid.toLocaleString("en-PK", { maximumFractionDigits: 2 })} via {[...new Set((dischargeBillCase.payments ?? []).map((p) => paymentMethodLabels[p.method] ?? p.method))].join(", ")}
-                          </Text>
-                        )}
-                      </Box>
-                      <Text fontSize="lg" fontWeight="900" color={billBalance > 0 ? "#a34258" : "#123d3b"}>
-                        {billBalance > 0 ? billBalance.toLocaleString("en-PK", { maximumFractionDigits: 2 }) : dischargeBillCase.total} PKR
-                      </Text>
-                    </Flex>
+                        <Text fontSize="lg" fontWeight="900" color={billBalance > 0 ? "#a34258" : "#22633e"}>
+                          {billBalance > 0 ? billBalance.toLocaleString("en-PK", { maximumFractionDigits: 2 }) : "0"} PKR
+                        </Text>
+                      </Flex>
+                    </Box>
                   </>
                 )}
               </Box>
