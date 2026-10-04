@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePolling } from "../use-polling";
 import { Box, Button, Flex, Grid, HStack, Heading, Input, NativeSelect, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -159,9 +160,10 @@ export default function LabDashboardPage() {
 
   useEffect(() => {
     void load();
-    const interval = setInterval(() => void load(true), 5000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
+  usePolling(() => load(true), 15000, { runNow: false });
 
   // Pending backlog is a "right now" snapshot, not tied to any date range — it stays as-is
   // regardless of which period is selected below.

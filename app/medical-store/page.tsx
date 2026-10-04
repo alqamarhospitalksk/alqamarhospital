@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePolling } from "../use-polling";
 import { Box, Button, Flex, Grid, Heading, HStack, Input, NativeSelect, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCashRegister, faHourglassHalf, faSkullCrossbones, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
@@ -159,9 +160,10 @@ export default function MedicalStoreDashboardPage() {
 
   useEffect(() => {
     void load();
-    const interval = setInterval(() => void load(true), 15000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
+  usePolling(() => load(true), 30000, { runNow: false });
 
   // Revenue follows the period picker; the stock cards are "right now" snapshots and don't.
   const salesInRange = (data?.salesHistory ?? []).filter((s) => {

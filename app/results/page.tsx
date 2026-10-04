@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePolling } from "../use-polling";
 import {
   Badge,
   Box,
@@ -123,9 +124,10 @@ export default function ResultsPage() {
   useEffect(() => {
     void load();
     void loadHospitalSettings();
-    const interval = setInterval(() => void load(true), 5000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
+  usePolling(() => load(true), 15000, { runNow: false });
 
   // Attached lab PDFs are held as blob URLs (not the raw data: URLs) so the inline viewer
   // and the print-the-attachment flow stay same-origin — a data: URL iframe is an opaque

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { usePolling } from "./use-polling";
 import { usePathname, useRouter } from "next/navigation";
 import { Box, Button, Flex, HStack, Link, Stack, Text } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -52,7 +53,8 @@ const roleLabels: Record<Role, string> = { OPERATOR: "Operator", MANAGEMENT: "Ma
 type User = { id?: number; username: string; name?: string | null; role: Role; mustChangePassword?: boolean };
 type HospitalSettings = { name: string; logoDataUrl?: string | null };
 
-const RESULT_POLL_INTERVAL_MS = 5000;
+// How often an operator's browser asks whether the lab has uploaded a new result.
+const RESULT_POLL_INTERVAL_MS = 20000;
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -104,49 +106,47 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const notifiedResultIdsRef = useRef<Set<number>>(new Set());
   const baselineEstablishedRef = useRef(false);
 
-  useEffect(() => {
-    if (user?.role !== "OPERATOR") return;
+  const isOperator = user?.role === "OPERATOR";
 
-    let cancelled = false;
+  // Start from a clean slate whenever the signed-in role changes, so opening the app never replays old uploads.
+  useEffect(() => {
     notifiedResultIdsRef.current = new Set();
     baselineEstablishedRef.current = false;
+  }, [isOperator]);
 
-    async function poll() {
-      try {
-        const res = await fetch("/api/diagnostics/recent-results");
-        if (cancelled) return;
-        if (res.status === 401) {
-          // Session expired or was revoked (e.g. a password reset) while this tab sat idle
-          // on the same page — the pathname-keyed auth-check effect won't notice until the
-          // next navigation, so clear it here too instead of spamming 401s every 5s.
-          setUser(null);
-          return;
+  async function pollRecentResults() {
+    try {
+      const res = await fetch("/api/diagnostics/recent-results");
+      if (res.status === 401) {
+        // Session expired or was revoked (e.g. a password reset) while this tab sat idle
+        // on the same page — the pathname-keyed auth-check effect won't notice until the
+        // next navigation, so clear it here too (this also switches the polling off).
+        setUser(null);
+        return;
+      }
+      if (!res.ok) return;
+      const data = await res.json();
+      const results: { id: number; testName: string; patient: { name: string; mrNumber: string } }[] = data.results ?? [];
+
+      if (!baselineEstablishedRef.current) {
+        // First poll after login/mount: record what already exists without toasting,
+        // so opening the app doesn't replay old uploads as fresh notifications.
+        results.forEach((item) => notifiedResultIdsRef.current.add(item.id));
+        baselineEstablishedRef.current = true;
+        return;
+      }
+
+      for (const item of results) {
+        if (!notifiedResultIdsRef.current.has(item.id)) {
+          notifiedResultIdsRef.current.add(item.id);
+          toast.info(`${item.testName} result uploaded for ${item.patient.name} (MR ${item.patient.mrNumber})`);
         }
-        if (!res.ok) return;
-        const data = await res.json();
-        const results: { id: number; testName: string; patient: { name: string; mrNumber: string } }[] = data.results ?? [];
+      }
+    } catch { /* ignore */ }
+  }
 
-        if (!baselineEstablishedRef.current) {
-          // First poll after login/mount: record what already exists without toasting,
-          // so opening the app doesn't replay old uploads as fresh notifications.
-          results.forEach((item) => notifiedResultIdsRef.current.add(item.id));
-          baselineEstablishedRef.current = true;
-          return;
-        }
-
-        for (const item of results) {
-          if (!notifiedResultIdsRef.current.has(item.id)) {
-            notifiedResultIdsRef.current.add(item.id);
-            toast.info(`${item.testName} result uploaded for ${item.patient.name} (MR ${item.patient.mrNumber})`);
-          }
-        }
-      } catch { /* ignore */ }
-    }
-
-    void poll();
-    const interval = setInterval(() => void poll(), RESULT_POLL_INTERVAL_MS);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [user?.role]);
+  // One request at a time, none while the tab is hidden, and only for operators.
+  usePolling(pollRecentResults, RESULT_POLL_INTERVAL_MS, { enabled: isOperator });
 
   if (pathname === "/login" || pathname === "/change-password" || pathname === "/dev") return <>{children}</>;
 

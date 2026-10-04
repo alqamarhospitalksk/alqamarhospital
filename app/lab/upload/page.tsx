@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useState } from "react";
+import { usePolling } from "../../use-polling";
 import { Badge, Box, Button, Flex, Heading, HStack, Input, NativeSelect, Table, Text, Textarea, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCloudArrowUp, faFilePdf, faTrash, faUpload, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
@@ -89,9 +90,10 @@ export default function LabUploadPage() {
 
   useEffect(() => {
     void load();
-    const interval = setInterval(() => void load(true), 5000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
+  usePolling(() => load(true), 15000, { runNow: false });
 
   function openUploadModal(r: ResultReceipt) {
     setUploadReceipt(r);

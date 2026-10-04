@@ -15,8 +15,11 @@ export async function GET() {
     where: { resultUploadedAt: { not: null }, receipt: { module: "LABORATORY" } },
     orderBy: { resultUploadedAt: "desc" },
     take: 20,
-    include: {
-      receipt: { include: { patient: true } },
+    select: {
+      id: true,
+      nameAtSale: true,
+      resultUploadedAt: true,
+      receipt: { select: { receiptNumber: true, module: true, patient: { select: { name: true, mrNumber: true } } } },
     },
   });
 
