@@ -9,7 +9,7 @@
   },
   "scripts": {
     "predev": "node scripts/ensure-deps.cjs",
-    "dev": "next dev --webpack",
+    "dev": "node scripts/dev.cjs",
     "prebuild": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "build": "prisma generate && next build --webpack",
     "prestart": "node scripts/ensure-deps.cjs",
@@ -18,7 +18,8 @@
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "dev:webpack": "next dev --webpack"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.37.0",
