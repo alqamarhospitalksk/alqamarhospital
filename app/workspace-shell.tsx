@@ -350,6 +350,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
 
       <Flex flex="1" minW="0" h="100vh" direction="column">
         <Flex
+          className="app-topbar"
           display={{ base: "flex", lg: "none" }}
           h="56px"
           flexShrink="0"

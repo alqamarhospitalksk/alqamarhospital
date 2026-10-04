@@ -923,6 +923,11 @@ export default function OpdPage() {
               </Button>
             </Flex>
 
+            {/* Page margin for printing THIS slip only: this style exists only while the slip is open on the
+                OPD desk, so no other page or slip is affected. Zero margin also keeps the browser from
+                printing its own title/date header and footer. */}
+            <style>{`@media print { @page { margin: 0; } }`}</style>
+
             {/* Modal Body: Bilingual Doctor Slip Layout */}
             <Box className="print-modal-body" p={{ base: "20px", md: "28px" }} maxH="80vh" overflowY="auto">
               <Box

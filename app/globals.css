@@ -291,6 +291,31 @@ button[style*="background-color: rgb(163, 66, 88)"] {
     color: black !important;
   }
 
+  /* OPD doctor slip ONLY (nothing else uses .opd-doctor-slip): print it edge to edge instead of
+     inside the default 10mm page margin + 20px padding + fixed 250mm height, which left a wide
+     white band above and below the frame. The zero PAGE margin that makes this possible is added
+     by app/opd/page.tsx only while this slip is open (an @page rule cannot be limited to one
+     element from here). The frame keeps a small inner gap so printers that cannot print right to
+     the paper edge do not clip it. */
+  .printable-slip.opd-doctor-slip {
+    padding: 6mm 7mm !important;
+    min-height: 0 !important;
+    height: calc(100vh - 1mm) !important;
+    box-sizing: border-box !important;
+  }
+
+  /* The modal body around the OPD slip has its own 28px padding on screen; on paper it would add
+     another band of white around the slip. Only the modal that holds the OPD slip is affected. */
+  .print-modal-body:has(.opd-doctor-slip) {
+    padding: 0 !important;
+  }
+
+  /* The small-screen top bar (hospital name) is app chrome, not part of the slip; while the OPD
+     slip is on screen it must not print above it. */
+  body:has(.opd-doctor-slip) .app-topbar {
+    display: none !important;
+  }
+
   .printable-slip .slip-inset-block {
     margin-left: 12px !important;
   }
