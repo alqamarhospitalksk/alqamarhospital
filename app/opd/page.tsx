@@ -160,6 +160,11 @@ export default function OpdPage() {
   const [isSearchingPatients, setIsSearchingPatients] = useState(false);
   const patientSearchRef = useRef<HTMLDivElement>(null);
 
+  // Doctor search combobox state (the doctor list is already loaded, so it is filtered on the page)
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [showDoctorDropdown, setShowDoctorDropdown] = useState(false);
+  const doctorSearchRef = useRef<HTMLDivElement>(null);
+
   async function loadInitialData() {
     try {
       const [patientRes, doctorRes, historyRes, settingsRes] = await Promise.all([
@@ -226,6 +231,9 @@ export default function OpdPage() {
       if (patientSearchRef.current && !patientSearchRef.current.contains(e.target as Node)) {
         setShowPatientDropdown(false);
       }
+      if (doctorSearchRef.current && !doctorSearchRef.current.contains(e.target as Node)) {
+        setShowDoctorDropdown(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -253,6 +261,8 @@ export default function OpdPage() {
       setShowSlipModal(true);
       setPatientId("");
       setDoctorId("");
+      setDoctorSearch("");
+      setShowDoctorDropdown(false);
       setPaymentMethod("CASH");
       setFreeReason("");
       setPatientSearch("");
@@ -389,6 +399,16 @@ export default function OpdPage() {
   }
 
   const selectedDoctor = doctors.find((doctor) => String(doctor.id) === doctorId);
+  // Matches any part of the name or specialization, ignoring case ("sul", "card"...).
+  const doctorQuery = doctorSearch.trim().toLowerCase();
+  const filteredDoctors = selectedDoctor
+    ? doctors
+    : doctors.filter((doctor) => !doctorQuery || `${doctor.name} ${doctor.specialization}`.toLowerCase().includes(doctorQuery));
+  function chooseDoctor(doctor: Doctor) {
+    setDoctorId(String(doctor.id));
+    setDoctorSearch(`${doctor.name} · ${doctor.specialization}`);
+    setShowDoctorDropdown(false);
+  }
 
   const filteredHistory = historyVisits.filter((v) => {
     if (!searchFilter.trim()) return true;
@@ -532,20 +552,80 @@ export default function OpdPage() {
               )}
             </Box>
 
-            <Box>
+            <Box position="relative" ref={doctorSearchRef}>
               <Text fontSize="sm" fontWeight="700" mb="2">
                 Select Attending Doctor
               </Text>
-              <NativeSelect.Root>
-                <NativeSelect.Field value={doctorId} onChange={(event) => setDoctorId(event.target.value)}>
-                  <option value="">Choose doctor</option>
-                  {doctors.map((doctor) => (
-                    <option key={doctor.id} value={doctor.id}>
-                      {doctor.name} · {doctor.specialization}
-                    </option>
-                  ))}
-                </NativeSelect.Field>
-              </NativeSelect.Root>
+              <Input
+                placeholder="Search doctor by name or specialization…"
+                value={doctorSearch}
+                autoComplete="off"
+                onChange={(e) => {
+                  setDoctorSearch(e.target.value);
+                  setShowDoctorDropdown(true);
+                  if (doctorId) setDoctorId("");
+                }}
+                onFocus={() => setShowDoctorDropdown(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setShowDoctorDropdown(false);
+                  if (e.key === "Enter" && showDoctorDropdown && filteredDoctors.length > 0 && !doctorId) {
+                    e.preventDefault();
+                    chooseDoctor(filteredDoctors[0]);
+                  }
+                }}
+                bg={selectedDoctor ? "#f0faf7" : "white"}
+                borderColor={selectedDoctor ? "#126b68" : undefined}
+                fontSize="sm"
+              />
+
+              {showDoctorDropdown && (
+                <Box
+                  position="absolute"
+                  top="100%"
+                  left="0"
+                  right="0"
+                  mt="1"
+                  bg="white"
+                  border="1.5px solid #126b68"
+                  borderRadius="10px"
+                  boxShadow="0 8px 24px rgba(18,59,59,0.15)"
+                  zIndex="50"
+                  maxH="240px"
+                  overflowY="auto"
+                >
+                  {filteredDoctors.length === 0 ? (
+                    <Box px="4" py="3">
+                      <Text fontSize="sm" color="#77908b">No doctors found for &ldquo;{doctorSearch}&rdquo;</Text>
+                    </Box>
+                  ) : (
+                    filteredDoctors.map((doctor) => (
+                      <Box
+                        key={doctor.id}
+                        px="4"
+                        py="2.5"
+                        cursor="pointer"
+                        bg={String(doctor.id) === doctorId ? "#f0faf7" : undefined}
+                        _hover={{ bg: "#f0faf7" }}
+                        borderBottom="1px solid #f0f4f3"
+                        onClick={() => chooseDoctor(doctor)}
+                      >
+                        <Text fontSize="sm" fontWeight="700" color="#123d3b">
+                          {doctor.name}
+                        </Text>
+                        <Text fontSize="xs" color="#506c65">
+                          {doctor.specialization} &nbsp;·&nbsp; PKR {doctor.consultationFee}
+                        </Text>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+              )}
+
+              {!doctorSearch && (
+                <Text fontSize="10px" color="#77908b" mt="1">
+                  Click to see all doctors, or type to search
+                </Text>
+              )}
             </Box>
 
             <Box>
