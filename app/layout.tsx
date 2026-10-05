@@ -50,7 +50,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${notoNastaliqUrdu.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      {/* Browser extensions (e.g. data-atm-ext-installed) add attributes to <body> before hydration. */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers><WorkspaceShell>{children}</WorkspaceShell></Providers>
       </body>
     </html>
