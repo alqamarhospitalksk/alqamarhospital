@@ -257,6 +257,212 @@ export const LAB_TEMPLATE_LIBRARY: LibraryTemplate[] = [
       text("Parasites", "Nil"),
     ],
   },
+
+  // =====================================================================================
+  // Forms taken from the clinic's old Access database (Laboratory.accdb) that the list above did
+  // not have. The result lines, their order and the wording follow the old Access forms. Units and
+  // normal ranges are copied from what the lab typed into those forms where the file holds them
+  // (cardiac enzymes, bilirubin, amylase, platelets, bleeding/clotting time, acid phosphatase,
+  // phosphate, semen count). Where the Access file holds no range, none is filled in here on
+  // purpose: add the range your lab prints, then save. Nothing is written to the database until
+  // the Lab picks a template and saves a test.
+  // =====================================================================================
+
+  // ---- Chemistry (from Access) ----
+  {
+    name: "Serum Amylase",
+    category: "Chemistry",
+    rows: [num("Serum Amylase", "u/l", 27, 220, "27 - 220 u/l")],
+  },
+  {
+    name: "Cardiac Enzymes (CPK, SGOT, LDH)",
+    category: "Chemistry",
+    rows: [
+      num("CPK", "u/l", 25, 195, "25 - 195 u/l"),
+      num("SGOT (AST)", "u/l", 0, 40, "0 - 40 u/l"),
+      num("LDH", "u/l", 200, 485, "200 - 485 u/l"),
+    ],
+  },
+  {
+    name: "Serum Bilirubin (Total, Direct, Indirect)",
+    category: "Chemistry",
+    rows: [
+      num("Total Bilirubin", "mg%", undefined, 1.0, "upto 1.0 mg%"),
+      num("Direct Bilirubin", "mg%", undefined, 0.25, "upto 0.25 mg%"),
+      num("Indirect Bilirubin", "mg%", undefined, 0.8, "upto 0.8 mg%"),
+    ],
+  },
+  {
+    name: "Calcium Profile (Calcium, ALP, Phosphate, SGPT)",
+    category: "Chemistry",
+    rows: [
+      num("Serum Calcium", "mg/dl", undefined, undefined),
+      num("Alkaline Phosphatase", "u/l", undefined, undefined),
+      num("Serum Phosphate", "mg/dl", undefined, undefined, "Children: 4.0 - 7.0 / Adults: 2.5 - 5.0"),
+      num("SGPT (ALT)", "u/l", undefined, undefined),
+    ],
+  },
+  {
+    name: "Acid Phosphatase Profile",
+    category: "Chemistry",
+    rows: [
+      num("Serum Calcium", "mg/dl", 8, 10, "8 - 10 mg/dl"),
+      num("Acid Phosphatase", "u/l", undefined, 6.5, "Up to 6.5 u/l"),
+      num("Serum Phosphate", "mg/dl", undefined, undefined, "Children: 4.0 - 7.0 / Adults: 2.5 - 5.0"),
+    ],
+  },
+
+  // ---- Haematology (from Access) ----
+  {
+    name: "Platelet Count",
+    category: "Haematology",
+    rows: [num("Platelets Count", "/cmm", 150000, 400000, "150,000 - 400,000 /cmm")],
+  },
+  {
+    name: "Platelet Count with BT / CT",
+    category: "Haematology",
+    rows: [
+      num("Platelets Count", "/cmm", 150000, 400000, "1,50,000 to 4,00,000 /cmm"),
+      text("Bleeding Time", "2 - 7 Min"),
+      text("Clotting Time", "5 - 11 Min"),
+    ],
+  },
+  {
+    name: "Peripheral Blood Smear",
+    category: "Haematology",
+    rows: [
+      num("Hemoglobin", "g/dl", undefined, undefined),
+      num("Total Leucocyte Count (TLC)", "/cmm", undefined, undefined),
+      num("Platelet Count", "/cmm", undefined, undefined),
+      num("Neutrophils", "%", undefined, undefined),
+      num("Lymphocytes", "%", undefined, undefined),
+      num("Monocytes", "%", undefined, undefined),
+      num("Eosinophils", "%", undefined, undefined),
+      num("Basophils", "%", undefined, undefined),
+      num("ESR", "mm/1st hr", undefined, undefined),
+      text("RBC Morphology"),
+      text("Malarial Parasite (MP)"),
+    ],
+  },
+  { name: "FDPs (Fibrin Degradation Products)", category: "Haematology", rows: [text("FDPs")] },
+  {
+    name: "Cross Match (X-Match)",
+    category: "Haematology",
+    rows: [
+      text("Patient Blood Group"),
+      text("Donor Name"),
+      text("Donor Blood Group"),
+      text("Saline Phase"),
+      text("Albumin Phase"),
+      text("Coomb's Phase"),
+      text("Bag No"),
+    ],
+  },
+  { name: "Anti-Rh Antibody Titre", category: "Haematology", rows: [text("Rh Antibodies Titre")] },
+  { name: "Coombs Test", category: "Haematology", rows: [text("Rh Antibody Titre"), text("Coomb's Test")] },
+
+  // ---- Hormones & Vitamins (from Access) ----
+  { name: "Beta HCG (B-HCG)", category: "Hormones & Vitamins", rows: [num("B-HCG", "mIU/ml", undefined, undefined)] },
+  { name: "FSH", category: "Hormones & Vitamins", rows: [num("FSH", "mIU/ml", undefined, undefined)] },
+  {
+    name: "LH / FSH / Progesterone",
+    category: "Hormones & Vitamins",
+    rows: [
+      num("LH", "mIU/ml", undefined, undefined),
+      num("FSH", "mIU/ml", undefined, undefined),
+      num("Progesterone", "ng/ml", undefined, undefined),
+    ],
+  },
+  { name: "Progesterone", category: "Hormones & Vitamins", rows: [num("Progesterone", "ng/ml", undefined, undefined)] },
+  { name: "Testosterone", category: "Hormones & Vitamins", rows: [num("Testosterone", "ng/ml", undefined, undefined)] },
+  { name: "Estradiol (E2)", category: "Hormones & Vitamins", rows: [num("Estradiol (E2)", "pg/ml", undefined, undefined)] },
+
+  // ---- Serology (from Access) ----
+  { name: "ANF (Anti-Nuclear Factor)", category: "Serology", rows: [qual("Anti Nuclear Factor (ANF)")] },
+  { name: "ASO Titre", category: "Serology", rows: [text("ASO Titre")] },
+  { name: "RA Factor", category: "Serology", rows: [qual("RA Factor")] },
+  { name: "VDRL", category: "Serology", rows: [qual("VDRL")] },
+  { name: "ICT", category: "Serology", rows: [qual("ICT")] },
+  {
+    name: "Brucella Titre",
+    category: "Serology",
+    rows: [text("Brucella Abortus"), text("Brucella Melitensis")],
+  },
+  {
+    name: "TORCH Profile",
+    category: "Serology",
+    rows: [
+      text("Toxoplasma IgG"),
+      text("Toxoplasma IgM"),
+      text("Rubella IgG"),
+      text("Rubella IgM"),
+      text("CMV IgG"),
+      text("CMV IgM"),
+    ],
+  },
+  {
+    name: "Toxoplasma IgG / IgM",
+    category: "Serology",
+    rows: [text("Toxoplasma IgG"), text("Toxoplasma IgM")],
+  },
+  {
+    name: "HBsAg / HCV by ELISA",
+    category: "Serology",
+    rows: [
+      text("HBs Ag"),
+      text("HBs Ag Patient Value"),
+      text("HBs Ag Cut-off Value"),
+      text("HCV Antibodies"),
+      text("HCV Antibodies Patient Value"),
+      text("HCV Antibodies Cut-off Value"),
+    ],
+  },
+  { name: "Echinococcus Haemagglutination", category: "Serology", rows: [text("Echinococcus Haemagglutination")] },
+
+  // ---- Urine & Stool (from Access) ----
+  { name: "Urine for Ketone Bodies", category: "Urine & Stool", rows: [text("Urine for Ketone Bodies", "Nil")] },
+  { name: "Urine Albumin", category: "Urine & Stool", rows: [text("Urine Albumin", "Nil")] },
+  { name: "Urine for Sugar", category: "Urine & Stool", rows: [text("Urine for Sugar", "Nil")] },
+  {
+    name: "Urine for Sugar & Albumin",
+    category: "Urine & Stool",
+    rows: [text("Urine for Sugar", "Nil"), text("Urine for Albumin", "Nil")],
+  },
+
+  // ---- Microbiology & Pathology (from Access) ----
+  { name: "AFB (Sputum)", category: "Microbiology & Pathology", rows: [qual("Sputum for AFB")] },
+  { name: "Urine Culture & Sensitivity", category: "Microbiology & Pathology", rows: [text("Result")] },
+  { name: "HVS Culture & Sensitivity", category: "Microbiology & Pathology", rows: [text("Result")] },
+  {
+    name: "Semen Analysis",
+    category: "Microbiology & Pathology",
+    rows: [
+      num("Volume", "ml", undefined, undefined),
+      text("Colour"),
+      text("Consistency"),
+      head("Morphology"),
+      num("Normal Forms", "%", undefined, undefined),
+      num("Abnormal Forms", "%", undefined, undefined),
+      head("Motility"),
+      num("Active", "%", undefined, undefined),
+      num("Sluggish", "%", undefined, undefined),
+      num("Dead", "%", undefined, undefined),
+      head("Count"),
+      num("Total Sperm Count", "Million/ml", 60, 200, "60.0 - 200.0 Million/ml"),
+      text("Pus Cells", "/HPF"),
+      text("RBCs", "/HPF"),
+    ],
+  },
+  {
+    name: "Pap Smear (Cytology)",
+    category: "Microbiology & Pathology",
+    rows: [text("Microscopic Examination (1)"), text("Microscopic Examination (2)")],
+  },
+  {
+    name: "Biopsy (Histopathology)",
+    category: "Microbiology & Pathology",
+    rows: [text("Specimen"), text("Gross Examination"), text("Microscopic Examination"), text("Opinion")],
+  },
 ];
 
 export const LAB_TEMPLATE_CATEGORIES = [...new Set(LAB_TEMPLATE_LIBRARY.map((t) => t.category))];
