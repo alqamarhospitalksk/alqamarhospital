@@ -1,0 +1,42 @@
+1. Install dependencies
+   run: npm install
+
+2. Create environment file
+   .env file
+   
+
+3. Start MySQL
+   Create a MySQL database named:
+   musa_kicks
+
+4. Generate Prisma Client
+   run: npx prisma generate
+
+5. Apply the database schema
+   run: npx prisma db push
+
+6. Add sample data
+   run: npx prisma db seed
+
+
+7. Start the development server
+   run: npm run dev
+
+
+8. for users: http://localhost:3000
+
+9. Admin Panel Credentials:
+   http://localhost:3000/admin
+   username: admin@ranimall.com
+   password: admin123!
+
+10. Laboratories User:
+User: labtech
+Pass: Abbas@123
+
+npx prisma generate
+npx prisma db push
+npx prisma db seed
+npm run dev
+
+

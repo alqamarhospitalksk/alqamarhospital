@@ -1,0 +1,57 @@
+1: CNIC unique in the patient form (Done)
+
+2: Make the mobile Number optional (Done)
+
+3: Add the search option in the patient OPD Desk
+
+
+4: Consulation fee, BP, Temperatur, weight remove from the slip (Done)
+
+5: print the patient copy and doctor copy. in opd desk slip (Done)
+
+6: Add the fee free option in operator side in the last OPD desk in cash field  (Done)
+
+7: And for doctor slip on the left side add the doctor details in English while on the right side add the doctor details in Urdu and then       add the patient info below it (Done)
+
+8: And in the same doctor slip add the footer details like address, contact information and in the center add the logo of the hospital or (doctor) (Done).
+
+9:  Add the delete button in the OPD desk  (Done)
+
+10:  Print two copies in the Diagnostics tab, Lab copy and patient copy (Done)
+
+11: Add the Lab Result tab on the operator side in the sidebar menu (Done)
+
+12: Add the anesthesia field in the OT form (Done)
+
+13: The OT module has a complete package like:
+	OT Charge
+	Doctor fee
+	anesthesia fee
+	Room charge
+	Recommendations
+	Home medicine
+	OT medicine
+	hospital fee (Done)
+
+14: Add Role base access
+	Admin Role
+	Lab Role (view and upload the results) (Done)
+	Operator Role
+	Medical store management Role (in the medical store show the expiry, low stock etc)
+	Accounts Role
+
+
+15: Minor Emergency 
+	first add the patient
+	Reason why the patient not checkup to the doctor in emergency situation
+	Enter the price like (100 rupees) (Done)
+
+16: in Operator side in OPD Desk remove the unavailability option (Done)
+
+
+17: Ultrasound, ECO, X-ray, Lab, Doctor Share (Done)
+
+18: While add the Doctor from management side also add a field for share in lab, share in X-ray, share in Ultrasound etc. (Done)
+
+19: Separate the payout and expenses and add the payout and expenses in the sidebar menu separately (Done)
+ 

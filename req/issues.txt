@@ -1,0 +1,3 @@
+1: when add more mediciens in the ot it cannot add this payment in to the management dashboard
+2: while payout to doctor the payment add in expenses card and total collected as it 
+and net reviewn card is increase

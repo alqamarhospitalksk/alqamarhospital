@@ -1,0 +1,38 @@
+For all page:
+1. while user click profile icon it should populate the profile, and give change password feature (Done)
+2. show name of user while login with icon on top. (Done)
+
+Admin:
+1. Move total expences card to up line to make it 4 and these are dynamic with today, weekly, monthly (Done)
+2. add more cards in second row: 1: Total Lab Test 2: Total OT Cases (Done)
+3. generate salary after the joining date, for the montly cycle, also calculate the days if he joind after some day of the salary date (Done)
+4. While give salary to employee, add incentive or decrease amount for leave or other expences (Done)
+5. While purchase inventry for hospital it should add in expences (Done)
+6. add reset password button in user access, to create one time password as "AlQamarPass-005", while user login, will change on first login (Done)
+7. add name column while create user (Done)
+
+Operator:
+1. In patient page, add view button in action column to view the patient history such as OPD and test reports (Done)
+2. Lab results, add today, weekly, monthly and custom button to filter the lab results (Done)
+
+
+Lab:
+1. Add today, weekly, monthly and custom range for main dashboard in lab dashboard (Done)
+2. add Cash card to show the amount collected on counter for lab (Done)
+1. Remove Today from receipt bar chart (Done)
+3. add chart for vairous types of test, to show the analytics of different test, today weekly monthly (Done)
+
+
+Store:
+1. Confirm first expire first out (Done)
+2. add purchase price while sell medicine, but did not show in receipt (Done)
+3. set drop down for today weekly monthly in Recent Sales table (Done)
+4. while damage or expire the medicine, it purchase price to becut from Cash, while return tosupplier itamount to be return added to cash, also add card on dashboard (Done)
+5. while return sale, again it shows total quantity of purchase (Done)
+
+
+Dev: Develop new page for developer acces with /dev
+1. backup database
+2. restore database
+3. clean database
+4. Create management/admin

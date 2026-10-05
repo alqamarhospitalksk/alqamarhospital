@@ -1,0 +1,66 @@
+Clinic Management System:
+
+A clinic management software is required to develop in node js as web application.
+
+The application has two roles operator, and management role for OPD management and Liberatory, ECG, ECO, Ultra sound, Operation Theater slips and cash management.
+
+[ADDED] Access Control: Each operator and management user must log in with their own username/password. Screens and actions are restricted by role, and every cash transaction/action should record which user performed it (audit trail), since operators handle cash directly.
+
+Responsibilities of operator:
+
+1. Patient registration (Patient name, father name, CNIC no, Mobile number, Date of birth, Gender, address) generate a unique MR number for each patient. [ADDED] Gender is required here because it is printed on the doctor slip (point 2) but was missing from the registration fields. [ADDED] Operator should be able to search an existing patient by MR number, CNIC, or mobile number to reuse their profile and view past visit history, instead of re-registering.
+
+2. Doctor Slip generation for patient: (Generate slip which contain Hospital name on top header, then on left side the patient details such as Patient name, Age, and agender) and on right side mention doctor details, also a one inch column on right side of whole page, mention the test names, so doctor can easily mark it for liberatory etc diagnosis. in center a small mention token number follow by previous patient in that day, with Unique OPT number, this OPD number conform the patient appointment with specific doctor for record. Next will start the token number from 1. There is also fee to collect from patient, each doctor has different fee. so keep record of payment for management analysis.
+
+3. Liberatory: While doctor suggest lab test, the patient come to operator counter for lab test receipt, so operator navigate to liberatory tab and enter OPD number, which will fetch the patient and doctor info, then the operator will select the suggested test from list of test and click generate receipt, it will generate a receipt with patient and doctor detail with OPD and liberatory token number and mention the list of lab tests and price, to be paid by patient to operator on counter.
+
+4. ECO: While doctor suggest ECO, the patient come to operator counter for ECO receipt, so operator navigate to ECO tab and enter OPD number, which will fetch the patient and doctor info, then the operator will select the suggested ECO test from list of ECO tests and click generate receipt, it will generate a receipt with patient and doctor detail with OPD and ECO Lab token number and mention the list of ECO test and price, to be paid by patient to operator on counter.
+
+
+5. X-Ray: While doctor suggest X-Ray, the patient come to operator counter for X-Ray receipt, so operator navigate to X-Ray tab and enter OPD number, which will fetch the patient and doctor info, then the operator will select the suggested X-Ray test from list of X-Ray tests and click generate receipt, it will generate a receipt with patient and doctor detail with OPD and X-Ray Lab token number and mention the list of X-Ray test and price, to be paid by patient to operator on counter.
+
+6. ECG: While doctor suggest ECG, the patient come to operator counter for ECG receipt, so operator navigate to ECG tab and enter OPD number, which will fetch the patient and doctor info, then the operator will select the suggested ECG test from list of ECG tests and click generate receipt, it will generate a receipt with patient and doctor detail with OPD and ECG Lab token number and mention the list of ECG test and price, to be paid by patient to operator on counter.
+
+7. Ultra Sound: While doctor suggest Ultra Sound, the patient come to operator counter for Ultra Sound receipt, so operator navigate to Ultra Sound tab and enter OPD number, which will fetch the patient and doctor info, then the operator will select the suggested Ultra Sound test from list of Ultra Sound tests and click generate receipt, it will generate a receipt with patient and doctor detail with OPD and Ultra Sound Lab token number and mention the list of Ultra Sound test and price, to be paid by patient to operator on counter.
+
+[ADDED] Results/Reports & Receipt handling (applies to Liberatory, ECO, X-Ray, ECG, Ultra Sound): The technician/operator should be able to attach or enter the test result/report against its token later, so it becomes part of the patient's permanent record and can be reprinted/reviewed. Receipts should support a discount (with reason) and cancellation/refund (with reason), both visible to management for reconciliation.
+
+8. Operation Theater: In operation procedure, we will admit the patient in separate room or assign a bed, so the specific room and single bed have different charges for each day, then the doctor will diagnose and suggest the procedure process with date and time, so the operator will book the theater date and time also select a doctor for that procedure, then on the time of operation the medicine and supporting tool use in operation will also to be added in that procedure, after doctor did the operation the patient will moved to bed or specific room, again after the doctor diagnose the to be discharge, so after the doctor discharge suggestion, the operator will complete and close that process and finally generate a slip which contain all prices such as doctor fee, room or bed fee, theater fee, medicine etc. so the patient will pay the fee and relieve from the hospital. [ADDED] Each room/bed should show its current status (vacant/occupied) so operators can assign an available one. [ADDED] Medicines and surgical tools used should be deducted from a stock/inventory list so management can track quantity on hand and get a low-stock warning.
+
+
+Management Role:
+
+Main screen to show dashboard analytics such as cash analytics for today weekly monthly, also show separate cash for doctors and Liberatory ECO ECG Ultra sound and operation theater etc. also show the test done per day by each test section. how much patient check by each doctor today. also show the important analytics for this management system. [ADDED] Management should be able to filter analytics by a custom date range and export reports (PDF/Excel/print).
+
+
+also create a tab to pay fee to doctor, employee salaries, lab , eco ecg etc expenses and also other daily and monthly expenses to maintain, finally it show the revenue on dashboard. [ADDED] This requires an Employee Registration tab (name, designation, contact, joining date, monthly salary) so salary payments can be linked to a specific employee record.
+
+
+tab for Doctor Registration: (Doctor name, Specializations, date and time availability of doctor, Fee, Split fee mechanism — i.e. percentage/amount of the doctor fee retained by the hospital vs. paid to the doctor).
+
+Tabs for test types and price management: (While click tab should show the list of existing added tests with price, so Management can add more test and also should update the price of test)
+Liberatory: Test name and price
+X-Ray: X-Ray Test types name and price
+ECG: Test name and price
+ECO: Test name and price
+Ultra Sound: Test name and price
+Operation Theater: Room type such as special room or bed with price, Operation Theater fee, Operation Doctor fee, Medicines, and surgery supporting tools for operation
+
+
+[ADDED] Additional points identified during analysis (please confirm with customer):
+
+1. Payment modes: document only mentions "cash management" — confirm if card, bank transfer, or online payments must also be supported, or if it is strictly cash-only.
+
+2. Currency & locale: assumed Pakistani Rupees (PKR) and Pakistan-style CNIC, since CNIC is used for patient ID. Confirm currency, date format, and whether Urdu-language support is needed alongside English.
+
+3. Printing hardware: confirm printer type for slips/receipts (thermal counter printer vs A4 printer) and supply the hospital's logo/letterhead image for the slip header.
+
+4. Data backup & retention: patient medical/financial data is sensitive — confirm backup frequency (e.g. daily automated backup) and how long records must be retained.
+
+5. Concurrency & deployment: confirm how many operator counters/computers will run simultaneously (Liberatory, X-Ray, ECG, ECO, Ultra Sound, OT, reception), whether the system runs on a local clinic network (LAN) or needs remote/cloud access, and whether a database technology preference exists (e.g. MySQL/PostgreSQL/MongoDB).
+
+6. Multi-branch: confirm if this is for a single clinic location only, or if multiple branches must be supported under one system.
+
+7. Scalability & caching: the system should be able to scale to more counters/patients (and future multi-branch) without a redesign, and should serve frequently-read data (test/price catalogs, doctor list, dashboard summary totals) from a cache instead of hitting the database every time, to keep counter operations fast under concurrent load. Cache must be invalidated immediately whenever Management edits a price/catalog/doctor, so operators never bill an old price. Patient lookup, OPD/token number generation, and payment recording always read/write live data (never cached), to avoid duplicate tokens or stale balances.
+
+

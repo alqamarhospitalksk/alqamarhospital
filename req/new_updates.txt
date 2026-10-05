@@ -1,0 +1,21 @@
+Lab mode:
+1:Unprint in dropdown (Done)
+
+
+2:upload tab:
+Add today , weekly, monthly, custom
+add the date and time in operator side in lab tests and in lab side (Done)
+
+3:remove the Pending Tests Queue in dashboard in lab mode and set the pending on the right side dropdown (Done)
+
+4:add pagination in pages where needed (Done) 
+
+5:in OT add today, weekly , monthly and custom buttons (Done) 
+
+6:change the btn to print recept in ot form in modal
+change medicine button to only Add btn (Done)
+
+
+7:not change the balance due with filter in payout tab (Done)
+
+8:how much to buy the medicnes in sell medicines in store (Done)

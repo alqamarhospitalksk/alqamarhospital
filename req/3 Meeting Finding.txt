@@ -1,0 +1,55 @@
+Doctor Receipt:
+1. Add fee amount in doctor receipt, details to be same as patient (Done)
+
+OPD Slip:
+2. Remove footer localhost:3000 and page numbering.
+4. In Header the hospital name to be dynamic
+5. Token number to be removed
+6. add doctor symbol in watermark
+7. address to be added below the box border (Done)
+
+Diagnostic Receipt:
+8. remove print Receipt/Report, its cover in lab and patient copy receipt (Done)
+
+Lab Receipt:
+9.  View the full page report, and in bottom place the print button
+10. Print Report (To print the attached file, attached by lab) (Done)
+
+Operation Theater:
+11. Add plus button in top right corner to view dialogue the patient admin form
+12. Place add button in patient row, to add further medicines 
+13. Remove the top booked patient table, patient registration form and additional medicine form from main page (Moved to dialog) (Done)
+
+Minor:
+14. add Print Receipt for patient and Minor OT.
+15. Slip optimize (Done)
+
+Operator page:
+16 remove the first appear title in heading from all pages in operator mode (Done)
+
+Lab Dashboard: (Lab)
+17. remove lab desk above the title (Done)
+18. remove upload test button from title (Done)
+
+Payout(Admin):
+19. in doctor amount analytics, add button for daily, weekly, and monthly, to filter the analytics payouts (Done)
+
+Dashboard:
+20. add daily weekly monthly, and custom button to filter the collection analytics, add all services analytics separate and total.
+21. Print ODF, Export Excel and detailed report to be deleted from dashboard,
+22. also delete the patient activity (Done)
+
+
+Billing and report: 
+23. add daily weekly monthly, and custom button to filter the collection analytics
+24. all service with complete report to view and print in pdf pages and excel sheet (Done)
+
+Configuration (Diagnostic):
+25. Completely move to lab module (Done)
+
+
+Store:
+26. sell medinice add search option
+27. optimizelevel, first to be Cotton, second Box, third injection or strip or bottles (Done)
+
+

@@ -1,0 +1,8 @@
+Credentials 
+For operator 
+Username: operator 
+Password: operator123
+
+For management 
+Username: management 
+Password: management123
