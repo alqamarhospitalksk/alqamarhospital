@@ -1,22 +1,13 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePolling } from "../../use-polling";
 import { Badge, Box, Button, Flex, Heading, HStack, Input, NativeSelect, Table, Text, Textarea, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCloudArrowUp, faFilePdf, faTrash, faUpload, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faClipboardCheck, faPenToSquare, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 
-const MAX_FILE_BYTES = 7_000_000;
-
-type ResultItem = {
-  id: number;
-  name: string;
-  result: string | null;
-  resultFileName: string | null;
-  hasResultFile: boolean;
-  resultUploadedAt: string | null;
-};
+type ResultItem = { id: number; name: string; done: boolean };
 type ResultReceipt = {
   id: number;
   receiptNumber: string;
@@ -29,7 +20,36 @@ type ResultReceipt = {
   doctor: { name: string };
   items: ResultItem[];
 };
-type Draft = { result: string; fileName: string; fileDataUrl: string };
+type TemplateRow = {
+  id: number;
+  kind: "HEADING" | "NUMERIC" | "QUALITATIVE" | "TEXT";
+  name: string;
+  unit: string | null;
+  altUnit: string | null;
+  altFactor: string | null;
+  referenceText: string | null;
+};
+type SavedValue = { parameterId: number | null; value: string };
+type EntryItem = {
+  id: number;
+  name: string;
+  done: boolean;
+  result: string | null;
+  remarks: string | null;
+  defaultRemarks: string | null;
+  template: TemplateRow[];
+  values: SavedValue[];
+};
+type EntryReceipt = {
+  receiptId: number;
+  receiptNumber: string;
+  moduleToken: number;
+  patient: { name: string; mrNumber: string; gender: string };
+  doctor: { name: string };
+  items: EntryItem[];
+};
+// One draft per test: a value for each template row (keyed by row id), or free text for a test without a template.
+type Draft = { values: Record<number, string>; result: string; remarks: string };
 type Period = "today" | "weekly" | "monthly" | "custom";
 
 function toDateStr(date: Date) {
@@ -55,7 +75,8 @@ export default function LabUploadPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("PENDING");
   const [searchFilter, setSearchFilter] = useState("");
-  const [uploadReceipt, setUploadReceipt] = useState<ResultReceipt | null>(null);
+  const [entryReceipt, setEntryReceipt] = useState<EntryReceipt | null>(null);
+  const [openingId, setOpeningId] = useState<number | null>(null);
   const [draftResults, setDraftResults] = useState<Record<number, Draft>>({});
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
@@ -95,66 +116,69 @@ export default function LabUploadPage() {
   // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
   usePolling(() => load(true), 15000, { runNow: false });
 
-  function openUploadModal(r: ResultReceipt) {
-    setUploadReceipt(r);
-    const draft: Record<number, Draft> = {};
-    r.items.forEach((item) => { draft[item.id] = { result: item.result ?? "", fileName: "", fileDataUrl: "" }; });
-    setDraftResults(draft);
+  async function openEntryModal(r: ResultReceipt) {
+    setOpeningId(r.id);
+    try {
+      const res = await fetch(`/api/diagnostics/${r.id}/results`);
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Unable to open this receipt.");
+        return;
+      }
+      const receipt = data as EntryReceipt;
+      const draft: Record<number, Draft> = {};
+      receipt.items.forEach((item) => {
+        const values: Record<number, string> = {};
+        item.values.forEach((v) => { if (v.parameterId !== null && v.value) values[v.parameterId] = v.value; });
+        draft[item.id] = { values, result: item.result ?? "", remarks: item.remarks ?? item.defaultRemarks ?? "" };
+      });
+      setDraftResults(draft);
+      setEntryReceipt(receipt);
+    } catch {
+      toast.error("Unable to reach the clinic server.");
+    } finally {
+      setOpeningId(null);
+    }
   }
 
-  function handleFileSelect(itemId: number, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      toast.error("Only PDF files can be attached as a result report.");
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      toast.error("Result PDF must be smaller than 7 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setDraftResults((prev) => ({
-        ...prev,
-        [itemId]: { ...prev[itemId], fileName: file.name, fileDataUrl: reader.result as string },
-      }));
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function clearFile(itemId: number) {
-    setDraftResults((prev) => ({ ...prev, [itemId]: { ...prev[itemId], fileName: "", fileDataUrl: "" } }));
+  function setValue(itemId: number, rowId: number, value: string) {
+    setDraftResults((prev) => ({ ...prev, [itemId]: { ...prev[itemId], values: { ...prev[itemId].values, [rowId]: value } } }));
   }
 
   async function submitResults() {
-    if (!uploadReceipt) return;
-    const results = Object.entries(draftResults)
-      .map(([itemId, draft]) => ({ itemId: Number(itemId), result: draft.result.trim(), fileName: draft.fileName, fileDataUrl: draft.fileDataUrl }))
-      .filter((entry) => entry.result.length > 0 || entry.fileDataUrl.length > 0);
+    if (!entryReceipt) return;
+    const results = entryReceipt.items
+      .map((item) => {
+        const draft = draftResults[item.id];
+        if (!draft) return null;
+        const values = Object.entries(draft.values)
+          .filter(([, value]) => value.trim() !== "")
+          .map(([parameterId, value]) => ({ parameterId: Number(parameterId), value }));
+        const hasTemplate = item.template.some((row) => row.kind !== "HEADING");
+        if (hasTemplate ? values.length === 0 : !draft.result.trim()) return null;
+        return { itemId: item.id, values, result: draft.result, remarks: draft.remarks };
+      })
+      .filter((entry) => entry !== null);
 
     if (results.length === 0) {
-      toast.error("Enter a result or attach a PDF for at least one test before uploading.");
+      toast.error("Enter a result for at least one test before saving.");
       return;
     }
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/diagnostics/${uploadReceipt.id}/results`, {
+      const res = await fetch(`/api/diagnostics/${entryReceipt.receiptId}/results`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ results }),
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Unable to upload test results.");
+        toast.error(data.error ?? "Unable to save test results.");
         return;
       }
-      toast.success(
-        `${data.updatedTests.join(", ")} uploaded for ${data.patient?.name ?? uploadReceipt.patient.name} (${data.patient?.mrNumber ?? uploadReceipt.patient.mrNumber}).`
-      );
-      setUploadReceipt(null);
+      toast.success(`${data.updatedTests.join(", ")} saved for ${entryReceipt.patient.name} (${entryReceipt.patient.mrNumber}).`);
+      setEntryReceipt(null);
       setDraftResults({});
       await load();
     } catch {
@@ -187,7 +211,7 @@ export default function LabUploadPage() {
       <Flex as="header" h="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" justify="space-between" px={{ base: "20px", md: "42px" }}>
         <Box>
           <Heading size="lg" letterSpacing="-0.04em">
-            Upload Laboratory Tests
+            Enter Laboratory Results
           </Heading>
         </Box>
       </Flex>
@@ -338,9 +362,9 @@ export default function LabUploadPage() {
                       </Table.Cell>
                       <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-PK")}</Table.Cell>
                       <Table.Cell textAlign="right">
-                        <Button size="xs" bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} onClick={() => openUploadModal(r)}>
-                          <FontAwesomeIcon icon={faUpload} />
-                          &nbsp; Upload
+                        <Button size="xs" bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={openingId === r.id} onClick={() => void openEntryModal(r)}>
+                          <FontAwesomeIcon icon={faPenToSquare} />
+                          &nbsp; Enter Results
                         </Button>
                       </Table.Cell>
                     </Table.Row>
@@ -400,87 +424,121 @@ export default function LabUploadPage() {
         </Box>
       </Box>
 
-      {/* Upload Results Modal */}
-      {uploadReceipt && (
+      {/* Result Entry Modal */}
+      {entryReceipt && (
         <Flex position="fixed" inset="0" bg="rgba(15, 30, 28, 0.55)" backdropFilter="blur(3px)" zIndex="100" align="center" justify="center" p="4">
-          <Box bg="white" borderRadius="16px" w="full" maxW="640px" boxShadow="0 20px 40px rgba(0,0,0,0.2)" overflow="hidden">
+          <Box bg="white" borderRadius="16px" w="full" maxW="860px" boxShadow="0 20px 40px rgba(0,0,0,0.2)" overflow="hidden">
             <Flex justify="space-between" align="center" px="28px" py="18px" bg="#123d3b" color="white">
               <HStack gap="3">
                 <Flex w="36px" h="36px" bg="#d6e66c" color="#123d3b" borderRadius="10px" align="center" justify="center">
-                  <FontAwesomeIcon icon={faCloudArrowUp} />
+                  <FontAwesomeIcon icon={faClipboardCheck} />
                 </Flex>
                 <Box>
-                  <Heading size="sm">Upload Test Results</Heading>
+                  <Heading size="sm">Enter Test Results</Heading>
                   <Text fontSize="xs" color="#a8c5bd">
-                    {uploadReceipt.receiptNumber} · {uploadReceipt.patient.name} ({uploadReceipt.patient.mrNumber})
+                    {entryReceipt.receiptNumber} · {entryReceipt.patient.name} ({entryReceipt.patient.mrNumber}) · {entryReceipt.patient.gender} · Referred by {entryReceipt.doctor.name}
                   </Text>
                 </Box>
               </HStack>
-              <Button variant="ghost" color="white" _hover={{ bg: "#255d58" }} p="2" minW="auto" onClick={() => setUploadReceipt(null)}>
+              <Button variant="ghost" color="white" _hover={{ bg: "#255d58" }} p="2" minW="auto" onClick={() => setEntryReceipt(null)}>
                 <FontAwesomeIcon icon={faXmark} size="lg" />
               </Button>
             </Flex>
-            <Box p="24px" maxH="65vh" overflowY="auto">
+            <Box p="24px" maxH="68vh" overflowY="auto">
               <Text fontSize="xs" color="#77908b" mb="4">
-                Attach a PDF report and/or type a quick result for as many tests as you have ready — the rest can be uploaded later.
+                Fill in the results you have. Empty rows are left out of the report, and you can come back to finish the rest later.
               </Text>
-              <VStack align="stretch" gap="5">
-                {uploadReceipt.items.map((item) => {
-                  const draft = draftResults[item.id] ?? { result: "", fileName: "", fileDataUrl: "" };
+              <VStack align="stretch" gap="7">
+                {entryReceipt.items.map((item) => {
+                  const draft = draftResults[item.id] ?? { values: {}, result: "", remarks: "" };
+                  const hasTemplate = item.template.some((row) => row.kind !== "HEADING");
                   return (
                     <Box key={item.id}>
                       <HStack justify="space-between" mb="2">
-                        <Text fontWeight="700" fontSize="sm">{item.name}</Text>
-                        <Badge colorPalette={item.result || item.hasResultFile ? "green" : "orange"} borderRadius="full">
-                          {item.result || item.hasResultFile ? "Already uploaded" : "Pending"}
+                        <Text fontWeight="800" color="#123d3b">{item.name}</Text>
+                        <Badge colorPalette={item.done ? "green" : "orange"} borderRadius="full">
+                          {item.done ? "Result saved" : "Pending"}
                         </Badge>
                       </HStack>
 
-                      {item.hasResultFile && (
-                        <Text fontSize="10px" color="#77908b" mb="2">
-                          Current file on record: {item.resultFileName ?? "result.pdf"} (uploading a new one below will replace it)
-                        </Text>
+                      {hasTemplate ? (
+                        <Box border="1px solid #e1e9e6" borderRadius="10px" overflow="hidden">
+                          <Table.Root size="sm">
+                            <Table.Header>
+                              <Table.Row bg="#fafcfb">
+                                <Table.ColumnHeader>Test</Table.ColumnHeader>
+                                <Table.ColumnHeader w="170px">Result</Table.ColumnHeader>
+                                <Table.ColumnHeader>Units</Table.ColumnHeader>
+                                <Table.ColumnHeader>Reference Range</Table.ColumnHeader>
+                              </Table.Row>
+                            </Table.Header>
+                            <Table.Body>
+                              {item.template.map((row) => {
+                                if (row.kind === "HEADING") {
+                                  return (
+                                    <Table.Row key={row.id} bg="#f3f7f6">
+                                      <Table.Cell colSpan={4} fontWeight="800" fontSize="xs" color="#126b68" textDecoration="underline">
+                                        {row.name}
+                                      </Table.Cell>
+                                    </Table.Row>
+                                  );
+                                }
+                                const value = draft.values[row.id] ?? "";
+                                const alt = row.kind === "NUMERIC" && row.altFactor && value.trim() !== "" && Number.isFinite(Number(value))
+                                  ? Number((Number(value) * Number(row.altFactor)).toFixed(3))
+                                  : null;
+                                return (
+                                  <Table.Row key={row.id}>
+                                    <Table.Cell fontSize="sm" fontWeight="600">{row.name}</Table.Cell>
+                                    <Table.Cell>
+                                      {row.kind === "QUALITATIVE" ? (
+                                        <NativeSelect.Root size="sm">
+                                          <NativeSelect.Field value={value} onChange={(event) => setValue(item.id, row.id, event.target.value)}>
+                                            <option value="">-</option>
+                                            <option value="NEGATIVE">Negative (-Ve)</option>
+                                            <option value="POSITIVE">Positive (+Ve)</option>
+                                          </NativeSelect.Field>
+                                        </NativeSelect.Root>
+                                      ) : (
+                                        <Input
+                                          size="sm"
+                                          type={row.kind === "NUMERIC" ? "number" : "text"}
+                                          step="any"
+                                          value={value}
+                                          onChange={(event) => setValue(item.id, row.id, event.target.value)}
+                                        />
+                                      )}
+                                    </Table.Cell>
+                                    <Table.Cell fontSize="xs" color="#556e68">
+                                      {row.unit ?? ""}
+                                      {alt !== null && row.altUnit ? `  |  ${alt} ${row.altUnit}` : ""}
+                                    </Table.Cell>
+                                    <Table.Cell fontSize="xs" color="#556e68">{row.referenceText ?? ""}</Table.Cell>
+                                  </Table.Row>
+                                );
+                              })}
+                            </Table.Body>
+                          </Table.Root>
+                        </Box>
+                      ) : (
+                        <Textarea
+                          placeholder={`Result for ${item.name}...`}
+                          value={draft.result}
+                          onChange={(event) =>
+                            setDraftResults((prev) => ({ ...prev, [item.id]: { ...prev[item.id], result: event.target.value } }))
+                          }
+                          rows={3}
+                        />
                       )}
 
-                      <HStack mb="2" gap="2" flexWrap="wrap">
-                        {draft.fileDataUrl ? (
-                          <HStack bg="#f0faf7" border="1px solid #126b68" borderRadius="8px" px="3" py="1.5" gap="2">
-                            <FontAwesomeIcon icon={faFilePdf} color="#126b68" />
-                            <Text fontSize="xs" fontWeight="700" color="#123d3b">{draft.fileName}</Text>
-                            <Button size="2xs" variant="ghost" color="#a34258" p="1" minW="auto" onClick={() => clearFile(item.id)}>
-                              <FontAwesomeIcon icon={faTrash} />
-                            </Button>
-                          </HStack>
-                        ) : (
-                          <>
-                            <Button
-                              size="xs"
-                              variant="outline"
-                              borderColor="#c8dad5"
-                              color="#126b68"
-                              onClick={() => document.getElementById(`pdf-input-${item.id}`)?.click()}
-                            >
-                              <FontAwesomeIcon icon={faFilePdf} />
-                              &nbsp; Attach PDF report
-                            </Button>
-                            <input
-                              id={`pdf-input-${item.id}`}
-                              type="file"
-                              accept="application/pdf"
-                              hidden
-                              onChange={(event) => handleFileSelect(item.id, event)}
-                            />
-                          </>
-                        )}
-                      </HStack>
-
-                      <Textarea
-                        placeholder={`Optional quick note for ${item.name}...`}
-                        value={draft.result}
+                      <Input
+                        mt="2"
+                        size="sm"
+                        placeholder="Remarks (optional)"
+                        value={draft.remarks}
                         onChange={(event) =>
-                          setDraftResults((prev) => ({ ...prev, [item.id]: { ...prev[item.id], result: event.target.value } }))
+                          setDraftResults((prev) => ({ ...prev, [item.id]: { ...prev[item.id], remarks: event.target.value } }))
                         }
-                        rows={2}
                       />
                     </Box>
                   );
@@ -488,12 +546,12 @@ export default function LabUploadPage() {
               </VStack>
             </Box>
             <Flex justify="flex-end" gap="3" px="28px" py="16px" bg="#f7faf9" borderTop="1px solid #e2e9e6">
-              <Button variant="outline" borderColor="#c8dad5" onClick={() => setUploadReceipt(null)}>
+              <Button variant="outline" borderColor="#c8dad5" onClick={() => setEntryReceipt(null)}>
                 Cancel
               </Button>
               <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={saving} onClick={submitResults}>
-                <FontAwesomeIcon icon={faUpload} />
-                &nbsp; Upload Results
+                <FontAwesomeIcon icon={faClipboardCheck} />
+                &nbsp; Save Results
               </Button>
             </Flex>
           </Box>

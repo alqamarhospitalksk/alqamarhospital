@@ -106,6 +106,7 @@ CREATE TABLE `diagnostic_catalog_items` (
     `name` VARCHAR(150) NOT NULL,
     `price` DECIMAL(12, 2) NOT NULL,
     `active` BOOLEAN NOT NULL DEFAULT true,
+    `default_remarks` VARCHAR(500) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
@@ -149,6 +150,7 @@ CREATE TABLE `diagnostic_receipt_items` (
     `result` TEXT NULL,
     `result_file_name` VARCHAR(255) NULL,
     `result_file_data_url` LONGTEXT NULL,
+    `remarks` VARCHAR(500) NULL,
     `result_uploaded_at` DATETIME(3) NULL,
     `result_uploaded_by_id` INTEGER NULL,
 
@@ -782,3 +784,48 @@ ALTER TABLE `medicine_purchase_return_items` ADD CONSTRAINT `medicine_purchase_r
 -- AddForeignKey
 ALTER TABLE `medicine_purchase_return_items` ADD CONSTRAINT `medicine_purchase_return_items_batch_id_fkey` FOREIGN KEY (`batch_id`) REFERENCES `medicine_batches`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
+-- CreateTable
+CREATE TABLE `diagnostic_test_parameters` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `catalog_item_id` INTEGER NOT NULL,
+    `sort_order` INTEGER NOT NULL DEFAULT 0,
+    `kind` VARCHAR(15) NOT NULL,
+    `name` VARCHAR(200) NOT NULL,
+    `unit` VARCHAR(30) NULL,
+    `alt_unit` VARCHAR(30) NULL,
+    `alt_factor` DECIMAL(14, 6) NULL,
+    `ref_low` DECIMAL(14, 4) NULL,
+    `ref_high` DECIMAL(14, 4) NULL,
+    `ref_text` VARCHAR(200) NULL,
+
+    INDEX `diagnostic_test_parameters_catalog_item_id_sort_order_idx`(`catalog_item_id`, `sort_order`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `diagnostic_result_values` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `receipt_item_id` INTEGER NOT NULL,
+    `parameter_id` INTEGER NULL,
+    `sort_order` INTEGER NOT NULL DEFAULT 0,
+    `kind` VARCHAR(15) NOT NULL,
+    `name` VARCHAR(200) NOT NULL,
+    `unit` VARCHAR(30) NULL,
+    `alt_unit` VARCHAR(30) NULL,
+    `alt_value` VARCHAR(40) NULL,
+    `reference_text` VARCHAR(200) NULL,
+    `value` VARCHAR(300) NOT NULL,
+    `flag` VARCHAR(10) NULL,
+
+    INDEX `diagnostic_result_values_receipt_item_id_sort_order_idx`(`receipt_item_id`, `sort_order`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `diagnostic_test_parameters` ADD CONSTRAINT `diagnostic_test_parameters_catalog_item_id_fkey` FOREIGN KEY (`catalog_item_id`) REFERENCES `diagnostic_catalog_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `diagnostic_result_values` ADD CONSTRAINT `diagnostic_result_values_receipt_item_id_fkey` FOREIGN KEY (`receipt_item_id`) REFERENCES `diagnostic_receipt_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `diagnostic_result_values` ADD CONSTRAINT `diagnostic_result_values_parameter_id_fkey` FOREIGN KEY (`parameter_id`) REFERENCES `diagnostic_test_parameters`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

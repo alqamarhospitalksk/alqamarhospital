@@ -4,18 +4,52 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Box, Button, Field, Flex, Grid, Heading, HStack, Input, Link, NativeSelect, Table, Text } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faFlask, faPlus, faPen, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faArrowDown, faArrowLeft, faArrowUp, faFlask, faPlus, faPen, faTrash, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { LAB_TEMPLATE_CATEGORIES, LAB_TEMPLATE_LIBRARY } from "../../lib/lab-template-library";
 
 const moduleOptions = ["LABORATORY", "ECO", "X-RAY", "ECG", "ULTRASOUND"];
 
+type RowKind = "HEADING" | "NUMERIC" | "QUALITATIVE" | "TEXT";
+// Template rows are edited as plain strings and converted to numbers by the server.
+type TemplateRow = {
+  kind: RowKind;
+  name: string;
+  unit: string;
+  altUnit: string;
+  altFactor: string;
+  refLow: string;
+  refHigh: string;
+  refText: string;
+};
 type CatalogItem = {
   id: number;
   module: string;
   name: string;
   price: string;
   active: boolean;
+  defaultRemarks: string | null;
+  parameters: { kind: RowKind; name: string; unit: string | null; altUnit: string | null; altFactor: string | null; refLow: string | null; refHigh: string | null; refText: string | null }[];
 };
+
+const rowKindLabel: Record<RowKind, string> = {
+  HEADING: "Section heading",
+  NUMERIC: "Number",
+  QUALITATIVE: "Positive / Negative",
+  TEXT: "Text",
+};
+const templateRowsOf = (item: CatalogItem): TemplateRow[] =>
+  item.parameters.map((p) => ({
+    kind: p.kind,
+    name: p.name,
+    unit: p.unit ?? "",
+    altUnit: p.altUnit ?? "",
+    altFactor: p.altFactor ?? "",
+    refLow: p.refLow ?? "",
+    refHigh: p.refHigh ?? "",
+    refText: p.refText ?? "",
+  }));
+const blankRow = (kind: RowKind = "NUMERIC"): TemplateRow => ({ kind, name: "", unit: "", altUnit: "", altFactor: "", refLow: "", refHigh: "", refText: "" });
 
 export default function ConfigurationPage() {
   const router = useRouter();
@@ -23,6 +57,8 @@ export default function ConfigurationPage() {
   const [module, setModule] = useState("LABORATORY");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const [rows, setRows] = useState<TemplateRow[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -48,6 +84,8 @@ export default function ConfigurationPage() {
     setEditing(null);
     setName("");
     setPrice("");
+    setRemarks("");
+    setRows([]);
     setShowModal(true);
   }
 
@@ -56,7 +94,44 @@ export default function ConfigurationPage() {
     setModule(item.module);
     setName(item.name);
     setPrice(item.price);
+    setRemarks(item.defaultRemarks ?? "");
+    setRows(templateRowsOf(item));
     setShowModal(true);
+  }
+
+  // Fills the editor from a built-in ready-made template. Nothing is saved until "Add Test"/"Save Test".
+  function applyLibraryTemplate(templateName: string) {
+    const template = LAB_TEMPLATE_LIBRARY.find((t) => t.name === templateName);
+    if (!template) return;
+    setRows(
+      template.rows.map((row) => ({
+        kind: row.kind,
+        name: row.name,
+        unit: row.unit ?? "",
+        altUnit: row.altUnit ?? "",
+        altFactor: row.altFactor === undefined ? "" : String(row.altFactor),
+        refLow: row.refLow === undefined ? "" : String(row.refLow),
+        refHigh: row.refHigh === undefined ? "" : String(row.refHigh),
+        refText: row.refText ?? "",
+      })),
+    );
+    setRemarks(template.remarks ?? "");
+    if (!name.trim()) setName(template.name);
+    toast.info(`Loaded the ${template.name} template (${template.rows.length} rows). Check the ranges, then save.`);
+  }
+
+  function updateRow(index: number, patch: Partial<TemplateRow>) {
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+
+  function moveRow(index: number, direction: -1 | 1) {
+    setRows((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -67,16 +142,24 @@ export default function ConfigurationPage() {
       const response = await fetch(endpoint, {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editing ? { name, price } : { module, name, price }),
+        // Only laboratory tests have a result template.
+        body: JSON.stringify({
+          ...(editing ? {} : { module }),
+          name,
+          price,
+          ...(module === "LABORATORY" ? { defaultRemarks: remarks, parameters: rows } : {}),
+        }),
       });
       const data = await response.json();
       if (!response.ok) {
         toast.error(data.error ?? "Unable to save test.");
         return;
       }
-      toast.success(editing ? "Test pricing updated successfully." : "Test added to the catalog successfully.");
+      toast.success(editing ? "Test updated successfully." : "Test added to the catalog successfully.");
       setName("");
       setPrice("");
+      setRemarks("");
+      setRows([]);
       setEditing(null);
       setShowModal(false);
       await loadItems();
@@ -350,7 +433,7 @@ export default function ConfigurationPage() {
             bg="white"
             borderRadius="16px"
             w="full"
-            maxW="560px"
+            maxW="980px"
             boxShadow="0 20px 40px rgba(0,0,0,0.2)"
             overflow="hidden"
           >
@@ -362,7 +445,7 @@ export default function ConfigurationPage() {
                 <Box>
                   <Heading size="sm">{editing ? "Edit Test Entry" : `Add New Test to ${module}`}</Heading>
                   <Text fontSize="xs" color="#a8c5bd">
-                    Configured pricing will take effect immediately across diagnostic counters.
+                    Pricing takes effect immediately; the result template is used by the Lab when entering results.
                   </Text>
                 </Box>
               </HStack>
@@ -418,6 +501,116 @@ export default function ConfigurationPage() {
                       onChange={(event) => setPrice(event.target.value)}
                     />
                   </Field.Root>
+
+                  {module === "LABORATORY" && (
+                    <Box>
+                      <HStack justify="space-between" mb="1">
+                        <Text fontWeight="700">Result Template</Text>
+                        <HStack gap="2">
+                          <Button size="xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => setRows((prev) => [...prev, blankRow("HEADING")])}>
+                            <FontAwesomeIcon icon={faPlus} />
+                            &nbsp; Section heading
+                          </Button>
+                          <Button size="xs" bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} onClick={() => setRows((prev) => [...prev, blankRow()])}>
+                            <FontAwesomeIcon icon={faPlus} />
+                            &nbsp; Add row
+                          </Button>
+                        </HStack>
+                      </HStack>
+                      <NativeSelect.Root size="sm" mb="2">
+                        <NativeSelect.Field
+                          value=""
+                          onChange={(event) => {
+                            if (event.target.value) applyLibraryTemplate(event.target.value);
+                          }}
+                        >
+                          <option value="">Use a ready-made template... (replaces the rows below)</option>
+                          {LAB_TEMPLATE_CATEGORIES.map((category) => (
+                            <optgroup key={category} label={category}>
+                              {LAB_TEMPLATE_LIBRARY.filter((t) => t.category === category).map((t) => (
+                                <option key={t.name} value={t.name}>
+                                  {t.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </NativeSelect.Field>
+                      </NativeSelect.Root>
+                      <Text fontSize="xs" color="#77908b" mb="3">
+                        Pick a ready-made template to fill the rows, then adjust anything you need. The ranges are typical adult values, so
+                        check them against your lab&apos;s own before use. You can also build rows by hand: leave the rows empty to let the Lab
+                        type a plain text result. Number rows are flagged High/Low automatically from the low and high limits, and a second
+                        unit with a factor shows a converted value (e.g. mg/dl x 0.0555 = mmol/l).
+                      </Text>
+
+                      <Grid gap="3">
+                        {rows.map((row, index) => (
+                          <Box key={index} border="1px solid #e1e9e6" borderRadius="10px" p="3" bg={row.kind === "HEADING" ? "#f3f7f6" : "white"}>
+                            <Grid templateColumns={{ base: "1fr", md: "170px 1fr auto" }} gap="2" alignItems="center">
+                              <NativeSelect.Root size="sm">
+                                <NativeSelect.Field value={row.kind} onChange={(event) => updateRow(index, { kind: event.target.value as RowKind })}>
+                                  {(Object.keys(rowKindLabel) as RowKind[]).map((kind) => (
+                                    <option key={kind} value={kind}>{rowKindLabel[kind]}</option>
+                                  ))}
+                                </NativeSelect.Field>
+                              </NativeSelect.Root>
+                              <Input
+                                size="sm"
+                                placeholder={row.kind === "HEADING" ? "e.g. After 30 Minutes. 75gm Glucose Orally Given" : "e.g. Fasting Blood Glucose"}
+                                value={row.name}
+                                onChange={(event) => updateRow(index, { name: event.target.value })}
+                              />
+                              <HStack gap="1">
+                                <Button size="xs" variant="ghost" disabled={index === 0} onClick={() => moveRow(index, -1)} aria-label="Move up">
+                                  <FontAwesomeIcon icon={faArrowUp} />
+                                </Button>
+                                <Button size="xs" variant="ghost" disabled={index === rows.length - 1} onClick={() => moveRow(index, 1)} aria-label="Move down">
+                                  <FontAwesomeIcon icon={faArrowDown} />
+                                </Button>
+                                <Button size="xs" variant="ghost" color="#a34258" onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} aria-label="Remove row">
+                                  <FontAwesomeIcon icon={faTrash} />
+                                </Button>
+                              </HStack>
+                            </Grid>
+
+                            {row.kind !== "HEADING" && (
+                              <Grid templateColumns={{ base: "1fr 1fr", md: row.kind === "NUMERIC" ? "repeat(6, 1fr)" : "1fr 2fr" }} gap="2" mt="2">
+                                <Input size="sm" placeholder="Unit (mg/dl)" value={row.unit} onChange={(event) => updateRow(index, { unit: event.target.value })} />
+                                {row.kind === "NUMERIC" && (
+                                  <>
+                                    <Input size="sm" placeholder="2nd unit (mmol)" value={row.altUnit} onChange={(event) => updateRow(index, { altUnit: event.target.value })} />
+                                    <Input size="sm" type="number" step="any" placeholder="Factor (0.0555)" value={row.altFactor} onChange={(event) => updateRow(index, { altFactor: event.target.value })} />
+                                    <Input size="sm" type="number" step="any" placeholder="Low limit" value={row.refLow} onChange={(event) => updateRow(index, { refLow: event.target.value })} />
+                                    <Input size="sm" type="number" step="any" placeholder="High limit" value={row.refHigh} onChange={(event) => updateRow(index, { refHigh: event.target.value })} />
+                                  </>
+                                )}
+                                <Input
+                                  size="sm"
+                                  placeholder={row.kind === "QUALITATIVE" ? "Reference (default: Negative (-Ve))" : "Printed reference (optional)"}
+                                  value={row.refText}
+                                  onChange={(event) => updateRow(index, { refText: event.target.value })}
+                                />
+                              </Grid>
+                            )}
+                          </Box>
+                        ))}
+                        {rows.length === 0 && (
+                          <Text fontSize="sm" color="#77908b" textAlign="center" py="3">
+                            No template rows yet. The Lab will type a plain text result for this test.
+                          </Text>
+                        )}
+                      </Grid>
+
+                      <Field.Root mt="4">
+                        <Field.Label fontWeight="700">Default Remarks</Field.Label>
+                        <Input
+                          placeholder="e.g. Test Performed By Chromatography Method"
+                          value={remarks}
+                          onChange={(event) => setRemarks(event.target.value)}
+                        />
+                      </Field.Root>
+                    </Box>
+                  )}
                 </Grid>
               </Box>
 
@@ -426,7 +619,7 @@ export default function ConfigurationPage() {
                   Cancel
                 </Button>
                 <Button type="submit" loading={saving} bg="#123d3b" color="white" _hover={{ bg: "#255d58" }}>
-                  {editing ? "Save Pricing" : "Add Test"}
+                  {editing ? "Save Test" : "Add Test"}
                 </Button>
               </Flex>
             </form>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../lib/auth";
 import { roleError } from "../../../../lib/roles";
 import { db } from "../../../../lib/db";
+import { serializeResultItem } from "../../../../lib/lab-catalog";
 
 function money(value: { toString(): string }) {
   return value.toString();
@@ -29,7 +30,11 @@ export async function GET(request: Request) {
       opdVisit: true,
       printedBy: { select: { username: true } },
       items: {
-        include: { resultUploadedBy: { select: { username: true } } },
+        orderBy: { id: "asc" },
+        include: {
+          resultUploadedBy: { select: { username: true } },
+          resultValues: { orderBy: { sortOrder: "asc" } },
+        },
       },
       payments: { select: { amount: true, method: true, status: true } },
     },
@@ -40,17 +45,11 @@ export async function GET(request: Request) {
       .filter((r) => r.patient != null && r.doctor != null)
       .map((r) => {
         const items = r.items.map((item) => ({
-          id: item.id,
-          name: item.nameAtSale,
+          ...serializeResultItem(item),
           price: money(item.priceAtSale),
-          result: item.result,
-          resultFileName: item.resultFileName,
-          hasResultFile: Boolean(item.resultFileDataUrl),
-          resultUploadedAt: item.resultUploadedAt,
           resultUploadedBy: item.resultUploadedBy?.username ?? null,
         }));
-        const resultStatus =
-          items.length > 0 && items.every((i) => i.result || i.hasResultFile) ? "DONE" : "PENDING";
+        const resultStatus = items.length > 0 && items.every((i) => i.done) ? "DONE" : "PENDING";
         return {
           id: r.id,
           receiptNumber: r.receiptNumber,
@@ -63,7 +62,7 @@ export async function GET(request: Request) {
           opdNumber: r.opdVisit?.opdNumber ?? null,
           printedAt: r.printedAt,
           printedBy: r.printedBy?.username ?? null,
-          patient: { name: r.patient!.name, mrNumber: r.patient!.mrNumber },
+          patient: { name: r.patient!.name, mrNumber: r.patient!.mrNumber, gender: r.patient!.gender },
           doctor: { name: r.doctor!.name },
           items,
           payments: r.payments.map((p) => ({ amount: money(p.amount), method: p.method, status: p.status })),

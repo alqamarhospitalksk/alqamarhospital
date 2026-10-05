@@ -17,7 +17,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveCo
 import { toast } from "react-toastify";
 import { StatCard } from "../stat-card";
 
-type ResultItem = { id: number; name: string; result: string | null; hasResultFile: boolean; resultUploadedAt: string | null };
+type ResultItem = { id: number; name: string; done: boolean; resultUploadedAt: string | null };
 type ResultReceipt = {
   id: number;
   receiptNumber: string;
@@ -167,7 +167,7 @@ export default function LabDashboardPage() {
 
   // Pending backlog is a "right now" snapshot, not tied to any date range — it stays as-is
   // regardless of which period is selected below.
-  const pendingItems = receipts.flatMap((r) => r.items.filter((item) => !item.result && !item.hasResultFile).map((item) => ({ ...item, receipt: r })));
+  const pendingItems = receipts.flatMap((r) => r.items.filter((item) => !item.done).map((item) => ({ ...item, receipt: r })));
   const pendingReceipts = receipts.filter((r) => r.resultStatus === "PENDING");
 
   const inRange = (dateStr: string) => {

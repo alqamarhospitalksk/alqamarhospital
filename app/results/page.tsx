@@ -17,19 +17,34 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faClockRotateLeft, faEye, faFilePdf, faPrint, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faClockRotateLeft, faEye, faPrint, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { qualitativeLabel } from "../../lib/lab-results";
 
+type ResultValue = {
+  id: number;
+  kind: string;
+  name: string;
+  unit: string | null;
+  altUnit: string | null;
+  altValue: string | null;
+  referenceText: string | null;
+  value: string;
+  flag: string | null;
+};
 type ResultItem = {
   id: number;
   name: string;
   price: string;
   result: string | null;
-  resultFileName: string | null;
-  hasResultFile: boolean;
+  remarks: string | null;
+  done: boolean;
+  values: ResultValue[];
   resultUploadedAt: string | null;
   resultUploadedBy: string | null;
 };
+
+const displayValue = (v: ResultValue) => (v.kind === "QUALITATIVE" ? qualitativeLabel(v.value) : v.value);
 type HospitalSettings = { name: string; logoDataUrl?: string | null };
 type ResultReceipt = {
   id: number;
@@ -43,7 +58,7 @@ type ResultReceipt = {
   opdNumber: string | null;
   printedAt: string | null;
   printedBy: string | null;
-  patient: { name: string; mrNumber: string };
+  patient: { name: string; mrNumber: string; gender: string };
   doctor: { name: string };
   items: ResultItem[];
 };
@@ -129,121 +144,48 @@ export default function ResultsPage() {
   // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
   usePolling(() => load(true), 15000, { runNow: false });
 
-  // Attached lab PDFs are held as blob URLs (not the raw data: URLs) so the inline viewer
-  // and the print-the-attachment flow stay same-origin — a data: URL iframe is an opaque
-  // origin, and calling contentWindow.print() on it is blocked.
-  const [attachments, setAttachments] = useState<{ itemId: number; name: string; blobUrl: string }[]>([]);
-  const [loadingAttachments, setLoadingAttachments] = useState(false);
-  const [mergingReports, setMergingReports] = useState(false);
-
-  // Keyed on *which* files are attached, not on the viewReceipt object itself: the 5s
-  // background poll replaces viewReceipt with a fresh object every tick, and depending on
-  // that identity would re-fetch the PDFs and reset the embedded viewer's scroll position.
-  const attachedItemIds = (viewReceipt?.items ?? [])
-    .filter((item) => item.hasResultFile)
-    .map((item) => item.id)
-    .join(",");
-
-  useEffect(() => {
-    const ids = attachedItemIds ? attachedItemIds.split(",").map(Number) : [];
-    let cancelled = false;
-    const created: string[] = [];
-
-    (async () => {
-      if (ids.length === 0) return;
-      setLoadingAttachments(true);
-      const loaded: { itemId: number; name: string; blobUrl: string }[] = [];
-      for (const id of ids) {
-        try {
-          const res = await fetch(`/api/diagnostics/items/${id}/file`);
-          const data = await res.json();
-          if (!res.ok) continue;
-          const blob = await (await fetch(data.fileDataUrl)).blob();
-          const blobUrl = URL.createObjectURL(blob);
-          created.push(blobUrl);
-          loaded.push({ itemId: id, name: data.fileName ?? "Lab report", blobUrl });
-        } catch {
-          /* skip this attachment — the rest of the report still renders */
-        }
-      }
-      if (cancelled) {
-        created.forEach((url) => URL.revokeObjectURL(url));
-        return;
-      }
-      setAttachments(loaded);
-      setLoadingAttachments(false);
-    })();
-
-    return () => {
-      cancelled = true;
-      created.forEach((url) => URL.revokeObjectURL(url));
-      setAttachments([]);
-      setLoadingAttachments(false);
-    };
-  }, [attachedItemIds]);
-
-  // Prints a single PDF via a hidden same-origin iframe.
-  function printAttachment(blobUrl: string) {
-    const frame = document.createElement("iframe");
-    frame.style.position = "fixed";
-    frame.style.right = "0";
-    frame.style.bottom = "0";
-    frame.style.width = "0";
-    frame.style.height = "0";
-    frame.style.border = "0";
-    frame.src = blobUrl;
-
-    frame.onload = () => {
-      const win = frame.contentWindow;
-      if (!win) return;
-      // Give the embedded PDF viewer a moment to initialise before printing.
-      setTimeout(() => {
-        try {
-          win.focus();
-          win.print();
-        } catch {
-          toast.error("Unable to print the report. Try opening it in a new tab instead.");
-        }
-      }, 250);
-      // Tear the iframe down well after the job has spooled.
-      setTimeout(() => frame.remove(), 60000);
-    };
-
-    document.body.appendChild(frame);
-  }
-
-  // Merges every attached report into one PDF so "Print All" is a single print job.
-  // Chaining separate print dialogs is not reliable: Chrome's PDF viewer doesn't fire
-  // `afterprint` for an iframe, and it suppresses a second print() while one dialog is open.
-  async function mergeAttachments(urls: string[]): Promise<string> {
-    const { PDFDocument } = await import("pdf-lib");
-    const merged = await PDFDocument.create();
-    for (const url of urls) {
-      const bytes = await (await fetch(url)).arrayBuffer();
-      const doc = await PDFDocument.load(bytes);
-      const pages = await merged.copyPages(doc, doc.getPageIndices());
-      pages.forEach((page) => merged.addPage(page));
-    }
-    const mergedBytes = await merged.save();
-    return URL.createObjectURL(new Blob([mergedBytes as BlobPart], { type: "application/pdf" }));
-  }
-
+  // Prints the filled-in template(s) laid out like the clinic's old result form: patient block,
+  // then Test | Result | Units | Reference Range per test, section headings, and the remarks line.
   function printResults(r: ResultReceipt) {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
     const clinicName = hospitalSettings?.name || "CareLedger Clinic";
-    const date = new Date().toLocaleDateString("en-PK");
-    const rows = r.items
+    const now = new Date();
+    const stamp = `${now.toLocaleDateString("en-PK")} ${now.toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}`;
+
+    const sections = r.items
       .map((item) => {
-        const parts: string[] = [];
-        if (item.result) parts.push(escapeHtml(item.result).replaceAll("\n", "<br>"));
-        if (item.hasResultFile) parts.push("<em>PDF report attached — view/print separately in the app.</em>");
-        if (parts.length === 0) parts.push("<em>Pending</em>");
-        return `<div class="test"><div class="test-name">${escapeHtml(item.name)}</div><div class="test-result">${parts.join("<br>")}</div></div>`;
+        const realValues = item.values.filter((v) => v.kind !== "HEADING");
+        const hasAlt = realValues.some((v) => v.altValue);
+        const altUnits = [...new Set(realValues.map((v) => v.altUnit).filter(Boolean))].join(" / ");
+        let body: string;
+        if (realValues.length > 0) {
+          const rows = item.values
+            .map((v) => {
+              if (v.kind === "HEADING") return `<tr><td colspan="${hasAlt ? 5 : 4}" class="heading">${escapeHtml(v.name)}</td></tr>`;
+              const abnormal = v.flag === "HIGH" || v.flag === "LOW" || v.flag === "ABNORMAL";
+              const marker = v.flag === "HIGH" ? " (H)" : v.flag === "LOW" ? " (L)" : "";
+              return `<tr>
+                <td>${escapeHtml(v.name)}</td>
+                <td class="${abnormal ? "abn" : ""}">${escapeHtml(displayValue(v))}${marker}</td>
+                <td>${escapeHtml(v.unit ?? "")}</td>
+                ${hasAlt ? `<td>${escapeHtml(v.altValue ?? "")}</td>` : ""}
+                <td>${escapeHtml(v.referenceText ?? "")}</td>
+              </tr>`;
+            })
+            .join("");
+          body = `<table><thead><tr><th>Test</th><th>Result</th><th>Units</th>${hasAlt ? `<th>${escapeHtml(altUnits)}</th>` : ""}<th>Reference Range</th></tr></thead><tbody>${rows}</tbody></table>`;
+        } else if (item.result) {
+          body = `<div class="free">${escapeHtml(item.result).replaceAll("\n", "<br>")}</div>`;
+        } else {
+          body = `<div class="free"><em>Pending</em></div>`;
+        }
+        const remarks = item.remarks ? `<div class="remarks"><strong>Remarks:</strong> ${escapeHtml(item.remarks)}</div>` : "";
+        return `<div class="test"><div class="test-name">${escapeHtml(item.name)}</div>${body}${remarks}</div>`;
       })
       .join("");
 
-    const printWindow = window.open("", "diagnostic-result-report", "width=480,height=800");
+    const printWindow = window.open("", "diagnostic-result-report", "width=900,height=800");
     if (!printWindow) {
       toast.error("Allow pop-ups to print the result report.");
       return;
@@ -256,52 +198,43 @@ export default function ResultsPage() {
     printWindow.document.write(`<!doctype html><html><head><title>${escapeHtml(r.module)} Result Report ${escapeHtml(r.receiptNumber)}</title><style>
       @page { size: A4 portrait; margin: 14mm; }
       * { box-sizing: border-box; }
-      body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; }
+      body { font-family: Arial, sans-serif; font-size: 10.5pt; color: #000; }
       .center { text-align: center; }
       .clinic { font-size: 18pt; font-weight: 800; }
       .subtitle { font-size: 11pt; font-weight: 700; margin-top: 2mm; text-transform: uppercase; letter-spacing: 1px; }
-      .meta { font-size: 9pt; margin-top: 4mm; display: flex; justify-content: space-between; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm 8mm; font-size: 10pt; margin-top: 4mm; }
       .rule { border-top: 2px solid #000; margin: 4mm 0; }
-      .rule-light { border-top: 1px dashed #000; margin: 3mm 0; }
-      .test { padding: 3mm 0; border-bottom: 1px solid #ccc; }
-      .test-name { font-weight: 800; font-size: 11pt; }
-      .test-result { margin-top: 1mm; font-size: 11pt; white-space: pre-wrap; }
-      .footer { text-align: center; font-size: 8pt; margin-top: 10mm; color: #444; }
+      .test { margin-bottom: 7mm; page-break-inside: avoid; }
+      .test-name { font-size: 12pt; font-weight: 800; text-align: center; text-decoration: underline; margin-bottom: 2mm; }
+      table { width: 100%; border-collapse: collapse; }
+      th { text-align: left; font-size: 10pt; border-bottom: 1px solid #000; padding: 1.5mm 2mm; }
+      td { padding: 1.4mm 2mm; vertical-align: top; }
+      td.heading { font-weight: 700; text-decoration: underline; padding-top: 3mm; }
+      td.abn { font-weight: 800; }
+      .free { white-space: pre-wrap; padding: 2mm; }
+      .remarks { margin-top: 3mm; font-size: 10pt; }
+      .footer { text-align: center; font-size: 8pt; margin-top: 8mm; color: #444; }
     </style></head><body>
       <div class="center clinic">${escapeHtml(clinicName.toUpperCase())}</div>
-      <div class="center subtitle">Laboratory — Diagnostic Result Report</div>
-      <div class="meta"><span><strong>Receipt #:</strong> ${escapeHtml(r.receiptNumber)}</span><span><strong>Date:</strong> ${escapeHtml(date)}</span></div>
-      <div class="meta"><span><strong>Token #:</strong> ${escapeHtml(String(r.moduleToken))}</span><span><strong>OPD #:</strong> ${escapeHtml(r.opdNumber ?? "-")}</span></div>
+      <div class="center subtitle">Laboratory - Test Result</div>
       <div class="rule"></div>
-      <div class="meta"><span><strong>Patient:</strong> ${escapeHtml(r.patient.name)} (MR #: ${escapeHtml(r.patient.mrNumber)})</span><span><strong>Doctor:</strong> ${escapeHtml(r.doctor.name)}</span></div>
-      <div class="rule-light"></div>
-      ${rows}
+      <div class="grid">
+        <span><strong>Name:</strong> ${escapeHtml(r.patient.name)} (MR # ${escapeHtml(r.patient.mrNumber)})</span>
+        <span><strong>Date/Time:</strong> ${escapeHtml(stamp)}</span>
+        <span><strong>Sex:</strong> ${escapeHtml(r.patient.gender)}</span>
+        <span><strong>Referred By:</strong> ${escapeHtml(r.doctor.name)}</span>
+        <span><strong>Receipt #:</strong> ${escapeHtml(r.receiptNumber)}</span>
+        <span><strong>Lab No:</strong> ${escapeHtml(String(r.moduleToken))}</span>
+      </div>
+      <div class="rule"></div>
+      ${sections}
       <div class="footer">This report is computer-generated and requires no signature unless stated otherwise.</div>
     </body></html>`);
     printWindow.document.close();
   }
 
   async function handlePrint(r: ResultReceipt) {
-    // Prefer the PDFs the Lab actually attached; fall back to the generated summary
-    // for receipts whose results were typed in as text instead of uploaded.
-    if (attachments.length === 1) {
-      printAttachment(attachments[0].blobUrl);
-    } else if (attachments.length > 1) {
-      setMergingReports(true);
-      try {
-        const mergedUrl = await mergeAttachments(attachments.map((a) => a.blobUrl));
-        printAttachment(mergedUrl);
-        // Freed once the print job has had time to spool.
-        setTimeout(() => URL.revokeObjectURL(mergedUrl), 60000);
-      } catch {
-        toast.error("Unable to combine the attached reports for printing.");
-        return;
-      } finally {
-        setMergingReports(false);
-      }
-    } else {
-      printResults(r);
-    }
+    printResults(r);
     if (r.printedAt) return;
     setPrintingId(r.id);
     try {
@@ -311,7 +244,7 @@ export default function ResultsPage() {
         setReceipts((prev) => prev.map((item) => (item.id === r.id ? { ...item, printedAt: data.receipt.printedAt } : item)));
       }
     } catch {
-      /* non-critical — printed marker is best-effort */
+      /* non-critical: printed marker is best-effort */
     } finally {
       setPrintingId(null);
     }
@@ -633,66 +566,80 @@ export default function ResultsPage() {
               </Button>
             </Flex>
             <Box p="24px" maxH="65vh" overflowY="auto">
-              {viewReceipt.items.map((item) => (
-                <Box key={item.id} mb="4" pb="4" borderBottom="1px solid #edf2f0">
-                  <HStack justify="space-between" mb="1">
-                    <Text fontWeight="800" color="#123d3b">
-                      {item.name}
-                    </Text>
-                    <Badge colorPalette={item.result || item.hasResultFile ? "green" : "orange"} borderRadius="full">
-                      {item.result || item.hasResultFile ? "Done" : "Pending"}
-                    </Badge>
-                  </HStack>
-                  {item.result && (
-                    <Text fontSize="sm" color="#334155" whiteSpace="pre-wrap" mb={item.hasResultFile ? "2" : "0"}>
-                      {item.result}
-                    </Text>
-                  )}
-                  {item.hasResultFile && (() => {
-                    const attachment = attachments.find((a) => a.itemId === item.id);
-                    if (!attachment) {
-                      return (
-                        <HStack gap="2" color="#77908b" fontSize="xs">
-                          <FontAwesomeIcon icon={faFilePdf} />
-                          <Text>{loadingAttachments ? "Loading attached report…" : "Attached report unavailable."}</Text>
-                        </HStack>
-                      );
-                    }
-                    return (
-                      <Box mt="2">
-                        <HStack justify="space-between" mb="1">
-                          <HStack gap="2" fontSize="xs" color="#126b68">
-                            <FontAwesomeIcon icon={faFilePdf} />
-                            <Text fontWeight="700">{attachment.name}</Text>
-                          </HStack>
-                          <Button size="xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => printAttachment(attachment.blobUrl)}>
-                            <FontAwesomeIcon icon={faPrint} />
-                            &nbsp; Print
-                          </Button>
-                        </HStack>
-                        <Box border="1px solid #c8dad5" borderRadius="8px" overflow="hidden" bg="#f8faf9">
-                          <iframe
-                            src={attachment.blobUrl}
-                            title={attachment.name}
-                            style={{ border: 0, width: "100%", height: "52vh", display: "block" }}
-                          />
-                        </Box>
+              {viewReceipt.items.map((item) => {
+                const realValues = item.values.filter((v) => v.kind !== "HEADING");
+                return (
+                  <Box key={item.id} mb="4" pb="4" borderBottom="1px solid #edf2f0">
+                    <HStack justify="space-between" mb="2">
+                      <Text fontWeight="800" color="#123d3b">
+                        {item.name}
+                      </Text>
+                      <Badge colorPalette={item.done ? "green" : "orange"} borderRadius="full">
+                        {item.done ? "Done" : "Pending"}
+                      </Badge>
+                    </HStack>
+                    {realValues.length > 0 && (
+                      <Box border="1px solid #e1e9e6" borderRadius="10px" overflow="hidden">
+                        <Table.Root size="sm">
+                          <Table.Header>
+                            <Table.Row bg="#fafcfb">
+                              <Table.ColumnHeader>Test</Table.ColumnHeader>
+                              <Table.ColumnHeader>Result</Table.ColumnHeader>
+                              <Table.ColumnHeader>Units</Table.ColumnHeader>
+                              <Table.ColumnHeader>Reference Range</Table.ColumnHeader>
+                            </Table.Row>
+                          </Table.Header>
+                          <Table.Body>
+                            {item.values.map((v) =>
+                              v.kind === "HEADING" ? (
+                                <Table.Row key={v.id} bg="#f3f7f6">
+                                  <Table.Cell colSpan={4} fontWeight="800" fontSize="xs" color="#126b68" textDecoration="underline">
+                                    {v.name}
+                                  </Table.Cell>
+                                </Table.Row>
+                              ) : (
+                                <Table.Row key={v.id}>
+                                  <Table.Cell fontSize="sm">{v.name}</Table.Cell>
+                                  <Table.Cell fontSize="sm" fontWeight="800" color={v.flag === "HIGH" || v.flag === "LOW" || v.flag === "ABNORMAL" ? "#b3261e" : "#17252b"}>
+                                    {displayValue(v)}
+                                    {v.flag === "HIGH" ? " (H)" : v.flag === "LOW" ? " (L)" : ""}
+                                  </Table.Cell>
+                                  <Table.Cell fontSize="xs" color="#556e68">
+                                    {v.unit ?? ""}
+                                    {v.altValue && v.altUnit ? `  |  ${v.altValue} ${v.altUnit}` : ""}
+                                  </Table.Cell>
+                                  <Table.Cell fontSize="xs" color="#556e68">{v.referenceText ?? ""}</Table.Cell>
+                                </Table.Row>
+                              ),
+                            )}
+                          </Table.Body>
+                        </Table.Root>
                       </Box>
-                    );
-                  })()}
-                  {!item.result && !item.hasResultFile && (
-                    <Text fontSize="sm" color="#94a3b8" fontStyle="italic">
-                      Awaiting result from the Lab.
-                    </Text>
-                  )}
-                  {item.resultUploadedAt && (
-                    <Text fontSize="10px" color="#94a3b8" mt="1">
-                      Uploaded {new Date(item.resultUploadedAt).toLocaleString("en-PK")}
-                      {item.resultUploadedBy ? ` by ${item.resultUploadedBy}` : ""}
-                    </Text>
-                  )}
-                </Box>
-              ))}
+                    )}
+                    {realValues.length === 0 && item.result && (
+                      <Text fontSize="sm" color="#334155" whiteSpace="pre-wrap">
+                        {item.result}
+                      </Text>
+                    )}
+                    {item.remarks && (
+                      <Text fontSize="sm" color="#334155" mt="2">
+                        <strong>Remarks:</strong> {item.remarks}
+                      </Text>
+                    )}
+                    {!item.done && (
+                      <Text fontSize="sm" color="#94a3b8" fontStyle="italic">
+                        Awaiting result from the Lab.
+                      </Text>
+                    )}
+                    {item.resultUploadedAt && (
+                      <Text fontSize="10px" color="#94a3b8" mt="1">
+                        Entered {new Date(item.resultUploadedAt).toLocaleString("en-PK")}
+                        {item.resultUploadedBy ? ` by ${item.resultUploadedBy}` : ""}
+                      </Text>
+                    )}
+                  </Box>
+                );
+              })}
             </Box>
             <Flex justify="flex-end" gap="3" px="28px" py="16px" bg="#f7faf9" borderTop="1px solid #e2e9e6">
               <Button variant="outline" borderColor="#c8dad5" onClick={() => setViewReceipt(null)}>
@@ -702,12 +649,11 @@ export default function ResultsPage() {
                 bg="#123d3b"
                 color="white"
                 _hover={{ bg: "#255d58" }}
-                disabled={viewReceipt.resultStatus !== "DONE" || loadingAttachments}
-                loading={mergingReports}
+                disabled={viewReceipt.resultStatus !== "DONE"}
                 onClick={() => void handlePrint(viewReceipt)}
               >
                 <FontAwesomeIcon icon={faPrint} />
-                &nbsp; {attachments.length > 1 ? `Print All ${attachments.length} Reports` : "Print Report"}
+                &nbsp; Print Report
               </Button>
             </Flex>
           </Box>
