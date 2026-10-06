@@ -132,7 +132,7 @@ export default function OtPage() {
   const [selectedCase, setSelectedCase] = useState("");
   const [showDischargeBillModal, setShowDischargeBillModal] = useState(false);
   const [dischargeBillCase, setDischargeBillCase] = useState<OtCase | null>(null);
-  const [invoiceMode, setInvoiceMode] = useState<"admission" | "additional" | "discharge">("admission");
+  const [invoiceMode, setInvoiceMode] = useState<"admission" | "discharge">("admission");
   const [showAdmitModal, setShowAdmitModal] = useState(false);
   const [medicineCase, setMedicineCase] = useState<OtCase | null>(null);
   const [recordPaymentCase, setRecordPaymentCase] = useState<OtCase | null>(null);
@@ -202,9 +202,9 @@ export default function OtPage() {
         return;
       }
       setDischargeBillCase(data.otCase);
-      // Discharged → the final bill. Never printed before → the full bill (nothing
-      // has been handed over yet). Printed before, not discharged → only what's new.
-      setInvoiceMode(status === "DISCHARGED" ? "discharge" : data.otCase.lastInvoicedAt ? "additional" : "admission");
+      // Always the complete invoice — every charge, extra medicine included — never just the
+      // newest items. Discharged cases show the final discharge bill.
+      setInvoiceMode(status === "DISCHARGED" ? "discharge" : "admission");
       setShowDischargeBillModal(true);
     } catch {
       toast.error("Unable to load the OT invoice.");
@@ -385,6 +385,14 @@ export default function OtPage() {
         setQuantity("1");
         setMedicineCase(null);
         void loadAllCases();
+        // Show the complete invoice (every charge so far), the same as right after admission.
+        const invoiceRes = await fetch(`/api/ot/${caseId}`);
+        if (invoiceRes.ok) {
+          const invoiceData = await invoiceRes.json();
+          setDischargeBillCase(invoiceData.otCase);
+          setInvoiceMode("admission");
+          setShowDischargeBillModal(true);
+        }
       }
       await load();
     } catch {
@@ -395,12 +403,6 @@ export default function OtPage() {
   }
 
   function printDischargeBill() {
-    // Printing is the real "the patient was given this slip" moment — mark it now
-    // (not when the modal merely opened) so the next View Invoice only shows what's
-    // new since this one. Fire-and-forget: doesn't need to block the print dialog.
-    if (dischargeBillCase && invoiceMode !== "discharge") {
-      void fetch(`/api/ot/${dischargeBillCase.id}?markInvoiced=1`);
-    }
     window.print();
   }
 
@@ -414,13 +416,6 @@ export default function OtPage() {
   const firstCaseRecord = filteredCases.length === 0 ? 0 : (casesPage - 1) * casesPageSize + 1;
   const lastCaseRecord = Math.min(casesPage * casesPageSize, filteredCases.length);
 
-  // Items added since the last slip was given — what an "additional charges" slip shows.
-  // With no prior lastInvoicedAt on record (legacy cases from before this feature), default
-  // to none-new rather than re-listing everything as if it were a brand new charge.
-  const newLineItems = dischargeBillCase?.lastInvoicedAt
-    ? (dischargeBillCase.lineItems ?? []).filter((item) => item.createdAt && new Date(item.createdAt) > new Date(dischargeBillCase.lastInvoicedAt!))
-    : [];
-  const newLineItemsTotal = newLineItems.reduce((sum, item) => sum + Number(item.total), 0);
   // Admission form: the bill being entered, and what is being handed over now.
   const admitTotal = [doctorFee, theaterFee, anesthesiaFee, roomFee, hospitalFee, otMedicineFee, homeMedicineFee].reduce((sum, value) => sum + Number(value || 0), 0);
   const paidNowNumber = paidNow === "" ? admitTotal : Number(paidNow);
@@ -1073,6 +1068,9 @@ value={rangeEnd}
                                 color="white"
                                 _hover={{ bg: "#255d58" }}
                                 loading={saving && selectedCase === String(item.id)}
+                                // Locked until the patient has paid everything that is due.
+                                disabled={Number(item.balance ?? 0) > 0.005}
+                                title={Number(item.balance ?? 0) > 0.005 ? `PKR ${item.balance} is still due. Record the payment first.` : undefined}
                                 onClick={() => {
                                   setSelectedCase(String(item.id));
                                   void caseAction("DISCHARGE", String(item.id));
@@ -1261,7 +1259,7 @@ value={rangeEnd}
                 </Flex>
                 <Box>
                   <Heading size="sm">
-                    {invoiceMode === "discharge" ? "Discharge Bill" : invoiceMode === "additional" ? "Additional Charges Slip" : "OT Invoice / Receipt"}
+                    {invoiceMode === "discharge" ? "Discharge Bill" : "OT Invoice / Receipt"}
                   </Heading>
                   <Text fontSize="xs" color="#a8c5bd">Case #: {dischargeBillCase.caseNumber}</Text>
                 </Box>
@@ -1294,7 +1292,7 @@ value={rangeEnd}
                         {(hospitalSettings?.name || "Al Qamar Hospital").toUpperCase()}
                       </Text>
                       <Text fontSize="10px" color="#556e68" textTransform="uppercase">
-                        OPERATION THEATER (OT) {invoiceMode === "discharge" ? "DISCHARGE BILL" : invoiceMode === "additional" ? "ADDITIONAL CHARGES SLIP" : "INVOICE / RECEIPT"}
+                        OPERATION THEATER (OT) {invoiceMode === "discharge" ? "DISCHARGE BILL" : "INVOICE / RECEIPT"}
                       </Text>
                     </Box>
                   </HStack>
@@ -1317,37 +1315,7 @@ value={rangeEnd}
                   </Box>
                 </Grid>
 
-                {invoiceMode === "additional" ? (
-                  <>
-                    <Text fontSize="xs" textTransform="uppercase" fontWeight="800" color="#123d3b" mb="2">
-                      New Medicines &amp; Consumables Since Last Slip
-                    </Text>
-                    {newLineItems.length === 0 ? (
-                      <Text fontSize="sm" color="#77908b" py="4" textAlign="center">
-                        No new charges since the last slip.
-                      </Text>
-                    ) : (
-                      <Table.Root size="sm" mb="4">
-                        <Table.Body>
-                          {newLineItems.map((item, idx) => (
-                            <Table.Row key={idx}>
-                              <Table.Cell>{item.description} ({item.quantity} qty)</Table.Cell>
-                              <Table.Cell textAlign="right" fontWeight="700">{item.total} PKR</Table.Cell>
-                            </Table.Row>
-                          ))}
-                        </Table.Body>
-                      </Table.Root>
-                    )}
-
-                    <Flex justify="space-between" align="center" borderTop="2px solid #123d3b" pt="3">
-                      <Text fontSize="md" fontWeight="900">Additional Charges Total</Text>
-                      <Text fontSize="lg" fontWeight="900" color="#123d3b">{newLineItemsTotal.toFixed(2)} PKR</Text>
-                    </Flex>
-                    <Text fontSize="10px" color="#77908b" mt="1" textAlign="right">
-                      Case total so far (all charges): PKR {dischargeBillCase.total}
-                    </Text>
-                  </>
-                ) : (
+                {(
                   <>
                     <Text fontSize="xs" textTransform="uppercase" fontWeight="800" color="#123d3b" mb="2">
                       Bill Breakdown
