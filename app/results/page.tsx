@@ -168,7 +168,7 @@ export default function ResultsPage() {
               const marker = v.flag === "HIGH" ? " (H)" : v.flag === "LOW" ? " (L)" : "";
               return `<tr>
                 <td>${escapeHtml(v.name)}</td>
-                <td class="${abnormal ? "abn" : ""}">${escapeHtml(displayValue(v))}${marker}</td>
+                <td class="${abnormal ? "abn" : ""}">${escapeHtml(displayValue(v))}${marker}${abnormal ? " *" : ""}</td>
                 <td>${escapeHtml(v.unit ?? "")}</td>
                 ${hasAlt ? `<td>${escapeHtml(v.altValue ?? "")}</td>` : ""}
                 <td>${escapeHtml(v.referenceText ?? "")}</td>
@@ -196,7 +196,7 @@ export default function ResultsPage() {
       printWindow.print();
       printWindow.addEventListener("afterprint", () => printWindow.close(), { once: true });
     }, { once: true });
-    printWindow.document.write(`<!doctype html><html><head><title>${escapeHtml(r.module)} Result Report ${escapeHtml(r.receiptNumber)}</title><style>
+    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(r.module)} Result Report ${escapeHtml(r.receiptNumber)}</title><style>
       @page { size: A4 portrait; margin: 14mm; }
       * { box-sizing: border-box; }
       body { font-family: Arial, sans-serif; font-size: 10.5pt; color: #000; }
@@ -602,6 +602,7 @@ value={customEnd}
                                   <Table.Cell fontSize="sm" fontWeight="800" color={v.flag === "HIGH" || v.flag === "LOW" || v.flag === "ABNORMAL" ? "#b3261e" : "#17252b"}>
                                     {displayValue(v)}
                                     {v.flag === "HIGH" ? " (H)" : v.flag === "LOW" ? " (L)" : ""}
+                                    {(v.flag === "HIGH" || v.flag === "LOW" || v.flag === "ABNORMAL") && " *"}
                                   </Table.Cell>
                                   <Table.Cell fontSize="xs" color="#556e68">
                                     {v.unit ?? ""}
