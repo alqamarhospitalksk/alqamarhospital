@@ -433,7 +433,7 @@ export default function ConfigurationPage() {
             bg="white"
             borderRadius="16px"
             w="full"
-            maxW="980px"
+            maxW="1200px"
             boxShadow="0 20px 40px rgba(0,0,0,0.2)"
             overflow="hidden"
           >
@@ -543,63 +543,102 @@ export default function ConfigurationPage() {
                         unit with a factor shows a converted value (e.g. mg/dl x 0.0555 = mmol/l).
                       </Text>
 
-                      <Grid gap="3">
-                        {rows.map((row, index) => (
-                          <Box key={index} border="1px solid #e1e9e6" borderRadius="10px" p="3" bg={row.kind === "HEADING" ? "#f3f7f6" : "white"}>
-                            <Grid templateColumns={{ base: "1fr", md: "170px 1fr auto" }} gap="2" alignItems="center">
-                              <NativeSelect.Root size="sm">
-                                <NativeSelect.Field value={row.kind} onChange={(event) => updateRow(index, { kind: event.target.value as RowKind })}>
-                                  {(Object.keys(rowKindLabel) as RowKind[]).map((kind) => (
-                                    <option key={kind} value={kind}>{rowKindLabel[kind]}</option>
-                                  ))}
-                                </NativeSelect.Field>
-                              </NativeSelect.Root>
-                              <Input
-                                size="sm"
-                                placeholder={row.kind === "HEADING" ? "e.g. After 30 Minutes. 75gm Glucose Orally Given" : "e.g. Fasting Blood Glucose"}
-                                value={row.name}
-                                onChange={(event) => updateRow(index, { name: event.target.value })}
-                              />
-                              <HStack gap="1">
-                                <Button size="xs" variant="ghost" disabled={index === 0} onClick={() => moveRow(index, -1)} aria-label="Move up">
-                                  <FontAwesomeIcon icon={faArrowUp} />
-                                </Button>
-                                <Button size="xs" variant="ghost" disabled={index === rows.length - 1} onClick={() => moveRow(index, 1)} aria-label="Move down">
-                                  <FontAwesomeIcon icon={faArrowDown} />
-                                </Button>
-                                <Button size="xs" variant="ghost" color="#a34258" onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} aria-label="Remove row">
-                                  <FontAwesomeIcon icon={faTrash} />
-                                </Button>
-                              </HStack>
-                            </Grid>
-
-                            {row.kind !== "HEADING" && (
-                              <Grid templateColumns={{ base: "1fr 1fr", md: row.kind === "NUMERIC" ? "repeat(6, 1fr)" : "1fr 2fr" }} gap="2" mt="2">
-                                <Input size="sm" placeholder="Unit (mg/dl)" value={row.unit} onChange={(event) => updateRow(index, { unit: event.target.value })} />
-                                {row.kind === "NUMERIC" && (
+                      <Table.ScrollArea border="1px solid #e1e9e6" borderRadius="10px">
+                        <Table.Root size="sm" css={{ "& td, & th": { px: "1.5", py: "1.5" } }}>
+                          <Table.Header>
+                            <Table.Row bg="#f7faf9">
+                              <Table.ColumnHeader minW="150px">Type</Table.ColumnHeader>
+                              <Table.ColumnHeader minW="200px">Name</Table.ColumnHeader>
+                              <Table.ColumnHeader minW="90px">Unit</Table.ColumnHeader>
+                              <Table.ColumnHeader minW="90px">2nd unit</Table.ColumnHeader>
+                              <Table.ColumnHeader minW="80px">Factor</Table.ColumnHeader>
+                              <Table.ColumnHeader minW="75px">Low</Table.ColumnHeader>
+                              <Table.ColumnHeader minW="75px">High</Table.ColumnHeader>
+                              <Table.ColumnHeader minW="170px">Reference</Table.ColumnHeader>
+                              <Table.ColumnHeader w="1%" />
+                            </Table.Row>
+                          </Table.Header>
+                          <Table.Body>
+                            {rows.map((row, index) => (
+                              <Table.Row key={index} bg={row.kind === "HEADING" ? "#f3f7f6" : "white"}>
+                                <Table.Cell>
+                                  <NativeSelect.Root size="sm">
+                                    <NativeSelect.Field value={row.kind} onChange={(event) => updateRow(index, { kind: event.target.value as RowKind })}>
+                                      {(Object.keys(rowKindLabel) as RowKind[]).map((kind) => (
+                                        <option key={kind} value={kind}>{rowKindLabel[kind]}</option>
+                                      ))}
+                                    </NativeSelect.Field>
+                                  </NativeSelect.Root>
+                                </Table.Cell>
+                                {/* A section heading spans the whole row; it has no unit or limits. */}
+                                <Table.Cell colSpan={row.kind === "HEADING" ? 7 : 1}>
+                                  <Input
+                                    size="sm"
+                                    placeholder={row.kind === "HEADING" ? "e.g. After 30 Minutes. 75gm Glucose Orally Given" : "e.g. Fasting Blood Glucose"}
+                                    value={row.name}
+                                    onChange={(event) => updateRow(index, { name: event.target.value })}
+                                  />
+                                </Table.Cell>
+                                {row.kind !== "HEADING" && (
                                   <>
-                                    <Input size="sm" placeholder="2nd unit (mmol)" value={row.altUnit} onChange={(event) => updateRow(index, { altUnit: event.target.value })} />
-                                    <Input size="sm" type="number" step="any" placeholder="Factor (0.0555)" value={row.altFactor} onChange={(event) => updateRow(index, { altFactor: event.target.value })} />
-                                    <Input size="sm" type="number" step="any" placeholder="Low limit" value={row.refLow} onChange={(event) => updateRow(index, { refLow: event.target.value })} />
-                                    <Input size="sm" type="number" step="any" placeholder="High limit" value={row.refHigh} onChange={(event) => updateRow(index, { refHigh: event.target.value })} />
+                                    <Table.Cell>
+                                      <Input size="sm" placeholder="mg/dl" value={row.unit} onChange={(event) => updateRow(index, { unit: event.target.value })} />
+                                    </Table.Cell>
+                                    {row.kind === "NUMERIC" ? (
+                                      <>
+                                        <Table.Cell>
+                                          <Input size="sm" placeholder="mmol" value={row.altUnit} onChange={(event) => updateRow(index, { altUnit: event.target.value })} />
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                          <Input size="sm" type="number" step="any" placeholder="0.0555" value={row.altFactor} onChange={(event) => updateRow(index, { altFactor: event.target.value })} />
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                          <Input size="sm" type="number" step="any" placeholder="Low" value={row.refLow} onChange={(event) => updateRow(index, { refLow: event.target.value })} />
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                          <Input size="sm" type="number" step="any" placeholder="High" value={row.refHigh} onChange={(event) => updateRow(index, { refHigh: event.target.value })} />
+                                        </Table.Cell>
+                                      </>
+                                    ) : (
+                                      <Table.Cell colSpan={4} color="#a3b5b1" textAlign="center">—</Table.Cell>
+                                    )}
+                                    <Table.Cell>
+                                      <Input
+                                        size="sm"
+                                        placeholder={row.kind === "QUALITATIVE" ? "Negative (-Ve)" : "Optional"}
+                                        value={row.refText}
+                                        onChange={(event) => updateRow(index, { refText: event.target.value })}
+                                      />
+                                    </Table.Cell>
                                   </>
                                 )}
-                                <Input
-                                  size="sm"
-                                  placeholder={row.kind === "QUALITATIVE" ? "Reference (default: Negative (-Ve))" : "Printed reference (optional)"}
-                                  value={row.refText}
-                                  onChange={(event) => updateRow(index, { refText: event.target.value })}
-                                />
-                              </Grid>
+                                <Table.Cell>
+                                  <HStack gap="0">
+                                    <Button size="xs" variant="ghost" disabled={index === 0} onClick={() => moveRow(index, -1)} aria-label="Move up">
+                                      <FontAwesomeIcon icon={faArrowUp} />
+                                    </Button>
+                                    <Button size="xs" variant="ghost" disabled={index === rows.length - 1} onClick={() => moveRow(index, 1)} aria-label="Move down">
+                                      <FontAwesomeIcon icon={faArrowDown} />
+                                    </Button>
+                                    <Button size="xs" variant="ghost" color="#a34258" onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))} aria-label="Remove row">
+                                      <FontAwesomeIcon icon={faTrash} />
+                                    </Button>
+                                  </HStack>
+                                </Table.Cell>
+                              </Table.Row>
+                            ))}
+                            {rows.length === 0 && (
+                              <Table.Row>
+                                <Table.Cell colSpan={9}>
+                                  <Text fontSize="sm" color="#77908b" textAlign="center" py="3">
+                                    No template rows yet. The Lab will type a plain text result for this test.
+                                  </Text>
+                                </Table.Cell>
+                              </Table.Row>
                             )}
-                          </Box>
-                        ))}
-                        {rows.length === 0 && (
-                          <Text fontSize="sm" color="#77908b" textAlign="center" py="3">
-                            No template rows yet. The Lab will type a plain text result for this test.
-                          </Text>
-                        )}
-                      </Grid>
+                          </Table.Body>
+                        </Table.Root>
+                      </Table.ScrollArea>
 
                       <Field.Root mt="4">
                         <Field.Label fontWeight="700">Default Remarks</Field.Label>
