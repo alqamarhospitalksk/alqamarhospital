@@ -989,15 +989,16 @@ export default function OpdPage() {
 
                       {/* Hospital logo + name — center, nudged up */}
                       <Flex direction="column" align="center" justify="flex-start" px="2" mt="-10px">
+                        <Text fontSize="22px" fontWeight="900" color="#123d3b" lineHeight="1.2" textAlign="center" whiteSpace="nowrap">
+                          {hospitalSettings?.name || "Al Qamar Hospital"}
+                        </Text>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={hospitalSettings?.logoDataUrl || "/images/logo.png"}
                           alt="Hospital logo"
-                          style={{ width: 56, height: 56, objectFit: "contain" }}
+                          style={{ width: 56, height: 56, objectFit: "contain", marginTop: 4 }}
                         />
-                        <Text fontSize="10px" fontWeight="800" color="#123d3b" mt="1" textAlign="center" whiteSpace="nowrap">
-                          {hospitalSettings?.name || "CareLedger Clinic"}
-                        </Text>
+
                       </Flex>
 
                       {/* Doctor details — Urdu */}
