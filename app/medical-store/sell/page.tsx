@@ -288,7 +288,7 @@ export default function SellMedicinePage() {
   function printReceipt(s: Sale) {
     const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
     const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
-    const date = new Date().toLocaleDateString("en-PK");
+    const date = new Date().toLocaleDateString("en-GB");
     const rows = s.items.map((i) => `<div class="row"><span>${escapeHtml(i.name)} x${escapeHtml(i.quantity)}</span><strong>PKR ${escapeHtml(i.total)}</strong></div>`).join("");
     const discountRow = Number(s.discount) > 0 ? `<div class="row discount"><span>Discount</span><strong>- PKR ${escapeHtml(s.discount)}</strong></div>` : "";
 
@@ -417,7 +417,7 @@ export default function SellMedicinePage() {
                   {patientHistory.map((s) => (
                     <Flex key={s.id} justify="space-between" gap="4" py="1.5" borderBottom="1px solid #edf2f0" fontSize="sm">
                       <Box minW="0">
-                        <Text fontSize="xs" color="#77908b">{new Date(s.createdAt).toLocaleDateString("en-PK")} · {s.saleNumber}</Text>
+                        <Text fontSize="xs" color="#77908b">{new Date(s.createdAt).toLocaleDateString("en-GB")} · {s.saleNumber}</Text>
                         <Text>{s.items.map((i) => `${i.name} ×${i.quantity}`).join(", ")}</Text>
                       </Box>
                       <Text fontWeight="700" whiteSpace="nowrap">PKR {s.total}</Text>

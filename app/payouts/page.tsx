@@ -1,4 +1,6 @@
 "use client";
+import { DateInput } from "../date-input";
+import { formatDate } from "../../lib/format-date";
 
 import { FormEvent, useEffect, useState } from "react";
 import {
@@ -287,20 +289,18 @@ export default function PayoutsPage() {
                 </HStack>
                 {summaryPeriod === "custom" && (
                   <HStack gap="2" flexWrap="wrap">
-                    <Input
+                    <DateInput
                       size="sm"
-                      type="date"
-                      value={customStart}
+value={customStart}
                       onChange={(event) => setCustomStart(event.target.value)}
                       w="150px"
                       borderRadius="8px"
                       bg="white"
                     />
                     <Text fontSize="sm" color="#77908b">to</Text>
-                    <Input
+                    <DateInput
                       size="sm"
-                      type="date"
-                      value={customEnd}
+value={customEnd}
                       onChange={(event) => setCustomEnd(event.target.value)}
                       w="150px"
                       borderRadius="8px"
@@ -518,7 +518,7 @@ export default function PayoutsPage() {
                           </Text>
                         )}
                       </Table.Cell>
-                      <Table.Cell fontSize="sm">{item.expenseDate.slice(0, 10)}</Table.Cell>
+                      <Table.Cell fontSize="sm">{formatDate(item.expenseDate)}</Table.Cell>
                       <Table.Cell>
                         <Badge colorPalette="orange" borderRadius="full">
                           {item.method.replaceAll("_", " ")}
@@ -777,7 +777,7 @@ export default function PayoutsPage() {
                   <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap="4">
                     <Field.Root required>
                       <Field.Label fontWeight="700">Date</Field.Label>
-                      <Input type="date" value={payoutForm.expenseDate} onChange={(event) => setPayoutForm({ ...payoutForm, expenseDate: event.target.value })} />
+                      <DateInput value={payoutForm.expenseDate} onChange={(event) => setPayoutForm({ ...payoutForm, expenseDate: event.target.value })} />
                     </Field.Root>
 
                     <Field.Root required>

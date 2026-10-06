@@ -186,7 +186,7 @@ export default function ExpiryTrackerPage() {
                       <Table.Cell fontWeight="700" fontSize="sm">{b.medicineName}</Table.Cell>
                       <Table.Cell fontSize="xs">{b.batchNumber ?? "—"}</Table.Cell>
                       <Table.Cell>
-                        <Text fontSize="sm">{new Date(b.expiryDate).toLocaleDateString("en-PK", { timeZone: "UTC" })}</Text>
+                        <Text fontSize="sm">{new Date(b.expiryDate).toLocaleDateString("en-GB", { timeZone: "UTC" })}</Text>
                         <Badge colorPalette={b.daysLeft < 0 ? "red" : b.daysLeft <= 30 ? "orange" : b.daysLeft <= 90 ? "yellow" : "green"} borderRadius="full" mt="1">
                           {b.daysLeft < 0 ? `Expired ${-b.daysLeft} day${b.daysLeft === -1 ? "" : "s"} ago` : b.daysLeft === 0 ? "Expires today" : `${b.daysLeft} day${b.daysLeft === 1 ? "" : "s"} left`}
                         </Badge>

@@ -1,8 +1,9 @@
 "use client";
+import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
 import { usePolling } from "../use-polling";
-import { Box, Button, Flex, Grid, HStack, Heading, Input, NativeSelect, Text, VStack } from "@chakra-ui/react";
+import { Box, Button, Flex, Grid, HStack, Heading, NativeSelect, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChartColumn,
@@ -274,9 +275,9 @@ export default function LabDashboardPage() {
 
           {statsPeriod === "custom" && (
             <HStack gap="2" flexWrap="wrap">
-              <Input size="sm" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} w="150px" borderRadius="8px" bg="white" />
+              <DateInput size="sm" value={customStart} onChange={(event) => setCustomStart(event.target.value)} w="150px" borderRadius="8px" bg="white" />
               <Text fontSize="sm" color="#77908b">to</Text>
-              <Input size="sm" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} w="150px" borderRadius="8px" bg="white" />
+              <DateInput size="sm" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} w="150px" borderRadius="8px" bg="white" />
             </HStack>
           )}
         </VStack>

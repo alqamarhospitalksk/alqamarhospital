@@ -192,7 +192,7 @@ export default function EmergencyPage() {
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
     const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
-    const date = new Date().toLocaleDateString("en-PK");
+    const date = new Date().toLocaleDateString("en-GB");
     const age = computeAge(visit.patient.dateOfBirth);
     const copyLabel = copyType === "MINOR_OT" ? "Minor OT Copy" : "Patient Copy";
 
@@ -696,7 +696,7 @@ export default function EmergencyPage() {
                           Visit #: {visit.visitNumber}
                         </Text>
                         <Text fontSize="10px" color="#77908b">
-                          Date: {new Date().toLocaleDateString("en-PK")}
+                          Date: {new Date().toLocaleDateString("en-GB")}
                         </Text>
                       </Box>
                     </Grid>
@@ -726,7 +726,7 @@ export default function EmergencyPage() {
                           Gender: <Box as="span" fontWeight="800">{visit.patient.gender || "—"}</Box>
                         </Text>
                         <Text>
-                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-PK")}</Box>
+                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-GB")}</Box>
                         </Text>
                       </HStack>
                     </Box>

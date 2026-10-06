@@ -1,4 +1,5 @@
 "use client";
+import { DateInput } from "../../date-input";
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -304,7 +305,7 @@ export default function PurchasePage() {
                         )}
                       </Table.Cell>
                       <Table.Cell w="140px"><Input size="sm" type="number" min="0" step="0.01" placeholder="optional" value={line.salePriceOverride} onChange={(e) => updateLine(index, { salePriceOverride: e.target.value })} /></Table.Cell>
-                      <Table.Cell w="160px"><Input size="sm" type="date" value={line.expiryDate} onChange={(e) => updateLine(index, { expiryDate: e.target.value })} /></Table.Cell>
+                      <Table.Cell w="160px"><DateInput size="sm" value={line.expiryDate} onChange={(e) => updateLine(index, { expiryDate: e.target.value })} /></Table.Cell>
                       <Table.Cell>
                         <Button size="xs" variant="ghost" color="#a34258" onClick={() => removeLine(index)} disabled={lines.length === 1}>
                           <FontAwesomeIcon icon={faTrash} />
@@ -357,7 +358,7 @@ export default function PurchasePage() {
                           .join(", ")}
                       </Table.Cell>
                       <Table.Cell fontWeight="800" color="#123d3b">PKR {p.totalCost}</Table.Cell>
-                      <Table.Cell fontSize="sm">{new Date(p.createdAt).toLocaleDateString("en-PK")}</Table.Cell>
+                      <Table.Cell fontSize="sm">{new Date(p.createdAt).toLocaleDateString("en-GB")}</Table.Cell>
                     </Table.Row>
                   ))
                 )}

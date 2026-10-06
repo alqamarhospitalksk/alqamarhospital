@@ -1,4 +1,5 @@
 "use client";
+import { DateInput } from "../../date-input";
 
 import { useEffect, useState } from "react";
 import { Badge, Box, Button, Flex, Grid, Heading, HStack, Input, Table, Text } from "@chakra-ui/react";
@@ -105,7 +106,7 @@ export default function DayClosingPage() {
     <Box minH="100vh" bg="#f5f7f8" color="#17252b">
       <Flex as="header" h="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" justify="space-between" px={{ base: "20px", md: "42px" }}>
         <Heading size="lg" letterSpacing="-0.04em">Day Closing</Heading>
-        <Input type="date" w="170px" bg="white" value={date} max={todayStr()} onChange={(e) => e.target.value && setDate(e.target.value)} />
+        <DateInput w="170px" bg="white" value={date} max={todayStr()} onChange={(e) => e.target.value && setDate(e.target.value)} />
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
@@ -173,7 +174,7 @@ export default function DayClosingPage() {
                     const label = differenceLabel(c.difference);
                     return (
                       <Table.Row key={c.closingDate}>
-                        <Table.Cell fontSize="sm" fontWeight="700">{new Date(c.closingDate).toLocaleDateString("en-PK", { timeZone: "UTC" })}</Table.Cell>
+                        <Table.Cell fontSize="sm" fontWeight="700">{new Date(c.closingDate).toLocaleDateString("en-GB", { timeZone: "UTC" })}</Table.Cell>
                         <Table.Cell textAlign="right" fontSize="sm">{money(c.expectedCash)}</Table.Cell>
                         <Table.Cell textAlign="right" fontSize="sm">{money(c.countedCash)}</Table.Cell>
                         <Table.Cell><Badge colorPalette={label.color} borderRadius="full">{label.text}</Badge></Table.Cell>

@@ -1,4 +1,5 @@
 "use client";
+import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
 import { usePolling } from "../use-polling";
@@ -151,7 +152,7 @@ export default function ResultsPage() {
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
     const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
     const now = new Date();
-    const stamp = `${now.toLocaleDateString("en-PK")} ${now.toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}`;
+    const stamp = `${now.toLocaleDateString("en-GB")} ${now.toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}`;
 
     const sections = r.items
       .map((item) => {
@@ -377,10 +378,9 @@ export default function ResultsPage() {
 
               {period === "custom" && (
                 <HStack gap="2" flexWrap="wrap">
-                  <Input
+                  <DateInput
                     size="sm"
-                    type="date"
-                    value={customStart}
+value={customStart}
                     onChange={(event) => {
                       setCustomStart(event.target.value);
                       setPage(1);
@@ -388,10 +388,9 @@ export default function ResultsPage() {
                     w="150px"
                   />
                   <Text fontSize="sm" color="#77908b">to</Text>
-                  <Input
+                  <DateInput
                     size="sm"
-                    type="date"
-                    value={customEnd}
+value={customEnd}
                     onChange={(event) => {
                       setCustomEnd(event.target.value);
                       setPage(1);
@@ -466,7 +465,7 @@ export default function ResultsPage() {
                           {r.printedAt ? "Printed" : "Unprinted"}
                         </Badge>
                       </Table.Cell>
-                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-PK")}</Table.Cell>
+                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>
                       <Table.Cell textAlign="right">
                         <HStack justify="flex-end" gap="2">
                           <Button size="xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => setViewReceipt(r)}>
@@ -633,7 +632,7 @@ export default function ResultsPage() {
                     )}
                     {item.resultUploadedAt && (
                       <Text fontSize="10px" color="#94a3b8" mt="1">
-                        Entered {new Date(item.resultUploadedAt).toLocaleString("en-PK")}
+                        Entered {new Date(item.resultUploadedAt).toLocaleString("en-GB", { hour12: true })}
                         {item.resultUploadedBy ? ` by ${item.resultUploadedBy}` : ""}
                       </Text>
                     )}

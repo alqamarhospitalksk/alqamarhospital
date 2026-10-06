@@ -1,4 +1,5 @@
 "use client";
+import { DateInput } from "../../date-input";
 
 import { useEffect, useState } from "react";
 import { usePolling } from "../../use-polling";
@@ -288,10 +289,9 @@ export default function LabUploadPage() {
 
                 {period === "custom" && (
                   <HStack gap="2" flexWrap="wrap">
-                    <Input
+                    <DateInput
                       size="sm"
-                      type="date"
-                      value={rangeStart}
+value={rangeStart}
                       onChange={(event) => {
                         setRangeStart(event.target.value);
                         setPage(1);
@@ -299,10 +299,9 @@ export default function LabUploadPage() {
                       w="150px"
                     />
                     <Text fontSize="sm" color="#77908b">to</Text>
-                    <Input
+                    <DateInput
                       size="sm"
-                      type="date"
-                      value={rangeEnd}
+value={rangeEnd}
                       onChange={(event) => {
                         setRangeEnd(event.target.value);
                         setPage(1);
@@ -360,7 +359,7 @@ export default function LabUploadPage() {
                           {r.resultStatus === "DONE" ? "Done" : "Pending"}
                         </Badge>
                       </Table.Cell>
-                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-PK")}</Table.Cell>
+                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>
                       <Table.Cell textAlign="right">
                         <Button size="xs" bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={openingId === r.id} onClick={() => void openEntryModal(r)}>
                           <FontAwesomeIcon icon={faPenToSquare} />

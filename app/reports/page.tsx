@@ -1,7 +1,8 @@
 "use client";
+import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
-import { Box, Button, Flex, Grid, Heading, HStack, Input, Link, Text, VStack } from "@chakra-ui/react";
+import { Box, Button, Flex, Grid, Heading, HStack, Link, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faArrowTrendUp, faCoins, faDownload, faFileInvoiceDollar, faPrint, faReceipt, faSackDollar, faUserDoctor } from "@fortawesome/free-solid-svg-icons";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -148,7 +149,7 @@ function buildPrintHtml(start: string, end: string, report: Report, hospitalName
       "<tr class='totalrow'><td colspan='5'>Total expenses</td><td class='num'>" + money(report.totalExpenses) + "</td></tr>" +
       "</tbody></table>";
 
-  const generated = new Date().toLocaleString("en-PK");
+  const generated = new Date().toLocaleString("en-GB", { hour12: true });
   const logoImg = hospitalLogo ? "<img src='" + hospitalLogo + "' alt='logo' />" : "";
 
   // Build using array join so </script> never appears as a literal token in this source file
@@ -388,9 +389,9 @@ export default function ReportsPage() {
             {period === "custom" && (
               <HStack bg="white" border="1px solid #dbe5e1" borderRadius="8px" p="2" flexWrap="wrap">
                 <Text fontSize="sm">From</Text>
-                <Input type="date" variant="flushed" value={start} onChange={(e) => setStart(e.target.value)} w="130px" />
+                <DateInput variant="flushed" value={start} onChange={(e) => setStart(e.target.value)} w="130px" />
                 <Text fontSize="sm">to</Text>
-                <Input type="date" variant="flushed" value={end} onChange={(e) => setEnd(e.target.value)} w="130px" />
+                <DateInput variant="flushed" value={end} onChange={(e) => setEnd(e.target.value)} w="130px" />
                 <Button
                   size="sm"
                   bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"

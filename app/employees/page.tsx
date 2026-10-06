@@ -1,4 +1,5 @@
 "use client";
+import { DateInput } from "../date-input";
 
 import { FormEvent, useEffect, useState } from "react";
 import { Badge, Box, Button, Field, Flex, Grid, Heading, HStack, Input, Link, NativeSelect, Table, Text } from "@chakra-ui/react";
@@ -402,7 +403,7 @@ export default function EmployeesPage() {
 
                   <Field.Root>
                     <Field.Label fontWeight="700">Joining Date</Field.Label>
-                    <Input type="date" value={form.joiningDate} onChange={(event) => setForm({ ...form, joiningDate: event.target.value })} />
+                    <DateInput value={form.joiningDate} onChange={(event) => setForm({ ...form, joiningDate: event.target.value })} />
                   </Field.Root>
 
                   <Field.Root required>

@@ -124,7 +124,7 @@ export default function StockCountPage() {
                       <Table.Row key={b.batchId} bg={diff != null && diff !== 0 ? "#fdf8ef" : undefined}>
                         <Table.Cell fontWeight="700" fontSize="sm">{b.medicineName}</Table.Cell>
                         <Table.Cell fontSize="xs">{b.batchNumber ?? "—"}</Table.Cell>
-                        <Table.Cell fontSize="xs">{new Date(b.expiryDate).toLocaleDateString("en-PK", { timeZone: "UTC" })}</Table.Cell>
+                        <Table.Cell fontSize="xs">{new Date(b.expiryDate).toLocaleDateString("en-GB", { timeZone: "UTC" })}</Table.Cell>
                         <Table.Cell textAlign="right" fontSize="sm">{b.systemQuantity} {b.unit.toLowerCase()}</Table.Cell>
                         <Table.Cell textAlign="right" w="130px">
                           <Input

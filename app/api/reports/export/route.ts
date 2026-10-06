@@ -1,5 +1,6 @@
 export const runtime = "nodejs";
 
+import { formatDate } from "../../../../lib/format-date";
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { getCurrentUser } from "../../../../lib/auth";
@@ -112,7 +113,7 @@ export async function GET(request: Request) {
   const collected = payments.reduce((sum, payment) => sum + Number(payment.amount), 0) - storeRefunds.total;
   const doctorShare = doctorShares.total;
   const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const periodLabel = `Period: ${start.toISOString().slice(0, 10)} to ${reportEndInclusive.toISOString().slice(0, 10)}  ·  Generated: ${new Date().toLocaleString("en-PK")}`;
+  const periodLabel = `Period: ${formatDate(start)} to ${formatDate(reportEndInclusive)}  ·  Generated: ${new Date().toLocaleString("en-GB", { hour12: true })}`;
 
   const serviceTotals: Record<string, number> = {};
   for (const payment of payments) {
@@ -132,8 +133,8 @@ export async function GET(request: Request) {
   const summaryHeaderRow = summary.addRow(["Metric", "Amount (PKR)"]);
   styleHeaderRow(summaryHeaderRow);
   const summaryDataStart = summary.rowCount + 1;
-  summary.addRow(["Report start", start.toISOString().slice(0, 10)]);
-  summary.addRow(["Report end", reportEndInclusive.toISOString().slice(0, 10)]);
+  summary.addRow(["Report start", formatDate(start)]);
+  summary.addRow(["Report end", formatDate(reportEndInclusive)]);
   const collectedRowNum = summary.rowCount + 1;
   summary.addRow(["Total collected", collected]);
   const doctorShareRowNum = summary.rowCount + 1;

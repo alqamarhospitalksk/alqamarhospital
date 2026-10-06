@@ -1,4 +1,5 @@
 "use client";
+import { DateInput, DateTimeInput } from "../date-input";
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -748,7 +749,7 @@ export default function OtPage() {
                   <Text fontSize="sm" fontWeight="700" mb="2">
                     Procedure Date/Time
                   </Text>
-                  <Input type="datetime-local" value={procedureAt} onChange={(event) => setProcedureAt(event.target.value)} />
+                  <DateTimeInput value={procedureAt} onChange={(event) => setProcedureAt(event.target.value)} />
                 </Box>
               </HStack>
 
@@ -955,10 +956,9 @@ export default function OtPage() {
 
                 {period === "custom" && (
                   <HStack gap="2" flexWrap="wrap">
-                    <Input
+                    <DateInput
                       size="sm"
-                      type="date"
-                      value={rangeStart}
+value={rangeStart}
                       onChange={(event) => {
                         setRangeStart(event.target.value);
                         setCasesPage(1);
@@ -966,10 +966,9 @@ export default function OtPage() {
                       w="150px"
                     />
                     <Text fontSize="sm" color="#77908b">to</Text>
-                    <Input
+                    <DateInput
                       size="sm"
-                      type="date"
-                      value={rangeEnd}
+value={rangeEnd}
                       onChange={(event) => {
                         setRangeEnd(event.target.value);
                         setCasesPage(1);
@@ -1301,7 +1300,7 @@ export default function OtPage() {
                   </HStack>
                   <Box textAlign="right">
                     <Text fontSize="xs" fontWeight="800" color="#123d3b">Case #: {dischargeBillCase.caseNumber}</Text>
-                    <Text fontSize="10px" color="#77908b">Date: {new Date().toLocaleDateString("en-PK")}</Text>
+                    <Text fontSize="10px" color="#77908b">Date: {new Date().toLocaleDateString("en-GB")}</Text>
                   </Box>
                 </Flex>
 
@@ -1424,7 +1423,7 @@ export default function OtPage() {
                             .sort((x, y) => new Date(x.createdAt ?? 0).getTime() - new Date(y.createdAt ?? 0).getTime())
                             .map((p, idx) => (
                               <Flex key={idx} justify="space-between" fontSize="xs" color="#3e5e58" py="0.5">
-                                <Text>{p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-PK") : ""} · {paymentMethodLabels[p.method] ?? p.method}</Text>
+                                <Text>{p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-GB") : ""} · {paymentMethodLabels[p.method] ?? p.method}</Text>
                                 <Text fontWeight="700">{Number(p.amount ?? 0).toLocaleString("en-PK", { maximumFractionDigits: 2 })} PKR</Text>
                               </Flex>
                             ))}

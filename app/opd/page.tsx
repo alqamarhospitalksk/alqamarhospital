@@ -289,7 +289,7 @@ export default function OpdPage() {
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
     const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
-    const date = new Date().toLocaleDateString("en-PK");
+    const date = new Date().toLocaleDateString("en-GB");
     const age = computeAge(visit.patient.dateOfBirth);
     const copyLabel = copyType === "DOCTOR" ? "Doctor Copy" : "Patient Copy";
     const availability = formatAvailability(visit.doctor, "en");
@@ -1062,7 +1062,7 @@ export default function OpdPage() {
                           Gender: <Box as="span" fontWeight="800">{visit.patient.gender || "—"}</Box>
                         </Text>
                         <Text>
-                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-PK")}</Box>
+                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-GB")}</Box>
                         </Text>
                       </HStack>
                     </Box>

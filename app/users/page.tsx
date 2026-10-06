@@ -1,4 +1,5 @@
 "use client";
+import { formatDate } from "../../lib/format-date";
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -242,7 +243,7 @@ export default function UsersPage() {
                           {user.role}
                         </Badge>
                       </Table.Cell>
-                      <Table.Cell fontSize="sm">{user.createdAt.slice(0, 10)}</Table.Cell>
+                      <Table.Cell fontSize="sm">{formatDate(user.createdAt)}</Table.Cell>
                       <Table.Cell>
                         <Badge colorPalette={user.active ? "green" : "gray"} borderRadius="full">
                           {user.active ? "Active" : "Inactive"}

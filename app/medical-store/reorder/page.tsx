@@ -67,7 +67,7 @@ export default function ReorderListPage() {
       th { background: #eee; }
     </style></head><body>
       <h1>Medicine Reorder List</h1>
-      <p>${escapeHtml(new Date().toLocaleDateString("en-PK"))}</p>
+      <p>${escapeHtml(new Date().toLocaleDateString("en-GB"))}</p>
       <table><thead><tr><th>Medicine</th><th>In stock</th><th>Order qty</th><th>Last supplier</th><th>Ordered ✓</th></tr></thead><tbody>${rows}</tbody></table>
     </body></html>`);
     win.document.close();

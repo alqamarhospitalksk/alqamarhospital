@@ -1,4 +1,5 @@
 "use client";
+import { formatDate } from "../../lib/format-date";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -107,7 +108,7 @@ export default function DiagnosticsPage() {
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
     const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
-    const date = receipt.createdAt ? receipt.createdAt.slice(0, 10) : new Date().toLocaleDateString("en-PK");
+    const date = receipt.createdAt ? formatDate(receipt.createdAt) : new Date().toLocaleDateString("en-GB");
     const moduleLabel = moduleCopyLabels[receipt.module] ?? receipt.module;
     const copyLabel = copyType === "DEPARTMENT" ? `${moduleLabel} Copy` : "Patient Copy";
     const tests = receipt.items.map((item) => `<div class="row"><span>${escapeHtml(item.name)}</span><strong>PKR ${escapeHtml(item.price)}</strong></div>`).join("");
@@ -872,7 +873,7 @@ export default function DiagnosticsPage() {
                       Receipt #: {receipt.receiptNumber}
                     </Text>
                     <Text fontSize="10px" color="#77908b">
-                      Date: {receipt.createdAt ? receipt.createdAt.slice(0, 10) : new Date().toLocaleDateString("en-PK")}
+                      Date: {receipt.createdAt ? formatDate(receipt.createdAt) : new Date().toLocaleDateString("en-GB")}
                     </Text>
                   </Box>
                 </Flex>

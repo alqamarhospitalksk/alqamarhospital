@@ -250,7 +250,7 @@ export default function MedicineCatalogPage() {
                               .join(" · ")}
                       </Table.Cell>
                       <Table.Cell>{item.totalQuantity} {item.unit.toLowerCase()}</Table.Cell>
-                      <Table.Cell fontSize="sm">{item.nearestExpiry ? new Date(item.nearestExpiry).toLocaleDateString("en-PK") : "—"}</Table.Cell>
+                      <Table.Cell fontSize="sm">{item.nearestExpiry ? new Date(item.nearestExpiry).toLocaleDateString("en-GB") : "—"}</Table.Cell>
                       <Table.Cell fontWeight="700" color="#126b68">PKR {item.salePrice}</Table.Cell>
                       <Table.Cell>
                         <HStack gap="1" flexWrap="wrap">

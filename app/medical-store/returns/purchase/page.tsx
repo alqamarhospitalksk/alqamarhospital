@@ -247,7 +247,7 @@ export default function PurchaseReturnPage() {
                           <Table.Cell fontSize="xs" color="#556e68">{b.batchNumber || "—"}</Table.Cell>
                           <Table.Cell fontSize="sm">{b.quantityRemaining}</Table.Cell>
                           <Table.Cell fontSize="sm">PKR {b.purchasePrice}</Table.Cell>
-                          <Table.Cell fontSize="sm">{new Date(b.expiryDate).toLocaleDateString("en-PK")}</Table.Cell>
+                          <Table.Cell fontSize="sm">{new Date(b.expiryDate).toLocaleDateString("en-GB")}</Table.Cell>
                           <Table.Cell w="120px">
                             <Input
                               size="sm"
@@ -322,7 +322,7 @@ export default function PurchaseReturnPage() {
                         <Text fontSize="10px" fontWeight="600" color="#77908b">{r.refundMode === "CREDIT" ? "Deducted from balance" : "Cash refund"}</Text>
                       </Table.Cell>
                       <Table.Cell fontSize="xs" color="#556e68" maxW="200px">{r.reason}</Table.Cell>
-                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-PK")}</Table.Cell>
+                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>
                     </Table.Row>
                   ))
                 )}

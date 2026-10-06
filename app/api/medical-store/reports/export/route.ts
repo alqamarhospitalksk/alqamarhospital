@@ -1,5 +1,6 @@
 export const runtime = "nodejs";
 
+import { formatDate } from "../../../../../lib/format-date";
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { getCurrentUser } from "../../../../../lib/auth";
@@ -95,7 +96,7 @@ export async function GET(request: Request) {
   const hospitalName = hospitalSettings?.name || "Al Qamar Hospital";
   const startLabel = localDate(range.fromDate);
   const endLabel = localDate(range.toDate);
-  const subtitle = `Medical Store Report  ·  Period: ${startLabel} to ${endLabel}  ·  Generated: ${new Date().toLocaleString("en-PK")}`;
+  const subtitle = `Medical Store Report  ·  Period: ${formatDate(startLabel)} to ${formatDate(endLabel)}  ·  Generated: ${new Date().toLocaleString("en-GB", { hour12: true })}`;
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Al Qamar Hospital";
