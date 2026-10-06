@@ -345,7 +345,7 @@ CREATE TABLE `sessions` (
 -- CreateTable
 CREATE TABLE `hospital_settings` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(150) NOT NULL DEFAULT 'CareLedger Clinic',
+    `name` VARCHAR(150) NOT NULL DEFAULT 'Al Qamar Hospital',
     `name_urdu` VARCHAR(150) NULL,
     `address` VARCHAR(500) NULL,
     `address_urdu` VARCHAR(500) NULL,

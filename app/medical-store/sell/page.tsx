@@ -287,7 +287,7 @@ export default function SellMedicinePage() {
 
   function printReceipt(s: Sale) {
     const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
-    const clinicName = hospitalSettings?.name || "CareLedger Clinic";
+    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
     const date = new Date().toLocaleDateString("en-PK");
     const rows = s.items.map((i) => `<div class="row"><span>${escapeHtml(i.name)} x${escapeHtml(i.quantity)}</span><strong>PKR ${escapeHtml(i.total)}</strong></div>`).join("");
     const discountRow = Number(s.discount) > 0 ? `<div class="row discount"><span>Discount</span><strong>- PKR ${escapeHtml(s.discount)}</strong></div>` : "";

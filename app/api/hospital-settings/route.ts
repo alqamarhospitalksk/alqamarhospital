@@ -8,7 +8,7 @@ const text = (value: unknown) => (typeof value === "string" ? value.trim() : "")
 async function getOrCreateSettings() {
   const existing = await db.hospitalSettings.findUnique({ where: { id: 1 } });
   if (existing) return existing;
-  return db.hospitalSettings.create({ data: { id: 1, name: "CareLedger Clinic" } });
+  return db.hospitalSettings.create({ data: { id: 1, name: "Al Qamar Hospital" } });
 }
 
 export async function GET() {

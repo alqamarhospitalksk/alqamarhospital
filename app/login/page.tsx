@@ -104,7 +104,7 @@ export default function LoginPage() {
             )}
             <Box>
               <Text fontSize="xl" fontWeight="800" letterSpacing="-0.04em" color="#f0faf8">
-                {hospitalSettings?.name || "CareLedger"}
+                {hospitalSettings?.name || "Al Qamar Hospital"}
               </Text>
               <Text fontSize="10px" color="rgba(194,216,212,0.6)" letterSpacing="0.08em" textTransform="uppercase">
                 Hospital Management Suite
@@ -183,7 +183,7 @@ export default function LoginPage() {
             ) : (
               <Box w="38px" h="38px" flexShrink="0" bg="#eef2f1" borderRadius="11px" />
             )}
-            <Text fontSize="xl" fontWeight="800" color="#0e2420">{hospitalSettings?.name || "CareLedger"}</Text>
+            <Text fontSize="xl" fontWeight="800" color="#0e2420">{hospitalSettings?.name || "Al Qamar Hospital"}</Text>
           </Box>
 
           {/* Badge */}

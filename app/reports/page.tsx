@@ -78,7 +78,7 @@ function escapeHtml(value: string) {
 
 // Build print HTML as plain string concatenation — no template literal with </script> issues
 function buildPrintHtml(start: string, end: string, report: Report, hospitalName: string, hospitalLogo: string): string {
-  const clinicName = escapeHtml(hospitalName || "CareLedger Clinic");
+  const clinicName = escapeHtml(hospitalName || "Al Qamar Hospital");
   const css = [
     "@page{size:A4 portrait;margin:14mm 12mm}",
     "*{box-sizing:border-box;margin:0;padding:0}",

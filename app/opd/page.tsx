@@ -288,7 +288,7 @@ export default function OpdPage() {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
-    const clinicName = hospitalSettings?.name || "CareLedger Clinic";
+    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
     const date = new Date().toLocaleDateString("en-PK");
     const age = computeAge(visit.patient.dateOfBirth);
     const copyLabel = copyType === "DOCTOR" ? "Doctor Copy" : "Patient Copy";
@@ -1079,7 +1079,7 @@ export default function OpdPage() {
                 <Box pt="3" textAlign="center">
                   <Text fontSize="9px" color="#556e68">
                     <Box as="span" fontWeight="800" color="#123d3b">
-                      {hospitalSettings?.name || "CareLedger Clinic"}
+                      {hospitalSettings?.name || "Al Qamar Hospital"}
                     </Box>
                     {[hospitalSettings?.address, hospitalSettings?.phone, hospitalSettings?.email]
                       .filter(Boolean)

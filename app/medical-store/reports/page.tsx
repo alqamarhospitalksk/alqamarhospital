@@ -71,7 +71,7 @@ function escapeHtml(value: string) {
 
 // Same letterhead/table print style as the Management Billing & Reports PDF (app/reports/page.tsx).
 function buildPrintHtml(start: string, end: string, report: Report, hospitalName: string, hospitalLogo: string): string {
-  const clinicName = escapeHtml(hospitalName || "CareLedger Clinic");
+  const clinicName = escapeHtml(hospitalName || "Al Qamar Hospital");
   const t = report.totals;
   const css = [
     "@page{size:A4 portrait;margin:14mm 12mm}",

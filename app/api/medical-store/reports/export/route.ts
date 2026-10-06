@@ -92,13 +92,13 @@ export async function GET(request: Request) {
     db.hospitalSettings.findUnique({ where: { id: 1 } }),
   ]);
   const t = report.totals;
-  const hospitalName = hospitalSettings?.name || "CareLedger Clinic";
+  const hospitalName = hospitalSettings?.name || "Al Qamar Hospital";
   const startLabel = localDate(range.fromDate);
   const endLabel = localDate(range.toDate);
   const subtitle = `Medical Store Report  ·  Period: ${startLabel} to ${endLabel}  ·  Generated: ${new Date().toLocaleString("en-PK")}`;
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "CareLedger";
+  workbook.creator = "Al Qamar Hospital";
   workbook.created = new Date();
 
   const summary = workbook.addWorksheet("Summary");

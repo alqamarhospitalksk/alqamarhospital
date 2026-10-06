@@ -1292,7 +1292,7 @@ export default function OtPage() {
                     />
                     <Box>
                       <Text fontSize="lg" fontWeight="900" color="#123d3b">
-                        {(hospitalSettings?.name || "CareLedger Clinic").toUpperCase()}
+                        {(hospitalSettings?.name || "Al Qamar Hospital").toUpperCase()}
                       </Text>
                       <Text fontSize="10px" color="#556e68" textTransform="uppercase">
                         OPERATION THEATER (OT) {invoiceMode === "discharge" ? "DISCHARGE BILL" : invoiceMode === "additional" ? "ADDITIONAL CHARGES SLIP" : "INVOICE / RECEIPT"}
