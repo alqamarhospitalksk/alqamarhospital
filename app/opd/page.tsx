@@ -966,7 +966,7 @@ export default function OpdPage() {
 
                   <Box position="relative" zIndex="1" display="flex" flexDirection="column" flex="1">
                     {/* Header: English doctor (left) · Logo + hospital name (center) · Urdu doctor (right) */}
-                    <Grid templateColumns="minmax(0, 1fr) auto minmax(0, 1fr)" gap="3" alignItems="start" pb="0" mb="1" position="relative" minH="90px" className="slip-header-grid">
+                    <Grid templateColumns="minmax(0, 1fr) auto minmax(0, 1fr)" gap="3" alignItems="start" pb="0" mb="1" position="relative" minH="94px" className="slip-header-grid">
                       {/* Doctor details — English */}
                       <Box textAlign="left" ml="3" mt="2" className="slip-inset-block slip-doctor-en">
                         <Text fontSize="md" fontWeight="900" color="#123d3b" lineHeight="1.25">
