@@ -1,7 +1,8 @@
 "use client";
+import { DateInput } from "./date-input";
 
 import { useEffect, useState } from "react";
-import { Box, Button, Flex, Grid, Heading, HStack, Input, NativeSelect, Text, VStack } from "@chakra-ui/react";
+import { Box, Button, Flex, Grid, Heading, HStack, NativeSelect, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowTrendUp, faBed, faChevronDown, faChartLine, faCoins, faFileInvoiceDollar, faFlaskVial, faSackDollar, faTrashCan, faUserDoctor, faUserGroup, faUsers } from "@fortawesome/free-solid-svg-icons";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -264,9 +265,8 @@ export default function Dashboard() {
                   <Text fontSize="sm" color="#4b6862">
                     From
                   </Text>
-                  <Input
-                    type="date"
-                    variant="flushed"
+                  <DateInput
+variant="flushed"
                     value={start}
                     onChange={(event) => setStart(event.target.value)}
                     w="130px"
@@ -275,9 +275,8 @@ export default function Dashboard() {
                   <Text fontSize="sm" color="#4b6862">
                     to
                   </Text>
-                  <Input
-                    type="date"
-                    variant="flushed"
+                  <DateInput
+variant="flushed"
                     value={end}
                     onChange={(event) => setEnd(event.target.value)}
                     w="130px"

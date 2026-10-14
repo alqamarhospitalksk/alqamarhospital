@@ -269,7 +269,7 @@ export default function DevConsolePage() {
                   <Text fontFamily="mono">{b.filename}</Text>
                   <HStack gap="3" color="#77908b">
                     <Text>{formatSize(b.sizeBytes)}</Text>
-                    <Text>{new Date(b.createdAt).toLocaleString("en-PK")}</Text>
+                    <Text>{new Date(b.createdAt).toLocaleString("en-GB", { hour12: true })}</Text>
                   </HStack>
                 </Flex>
               ))}

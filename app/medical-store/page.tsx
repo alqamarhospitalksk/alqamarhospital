@@ -1,8 +1,9 @@
 "use client";
+import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
 import { usePolling } from "../use-polling";
-import { Box, Button, Flex, Grid, Heading, HStack, Input, NativeSelect, Text, VStack } from "@chakra-ui/react";
+import { Box, Button, Flex, Grid, Heading, HStack, NativeSelect, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCashRegister, faHourglassHalf, faSkullCrossbones, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -418,9 +419,9 @@ export default function MedicalStoreDashboardPage() {
 
           {statsPeriod === "custom" && (
             <HStack gap="2" flexWrap="wrap">
-              <Input size="sm" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} w="150px" borderRadius="8px" bg="white" />
+              <DateInput size="sm" value={customStart} onChange={(event) => setCustomStart(event.target.value)} w="150px" borderRadius="8px" bg="white" />
               <Text fontSize="sm" color="#77908b">to</Text>
-              <Input size="sm" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} w="150px" borderRadius="8px" bg="white" />
+              <DateInput size="sm" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} w="150px" borderRadius="8px" bg="white" />
             </HStack>
           )}
         </VStack>

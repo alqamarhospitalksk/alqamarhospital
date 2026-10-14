@@ -122,7 +122,7 @@ export default function StockHistoryPage() {
                       const meta = typeLabels[m.type] ?? { label: m.type, color: "gray" };
                       return (
                         <Table.Row key={m.id}>
-                          <Table.Cell fontSize="xs" whiteSpace="nowrap">{new Date(m.createdAt).toLocaleString("en-PK")}</Table.Cell>
+                          <Table.Cell fontSize="xs" whiteSpace="nowrap">{new Date(m.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>
                           <Table.Cell>
                             <Badge colorPalette={meta.color} borderRadius="full">{meta.label}</Badge>
                             {m.notes && <Text fontSize="xs" color="#77908b" mt="1" maxW="280px">{m.notes}</Text>}

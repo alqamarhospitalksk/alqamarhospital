@@ -1,6 +1,6 @@
 # Medical Store Module — How It Works
 
-The Medical Store module is CareLedger's in-house pharmacy: it manages the medicine
+The Medical Store module is Al Qamar Hospital's in-house pharmacy: it manages the medicine
 catalog, stock levels (via expiry-dated batches), purchases from suppliers, sales to
 patients/walk-in customers, stock adjustments, and returns — with a full audit trail
 for every stock movement.

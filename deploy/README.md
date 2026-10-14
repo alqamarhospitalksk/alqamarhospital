@@ -1,4 +1,4 @@
-# Putting CareLedger on GoDaddy (cPanel "Setup Node.js App")
+# Putting Al Qamar Hospital on GoDaddy (cPanel "Setup Node.js App")
 
 Everything here was tested on a fresh database built from `schema.sql` and on a production build:
 every screen, every role and every payment calculation. The cPanel steps themselves have not been

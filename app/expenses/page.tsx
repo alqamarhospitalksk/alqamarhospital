@@ -1,4 +1,6 @@
 "use client";
+import { DateInput } from "../date-input";
+import { formatDate } from "../../lib/format-date";
 
 import { FormEvent, useEffect, useState } from "react";
 import {
@@ -212,7 +214,7 @@ export default function ExpensesPage() {
                       <Table.Cell fontWeight="800" color="#123d3b">
                         PKR {expense.amount}
                       </Table.Cell>
-                      <Table.Cell fontSize="sm">{expense.expenseDate.slice(0, 10)}</Table.Cell>
+                      <Table.Cell fontSize="sm">{formatDate(expense.expenseDate)}</Table.Cell>
                       <Table.Cell>
                         <Badge colorPalette="orange" borderRadius="full">
                           {expense.method.replaceAll("_", " ")}
@@ -338,7 +340,7 @@ export default function ExpensesPage() {
 
                   <Field.Root required>
                     <Field.Label fontWeight="700">Date</Field.Label>
-                    <Input type="date" value={expenseForm.expenseDate} onChange={(event) => setExpenseForm({ ...expenseForm, expenseDate: event.target.value })} />
+                    <DateInput value={expenseForm.expenseDate} onChange={(event) => setExpenseForm({ ...expenseForm, expenseDate: event.target.value })} />
                   </Field.Root>
 
                   <Field.Root required>

@@ -146,6 +146,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       // Payment itself was already collected and recorded at admission; discharge only finalizes the case.
       const lineItemsTotal = otCase.lineItems.reduce((sum, item) => sum + Number(item.total), 0);
       const total = caseTotal(otCase, lineItemsTotal);
+      // A patient cannot leave with money still owed: the balance must be collected first.
+      const outstanding = round2(Number(total) - paidSoFar(otCase.payments));
+      if (outstanding > 0.005) throw new Error(`PKR ${outstanding} is still due. Collect the payment before discharging this patient.`);
       const updatedCase = await transaction.otCase.update({ where: { id: caseId }, data: { status: "DISCHARGED", dischargeDate, total }, include: { patient: true, doctor: true, roomBed: true, lineItems: true } });
       return { kind: action, case: updatedCase };
     });

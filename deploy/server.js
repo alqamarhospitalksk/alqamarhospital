@@ -14,6 +14,6 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   createServer((req, res) => handle(req, res)).listen(port, () => {
-    console.log(`CareLedger ready on port ${port}`);
+    console.log(`Al Qamar Hospital ready on port ${port}`);
   });
 });

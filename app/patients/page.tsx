@@ -1,4 +1,6 @@
 "use client";
+import { DateInput } from "../date-input";
+import { formatDate } from "../../lib/format-date";
 
 import { FormEvent, useEffect, useState } from "react";
 import {
@@ -564,9 +566,8 @@ export default function PatientsPage() {
 
                   <Field.Root>
                     <Field.Label fontWeight="700">Date of Birth</Field.Label>
-                    <Input
-                      type="date"
-                      value={form.dateOfBirth}
+                    <DateInput
+value={form.dateOfBirth}
                       onChange={(event) => setForm({ ...form, dateOfBirth: event.target.value })}
                     />
                   </Field.Root>
@@ -679,7 +680,7 @@ export default function PatientsPage() {
                           historyOpdVisits.map((visit) => (
                             <Table.Row key={visit.id} _hover={{ bg: "#f9fbfa" }}>
                               <Table.Cell fontWeight="700" fontSize="sm" color="#126b68">{visit.opdNumber}</Table.Cell>
-                              <Table.Cell fontSize="sm">{visit.visitDate.slice(0, 10)}</Table.Cell>
+                              <Table.Cell fontSize="sm">{formatDate(visit.visitDate)}</Table.Cell>
                               <Table.Cell fontSize="sm">{visit.doctor.name}</Table.Cell>
                               <Table.Cell fontWeight="700" fontSize="sm">{money(visit.consultationFee)}</Table.Cell>
                               <Table.Cell>
@@ -730,7 +731,7 @@ export default function PatientsPage() {
                               <Table.Row key={report.id} _hover={{ bg: "#f9fbfa" }}>
                                 <Table.Cell fontWeight="700" fontSize="sm" color="#126b68">{report.receiptNumber}</Table.Cell>
                                 <Table.Cell fontSize="sm">{report.module.replaceAll("_", " ")}</Table.Cell>
-                                <Table.Cell fontSize="sm">{report.createdAt.slice(0, 10)}</Table.Cell>
+                                <Table.Cell fontSize="sm">{formatDate(report.createdAt)}</Table.Cell>
                                 <Table.Cell fontSize="sm">{report.doctor.name}</Table.Cell>
                                 <Table.Cell fontWeight="700" fontSize="sm">{money(report.total)}</Table.Cell>
                                 <Table.Cell>

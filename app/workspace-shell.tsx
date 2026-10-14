@@ -262,7 +262,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           )}
           <Box minW="0">
             <Text fontSize="sm" fontWeight="800" whiteSpace="normal" lineHeight="1.2" color="#f0faf8" letterSpacing="-0.02em">
-              {hospitalSettings?.name || "CareLedger"}
+              {hospitalSettings?.name || "Al Qamar Hospital"}
             </Text>
             <Text fontSize="9px" color="#4a7a72" letterSpacing="0.08em" textTransform="uppercase" mt="0.5">
               Management Suite
@@ -374,7 +374,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <FontAwesomeIcon icon={faBars} size="lg" />
           </Button>
           <Text fontSize="sm" fontWeight="800" color="#f0faf8" lineClamp={1}>
-            {hospitalSettings?.name || "CareLedger"}
+            {hospitalSettings?.name || "Al Qamar Hospital"}
           </Text>
         </Flex>
         {/* Only the page area scrolls — the sidebar and small-screen top bar stay put. */}

@@ -1,4 +1,5 @@
 "use client";
+import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
 import { usePolling } from "../use-polling";
@@ -149,9 +150,9 @@ export default function ResultsPage() {
   function printResults(r: ResultReceipt) {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-    const clinicName = hospitalSettings?.name || "CareLedger Clinic";
+    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
     const now = new Date();
-    const stamp = `${now.toLocaleDateString("en-PK")} ${now.toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}`;
+    const stamp = `${now.toLocaleDateString("en-GB")} ${now.toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}`;
 
     const sections = r.items
       .map((item) => {
@@ -167,7 +168,7 @@ export default function ResultsPage() {
               const marker = v.flag === "HIGH" ? " (H)" : v.flag === "LOW" ? " (L)" : "";
               return `<tr>
                 <td>${escapeHtml(v.name)}</td>
-                <td class="${abnormal ? "abn" : ""}">${escapeHtml(displayValue(v))}${marker}</td>
+                <td class="${abnormal ? "abn" : ""}">${escapeHtml(displayValue(v))}${marker}${abnormal ? " *" : ""}</td>
                 <td>${escapeHtml(v.unit ?? "")}</td>
                 ${hasAlt ? `<td>${escapeHtml(v.altValue ?? "")}</td>` : ""}
                 <td>${escapeHtml(v.referenceText ?? "")}</td>
@@ -195,7 +196,7 @@ export default function ResultsPage() {
       printWindow.print();
       printWindow.addEventListener("afterprint", () => printWindow.close(), { once: true });
     }, { once: true });
-    printWindow.document.write(`<!doctype html><html><head><title>${escapeHtml(r.module)} Result Report ${escapeHtml(r.receiptNumber)}</title><style>
+    printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(r.module)} Result Report ${escapeHtml(r.receiptNumber)}</title><style>
       @page { size: A4 portrait; margin: 14mm; }
       * { box-sizing: border-box; }
       body { font-family: Arial, sans-serif; font-size: 10.5pt; color: #000; }
@@ -377,10 +378,9 @@ export default function ResultsPage() {
 
               {period === "custom" && (
                 <HStack gap="2" flexWrap="wrap">
-                  <Input
+                  <DateInput
                     size="sm"
-                    type="date"
-                    value={customStart}
+value={customStart}
                     onChange={(event) => {
                       setCustomStart(event.target.value);
                       setPage(1);
@@ -388,10 +388,9 @@ export default function ResultsPage() {
                     w="150px"
                   />
                   <Text fontSize="sm" color="#77908b">to</Text>
-                  <Input
+                  <DateInput
                     size="sm"
-                    type="date"
-                    value={customEnd}
+value={customEnd}
                     onChange={(event) => {
                       setCustomEnd(event.target.value);
                       setPage(1);
@@ -466,7 +465,7 @@ export default function ResultsPage() {
                           {r.printedAt ? "Printed" : "Unprinted"}
                         </Badge>
                       </Table.Cell>
-                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-PK")}</Table.Cell>
+                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>
                       <Table.Cell textAlign="right">
                         <HStack justify="flex-end" gap="2">
                           <Button size="xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => setViewReceipt(r)}>
@@ -603,6 +602,7 @@ export default function ResultsPage() {
                                   <Table.Cell fontSize="sm" fontWeight="800" color={v.flag === "HIGH" || v.flag === "LOW" || v.flag === "ABNORMAL" ? "#b3261e" : "#17252b"}>
                                     {displayValue(v)}
                                     {v.flag === "HIGH" ? " (H)" : v.flag === "LOW" ? " (L)" : ""}
+                                    {(v.flag === "HIGH" || v.flag === "LOW" || v.flag === "ABNORMAL") && " *"}
                                   </Table.Cell>
                                   <Table.Cell fontSize="xs" color="#556e68">
                                     {v.unit ?? ""}
@@ -633,7 +633,7 @@ export default function ResultsPage() {
                     )}
                     {item.resultUploadedAt && (
                       <Text fontSize="10px" color="#94a3b8" mt="1">
-                        Entered {new Date(item.resultUploadedAt).toLocaleString("en-PK")}
+                        Entered {new Date(item.resultUploadedAt).toLocaleString("en-GB", { hour12: true })}
                         {item.resultUploadedBy ? ` by ${item.resultUploadedBy}` : ""}
                       </Text>
                     )}

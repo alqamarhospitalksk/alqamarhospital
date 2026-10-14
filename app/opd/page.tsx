@@ -288,8 +288,8 @@ export default function OpdPage() {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
-    const clinicName = hospitalSettings?.name || "CareLedger Clinic";
-    const date = new Date().toLocaleDateString("en-PK");
+    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
+    const date = new Date().toLocaleDateString("en-GB");
     const age = computeAge(visit.patient.dateOfBirth);
     const copyLabel = copyType === "DOCTOR" ? "Doctor Copy" : "Patient Copy";
     const availability = formatAvailability(visit.doctor, "en");
@@ -966,7 +966,7 @@ export default function OpdPage() {
 
                   <Box position="relative" zIndex="1" display="flex" flexDirection="column" flex="1">
                     {/* Header: English doctor (left) · Logo + hospital name (center) · Urdu doctor (right) */}
-                    <Grid templateColumns="1fr auto 1fr" gap="3" alignItems="start" pb="0" mb="1" className="slip-header-grid">
+                    <Grid templateColumns="minmax(0, 1fr) auto minmax(0, 1fr)" gap="3" alignItems="start" pb="0" mb="1" position="relative" minH="94px" className="slip-header-grid">
                       {/* Doctor details — English */}
                       <Box textAlign="left" ml="3" mt="2" className="slip-inset-block slip-doctor-en">
                         <Text fontSize="md" fontWeight="900" color="#123d3b" lineHeight="1.25">
@@ -987,18 +987,27 @@ export default function OpdPage() {
                         )}
                       </Box>
 
-                      {/* Hospital logo + name — center, nudged up */}
-                      <Flex direction="column" align="center" justify="flex-start" px="2" mt="-10px">
+                      {/* Hospital logo, with the hospital name in front of it — center, nudged up */}
+                      <Flex
+                        align="center"
+                        justify="center"
+                        gap="2"
+                        position="absolute"
+                        top="6px"
+                        left="50%"
+                        transform="translateX(-50%)"
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={hospitalSettings?.logoDataUrl || "/images/logo.png"}
                           alt="Hospital logo"
-                          style={{ width: 56, height: 56, objectFit: "contain" }}
+                          style={{ width: 72, height: 72, objectFit: "contain" }}
                         />
-                        <Text fontSize="10px" fontWeight="800" color="#123d3b" mt="1" textAlign="center" whiteSpace="nowrap">
-                          {hospitalSettings?.name || "CareLedger Clinic"}
+                        <Text fontSize="20px" fontWeight="900" color="#123d3b" lineHeight="1.2" whiteSpace="nowrap">
+                          {hospitalSettings?.name || "Al Qamar Hospital"}
                         </Text>
                       </Flex>
+                      <Box />
 
                       {/* Doctor details — Urdu */}
                       <Box textAlign="right" dir="rtl" fontFamily="var(--font-urdu)" ml="3" mt="2" mr="3" pb="2" className="slip-inset-block slip-doctor-ur">
@@ -1023,24 +1032,15 @@ export default function OpdPage() {
                       </Box>
                     </Grid>
 
-                    {/* Token Number — heading in front of the number, centered below the logo */}
-                    <VStack align="center" gap="1" mb="0" className="slip-token-block">
-                      <HStack bg="#dce96f" borderRadius="10px" py="1.5" px="6" gap="2">
-                        <Text fontSize="9px" textTransform="uppercase" fontWeight="900" color="#46633e" letterSpacing="0.08em">
-                          Token Number
-                        </Text>
-                        <Heading size="lg" color="#123d3b" lineHeight="1.2">
-                          #{visit.dailyToken}
-                        </Heading>
-                      </HStack>
-                    </VStack>
+                    {/* Heading sits above the line, outside the patient details */}
+                    <Text fontSize="9px" color="#77908b" textTransform="uppercase" letterSpacing="0.06em" mb="1" ml="3" className="slip-inset-block">
+                      Patient Information
+                    </Text>
+                    <Box borderTop="1px solid #dbe5e1" mb="2" />
 
-                    {/* Patient Details — single line */}
+                    {/* Patient Details — two rows */}
                     <Box mb="3" ml="3" className="slip-inset-block">
-                      <Text fontSize="9px" color="#77908b" textTransform="uppercase" letterSpacing="0.06em" mb="1.5">
-                        Patient Information
-                      </Text>
-                      <HStack columnGap="4" rowGap="0.5" wrap="wrap" fontSize="xs" color="#123d3b">
+                      <HStack columnGap="4" mb="1" fontSize="xs" color="#123d3b">
                         <Text>
                           MR #: <Box as="span" fontWeight="800">{visit.patient.mrNumber}</Box>
                         </Text>
@@ -1053,6 +1053,8 @@ export default function OpdPage() {
                         <Text>
                           Father Name: <Box as="span" fontWeight="800">{visit.patient.fatherName || "—"}</Box>
                         </Text>
+                      </HStack>
+                      <HStack columnGap="4" fontSize="xs" color="#123d3b">
                         <Text>
                           Age: <Box as="span" fontWeight="800">{computeAge(visit.patient.dateOfBirth)}</Box>
                         </Text>
@@ -1060,7 +1062,7 @@ export default function OpdPage() {
                           Gender: <Box as="span" fontWeight="800">{visit.patient.gender || "—"}</Box>
                         </Text>
                         <Text>
-                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-PK")}</Box>
+                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-GB")}</Box>
                         </Text>
                       </HStack>
                     </Box>
@@ -1077,7 +1079,7 @@ export default function OpdPage() {
                 <Box pt="3" textAlign="center">
                   <Text fontSize="9px" color="#556e68">
                     <Box as="span" fontWeight="800" color="#123d3b">
-                      {hospitalSettings?.name || "CareLedger Clinic"}
+                      {hospitalSettings?.name || "Al Qamar Hospital"}
                     </Box>
                     {[hospitalSettings?.address, hospitalSettings?.phone, hospitalSettings?.email]
                       .filter(Boolean)

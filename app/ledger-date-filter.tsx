@@ -1,6 +1,7 @@
 "use client";
+import { DateInput } from "./date-input";
 
-import { HStack, Input, Text } from "@chakra-ui/react";
+import { HStack, Text } from "@chakra-ui/react";
 
 // "YYYY-MM-DD" for a local date, shifted by `daysBack` days.
 export function localDateString(daysBack = 0) {
@@ -15,9 +16,9 @@ export function LedgerDateFilter({ from, to, onChange }: { from: string; to: str
   return (
     <HStack gap="2" flexWrap="wrap">
       <Text fontSize="sm" color="#607d76">From</Text>
-      <Input size="sm" type="date" value={from} max={to} onChange={(event) => onChange(event.target.value, to)} w="150px" borderRadius="8px" bg="white" />
+      <DateInput size="sm" value={from} max={to} onChange={(event) => onChange(event.target.value, to)} w="150px" borderRadius="8px" bg="white" />
       <Text fontSize="sm" color="#607d76">to</Text>
-      <Input size="sm" type="date" value={to} min={from} onChange={(event) => onChange(from, event.target.value)} w="150px" borderRadius="8px" bg="white" />
+      <DateInput size="sm" value={to} min={from} onChange={(event) => onChange(from, event.target.value)} w="150px" borderRadius="8px" bg="white" />
     </HStack>
   );
 }

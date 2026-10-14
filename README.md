@@ -1,4 +1,4 @@
-# CareLedger Clinic Management
+# Al Qamar Hospital Management
 
 Next.js clinic operations system using Chakra UI, Font Awesome, MySQL, and Prisma ORM.
 

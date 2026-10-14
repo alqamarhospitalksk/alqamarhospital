@@ -1,4 +1,5 @@
 "use client";
+import { DateInput } from "../../date-input";
 
 import { useEffect, useState } from "react";
 import { Box, Button, Flex, Grid, Heading, HStack, Input, NativeSelect, Table, Text } from "@chakra-ui/react";
@@ -132,7 +133,7 @@ export default function SupplierPaymentsPage() {
             </Box>
             <Box>
               <Text fontSize="sm" fontWeight="700" mb="2">Date paid</Text>
-              <Input type="date" value={paidOn} max={today()} onChange={(e) => setPaidOn(e.target.value)} />
+              <DateInput value={paidOn} max={today()} onChange={(e) => setPaidOn(e.target.value)} />
             </Box>
           </Grid>
           <Box mb="4">
@@ -212,7 +213,7 @@ export default function SupplierPaymentsPage() {
                 ) : (
                   visiblePayments.map((p) => (
                     <Table.Row key={p.id}>
-                      <Table.Cell fontSize="sm">{new Date(p.paidOn).toLocaleDateString("en-PK", { timeZone: "UTC" })}</Table.Cell>
+                      <Table.Cell fontSize="sm">{new Date(p.paidOn).toLocaleDateString("en-GB", { timeZone: "UTC" })}</Table.Cell>
                       <Table.Cell fontSize="sm" fontWeight="700">{p.supplierName}</Table.Cell>
                       <Table.Cell fontSize="xs">{p.method.replaceAll("_", " ")}</Table.Cell>
                       <Table.Cell fontSize="xs" color="#556e68">{p.note ?? "—"}</Table.Cell>

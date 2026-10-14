@@ -34,6 +34,7 @@
 User: labtech
 Pass: Abbas@123
 
+
 npx prisma generate
 npx prisma db push
 npx prisma db seed

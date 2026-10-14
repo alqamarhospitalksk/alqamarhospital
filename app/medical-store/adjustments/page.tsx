@@ -257,7 +257,7 @@ export default function StockAdjustmentsPage() {
                   <option value="">{loadingBatches ? "Loading batches…" : medicineItemId ? "Select batch" : "Select a medicine first"}</option>
                   {batches.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.batchNumber || `Batch #${b.id}`} — {b.quantityRemaining} left — exp {new Date(b.expiryDate).toLocaleDateString("en-PK")}
+                      {b.batchNumber || `Batch #${b.id}`} — {b.quantityRemaining} left — exp {new Date(b.expiryDate).toLocaleDateString("en-GB")}
                     </option>
                   ))}
                 </NativeSelect.Field>
@@ -325,7 +325,7 @@ export default function StockAdjustmentsPage() {
                       <Table.Cell fontWeight="700" color="#a34258">-{a.quantity}</Table.Cell>
                       <Table.Cell fontSize="xs" color="#556e68" maxW="240px">{a.reason || "—"}</Table.Cell>
                       <Table.Cell fontSize="xs">{a.adjustedBy}</Table.Cell>
-                      <Table.Cell fontSize="xs">{new Date(a.createdAt).toLocaleString("en-PK")}</Table.Cell>
+                      <Table.Cell fontSize="xs">{new Date(a.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>
                     </Table.Row>
                   ))
                 )}

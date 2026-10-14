@@ -302,7 +302,7 @@ export default function SaleReturnPage() {
                       <Table.Cell fontWeight="700" color="#a34258">PKR {r.totalRefund}</Table.Cell>
                       <Table.Cell><Badge colorPalette={r.restock ? "green" : "orange"} borderRadius="full">{r.restock ? "Restocked" : "Quarantined"}</Badge></Table.Cell>
                       <Table.Cell fontSize="xs" color="#556e68" maxW="200px">{r.reason}</Table.Cell>
-                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-PK")}</Table.Cell>
+                      <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>
                     </Table.Row>
                   ))
                 )}

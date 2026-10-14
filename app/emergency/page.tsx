@@ -191,8 +191,8 @@ export default function EmergencyPage() {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
-    const clinicName = hospitalSettings?.name || "CareLedger Clinic";
-    const date = new Date().toLocaleDateString("en-PK");
+    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
+    const date = new Date().toLocaleDateString("en-GB");
     const age = computeAge(visit.patient.dateOfBirth);
     const copyLabel = copyType === "MINOR_OT" ? "Minor OT Copy" : "Patient Copy";
 
@@ -674,7 +674,7 @@ export default function EmergencyPage() {
                         />
                         <Box textAlign="left">
                           <Text fontSize="sm" fontWeight="900" color="#123d3b" whiteSpace="nowrap">
-                            {hospitalSettings?.name || "CareLedger Clinic"}
+                            {hospitalSettings?.name || "Al Qamar Hospital"}
                           </Text>
                           <Text fontSize="9px" color="#77908b" textTransform="uppercase" letterSpacing="0.1em">
                             Minor Emergency Slip
@@ -696,7 +696,7 @@ export default function EmergencyPage() {
                           Visit #: {visit.visitNumber}
                         </Text>
                         <Text fontSize="10px" color="#77908b">
-                          Date: {new Date().toLocaleDateString("en-PK")}
+                          Date: {new Date().toLocaleDateString("en-GB")}
                         </Text>
                       </Box>
                     </Grid>
@@ -726,7 +726,7 @@ export default function EmergencyPage() {
                           Gender: <Box as="span" fontWeight="800">{visit.patient.gender || "—"}</Box>
                         </Text>
                         <Text>
-                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-PK")}</Box>
+                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-GB")}</Box>
                         </Text>
                       </HStack>
                     </Box>
@@ -743,7 +743,7 @@ export default function EmergencyPage() {
                 <Box pt="3" textAlign="center">
                   <Text fontSize="9px" color="#556e68">
                     <Box as="span" fontWeight="800" color="#123d3b">
-                      {hospitalSettings?.name || "CareLedger Clinic"}
+                      {hospitalSettings?.name || "Al Qamar Hospital"}
                     </Box>
                     {[hospitalSettings?.address, hospitalSettings?.phone, hospitalSettings?.email]
                       .filter(Boolean)
