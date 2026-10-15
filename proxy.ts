@@ -17,6 +17,7 @@ export const config = {
     "/opd/:path*",
     "/diagnostics/:path*",
     "/ot/:path*",
+    "/admissions/:path*",
     "/configuration/:path*",
     "/inventory/:path*",
     "/finance/:path*",

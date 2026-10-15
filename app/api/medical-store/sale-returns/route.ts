@@ -28,6 +28,7 @@ export async function GET() {
       reason: r.reason,
       restock: r.restock,
       totalRefund: r.totalRefund.toString(),
+      refundMode: r.refundMode,
       createdBy: r.createdBy.username,
       createdAt: r.createdAt,
       items: r.items.map((i) => ({ medicineName: i.saleItem.medicineItem.name, quantity: i.quantity.toString(), unitPrice: i.unitPrice.toString(), total: i.total.toString() })),
@@ -103,8 +104,11 @@ export async function POST(request: Request) {
         for (const row of returnItemsData) row.total = Math.round(row.total * scale * 100) / 100;
       }
 
+      // Medicine coming back on an in-patient credit sale that hasn't been paid yet only lowers what
+      // the patient owes; no cash is handed back. After settlement it is a normal cash refund.
+      const refundMode = sale.creditStatus === "UNSETTLED" ? "CREDIT" : "CASH";
       const saleReturn = await transaction.medicineSaleReturn.create({
-        data: { returnNumber, saleId, reason, restock, totalRefund, createdById: user.id, items: { create: returnItemsData } },
+        data: { returnNumber, saleId, reason, restock, totalRefund, refundMode, createdById: user.id, items: { create: returnItemsData } },
         include: { items: true },
       });
 
@@ -135,8 +139,8 @@ export async function POST(request: Request) {
       return saleReturn;
     });
 
-    await db.auditLog.create({ data: { action: "REFUND", entity: "MedicineSaleReturn", entityId: String(result.id), userId: user.id, reason, afterJson: JSON.stringify({ returnNumber: result.returnNumber, restock, totalRefund: result.totalRefund.toString() }) } });
-    return NextResponse.json({ return: { id: result.id, returnNumber: result.returnNumber, totalRefund: result.totalRefund.toString() } }, { status: 201 });
+    await db.auditLog.create({ data: { action: "REFUND", entity: "MedicineSaleReturn", entityId: String(result.id), userId: user.id, reason, afterJson: JSON.stringify({ returnNumber: result.returnNumber, restock, totalRefund: result.totalRefund.toString(), refundMode: result.refundMode }) } });
+    return NextResponse.json({ return: { id: result.id, returnNumber: result.returnNumber, totalRefund: result.totalRefund.toString(), refundMode: result.refundMode } }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to record the return." }, { status: 409 });
   }

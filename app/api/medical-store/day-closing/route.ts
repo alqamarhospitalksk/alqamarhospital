@@ -23,7 +23,8 @@ async function daySummary(dayStart: Date) {
       where: { medicineSaleId: { not: null }, status: "PAID", createdAt: { gte: dayStart, lt: dayEnd } },
       select: { amount: true, method: true },
     }),
-    db.medicineSaleReturn.findMany({ where: { createdAt: { gte: dayStart, lt: dayEnd } }, select: { totalRefund: true } }),
+    // In-patient credit returns (refundMode CREDIT) only lower what the patient owes; no cash leaves the drawer.
+    db.medicineSaleReturn.findMany({ where: { createdAt: { gte: dayStart, lt: dayEnd }, refundMode: "CASH" }, select: { totalRefund: true } }),
   ]);
   const byMethod: Record<string, number> = {};
   for (const p of payments) byMethod[p.method] = (byMethod[p.method] ?? 0) + Number(p.amount);

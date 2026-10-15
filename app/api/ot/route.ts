@@ -58,10 +58,8 @@ export async function POST(request: Request) {
   const anesthesiaFee = money(body?.anesthesiaFee);
   const roomFee = money(body?.roomFee);
   const hospitalFee = money(body?.hospitalFee);
-  const otMedicineFee = money(body?.otMedicineFee);
-  const otMedicineNote = text(body?.otMedicineNote) || null;
-  const homeMedicineFee = money(body?.homeMedicineFee);
-  const homeMedicineNote = text(body?.homeMedicineNote) || null;
+  // OT and home medicine are no longer typed in here: the medical store issues them to the OT patient
+  // (In-patients page) and is paid for them before discharge. Old cases keep their manual amounts.
   const recommendations = text(body?.recommendations) || null;
   const procedureName = text(body?.procedureName) || null;
   const diagnosis = text(body?.diagnosis) || null;
@@ -93,7 +91,7 @@ export async function POST(request: Request) {
       const sequence = await transaction.dailySequence.upsert({ where: { sequenceKey }, create: { sequenceKey, nextValue: 2 }, update: { nextValue: { increment: 1 } } });
       const caseNumber = `OT-${dateKey}-${String(sequence.nextValue - 1).padStart(4, "0")}`;
       const doctorFee = doctorFeeOverride !== null && Number.isFinite(doctorFeeOverride) && doctorFeeOverride >= 0 ? doctorFeeOverride : 0;
-      const total = doctorFee + theaterFee + anesthesiaFee + roomFee + hospitalFee + otMedicineFee + homeMedicineFee;
+      const total = doctorFee + theaterFee + anesthesiaFee + roomFee + hospitalFee;
       const createdCase = await transaction.otCase.create({
         data: {
           caseNumber,
@@ -107,10 +105,6 @@ export async function POST(request: Request) {
           anesthesiaFee,
           roomFee,
           hospitalFee,
-          otMedicineFee,
-          otMedicineNote,
-          homeMedicineFee,
-          homeMedicineNote,
           recommendations,
           total,
           procedureName,

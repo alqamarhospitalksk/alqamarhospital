@@ -5,7 +5,7 @@ import { usePolling } from "./use-polling";
 import { usePathname, useRouter } from "next/navigation";
 import { Box, Button, Flex, HStack, Link, Stack, Text } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faBed, faBoxesStacked, faBuilding, faCartShopping, faCashRegister, faChartLine, faClipboardCheck, faClockRotateLeft, faCoins, faFileInvoiceDollar, faFlask, faGaugeHigh, faHandHoldingDollar, faHospital, faHourglassHalf, faKitMedical, faVault, faNotesMedical, faPeopleGroup, faPrescriptionBottleMedical, faRightFromBracket, faRotateLeft, faShieldHalved, faTriangleExclamation, faTruckMedical, faUserDoctor, faUserTie, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faBed, faBedPulse, faBoxesStacked, faBuilding, faCartShopping, faCashRegister, faChartLine, faClipboardCheck, faClockRotateLeft, faCoins, faFileInvoiceDollar, faFlask, faGaugeHigh, faHandHoldingDollar, faHospital, faHospitalUser, faHourglassHalf, faKitMedical, faVault, faNotesMedical, faPeopleGroup, faPrescriptionBottleMedical, faRightFromBracket, faRotateLeft, faShieldHalved, faTriangleExclamation, faTruckMedical, faUserDoctor, faUserTie, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -18,6 +18,7 @@ const navigation: { label: string; icon: typeof faGaugeHigh; href: string; roles
   { label: "Doctors", icon: faUserDoctor, href: "/doctors", roles: ["MANAGEMENT"] },
   { label: "Tests", icon: faFlask, href: "/diagnostics", roles: ["OPERATOR"] },
   { label: "Lab results", icon: faVial, href: "/results", roles: ["OPERATOR"] },
+  { label: "Admissions", icon: faHospitalUser, href: "/admissions", roles: ["OPERATOR"] },
   { label: "Operation theater", icon: faBed, href: "/ot", roles: ["OPERATOR"] },
   { label: "Minor emergency", icon: faKitMedical, href: "/emergency", roles: ["OPERATOR"] },
   { label: "Billing & reports", icon: faFileInvoiceDollar, href: "/reports", roles: ["MANAGEMENT"] },
@@ -38,6 +39,7 @@ const navigation: { label: string; icon: typeof faGaugeHigh; href: string; roles
   { label: "Purchase (stock in)", icon: faBoxesStacked, href: "/medical-store/purchase", roles: ["MEDICAL_STORE"] },
   { label: "Reorder list", icon: faCartShopping, href: "/medical-store/reorder", roles: ["MEDICAL_STORE"] },
   { label: "Sell medicine", icon: faCashRegister, href: "/medical-store/sell", roles: ["MEDICAL_STORE"] },
+  { label: "In-patients", icon: faBedPulse, href: "/medical-store/inpatients", roles: ["MEDICAL_STORE"] },
   { label: "Day closing", icon: faVault, href: "/medical-store/day-closing", roles: ["MEDICAL_STORE"] },
   { label: "Stock adjustments", icon: faTriangleExclamation, href: "/medical-store/adjustments", roles: ["MEDICAL_STORE"] },
   { label: "Stock count", icon: faClipboardCheck, href: "/medical-store/stock-count", roles: ["MEDICAL_STORE"] },

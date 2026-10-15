@@ -26,6 +26,9 @@ type Doctor = {
   ultrasoundSharePercent: string;
   ecgSharePercent: string;
   ecoSharePercent: string;
+  admissionDailyFee: string;
+  admissionSplitType: string;
+  admissionSplitValue: string;
 };
 
 type DoctorForm = {
@@ -46,6 +49,9 @@ type DoctorForm = {
   ultrasoundSharePercent: string;
   ecgSharePercent: string;
   ecoSharePercent: string;
+  admissionDailyFee: string;
+  admissionSplitType: string;
+  admissionSplitValue: string;
 };
 
 const emptyForm: DoctorForm = {
@@ -66,6 +72,9 @@ const emptyForm: DoctorForm = {
   ultrasoundSharePercent: "",
   ecgSharePercent: "",
   ecoSharePercent: "",
+  admissionDailyFee: "",
+  admissionSplitType: "PERCENTAGE",
+  admissionSplitValue: "",
 };
 
 export default function DoctorsPage() {
@@ -120,6 +129,9 @@ export default function DoctorsPage() {
       ultrasoundSharePercent: doc.ultrasoundSharePercent,
       ecgSharePercent: doc.ecgSharePercent,
       ecoSharePercent: doc.ecoSharePercent,
+      admissionDailyFee: doc.admissionDailyFee,
+      admissionSplitType: doc.admissionSplitType,
+      admissionSplitValue: doc.admissionSplitValue,
     });
     setShowModal(true);
   }
@@ -512,6 +524,48 @@ export default function DoctorsPage() {
                       value={form.hospitalSplitValue}
                       onChange={(event) => setForm({ ...form, hospitalSplitValue: event.target.value })}
                     />
+                  </Field.Root>
+
+                  <Field.Root gridColumn={{ md: "span 2" }}>
+                    <Field.Label fontWeight="700">Admission (in-patient) visits</Field.Label>
+                    <Text fontSize="xs" color="#77908b" mt="-1" mb="1">
+                      Charged on an admitted patient&apos;s bill for each day this doctor visits, with its own split — separate from the OPD split above.
+                    </Text>
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label fontWeight="700">Visit Fee per Day (PKR)</Field.Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0"
+                      value={form.admissionDailyFee}
+                      onChange={(event) => setForm({ ...form, admissionDailyFee: event.target.value })}
+                    />
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label fontWeight="700">Admission Split</Field.Label>
+                    <HStack gap="2">
+                      <NativeSelect.Root width="55%">
+                        <NativeSelect.Field
+                          value={form.admissionSplitType}
+                          onChange={(event) => setForm({ ...form, admissionSplitType: event.target.value })}
+                        >
+                          <option value="PERCENTAGE">% retained</option>
+                          <option value="FIXED">PKR retained / day</option>
+                        </NativeSelect.Field>
+                      </NativeSelect.Root>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder={form.admissionSplitType === "PERCENTAGE" ? "20" : "500"}
+                        value={form.admissionSplitValue}
+                        onChange={(event) => setForm({ ...form, admissionSplitValue: event.target.value })}
+                      />
+                    </HStack>
                   </Field.Root>
 
                   <Field.Root gridColumn={{ md: "span 2" }}>

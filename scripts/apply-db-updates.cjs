@@ -24,6 +24,38 @@ const tableExists = async (conn, table) =>
   (await conn.query("SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?", [table])).length > 0;
 const constraintExists = async (conn, table, name) =>
   (await conn.query("SELECT 1 FROM information_schema.table_constraints WHERE table_schema = DATABASE() AND table_name = ? AND constraint_name = ?", [table, name])).length > 0;
+const indexExists = async (conn, table, name) =>
+  (await conn.query("SELECT 1 FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?", [table, name])).length > 0;
+
+// Foreign keys are added one by one; a database engine without foreign keys simply skips them.
+async function addLinks(conn, links) {
+  for (const [table, name, definition] of links) {
+    if (await constraintExists(conn, table, name)) continue;
+    try {
+      await conn.query(`ALTER TABLE \`${table}\` ADD CONSTRAINT \`${name}\` ${definition}`);
+    } catch (error) {
+      console.log(`[db-updates] link ${name} not added (${error.code ?? error.message}); the app works without it`);
+    }
+  }
+}
+
+// [table, column, definition] for every column the admissions module adds to existing tables.
+const admissionColumns = [
+  ["doctors", "admission_daily_fee", "DECIMAL(12, 2) NOT NULL DEFAULT 0"],
+  ["doctors", "admission_split_type", "VARCHAR(20) NOT NULL DEFAULT 'PERCENTAGE'"],
+  ["doctors", "admission_split_value", "DECIMAL(12, 2) NOT NULL DEFAULT 0"],
+  ["payments", "admission_id", "INTEGER NULL"],
+  ["room_beds", "category", "VARCHAR(20) NOT NULL DEFAULT 'WARD'"],
+  ["room_beds", "unit_type", "VARCHAR(10) NOT NULL DEFAULT 'BED'"],
+  ["ot_cases", "admission_id", "INTEGER NULL"],
+  ["medicine_sales", "admission_id", "INTEGER NULL"],
+  ["medicine_sales", "credit_status", "VARCHAR(12) NULL"],
+  ["medicine_sales", "purpose", "VARCHAR(10) NULL"],
+  ["medicine_sales", "settled_at", "DATETIME(3) NULL"],
+  ["medicine_sales", "ot_case_id", "INTEGER NULL"],
+  ["medicine_sale_returns", "refund_mode", "VARCHAR(10) NOT NULL DEFAULT 'CASH'"],
+];
+const admissionTables = ["admissions", "admission_days", "admission_charges", "admission_category_fees"];
 
 // Same statements as prisma/migrations/20261003120000_lab_result_templates/migration.sql.
 const updates = [
@@ -68,20 +100,110 @@ const updates = [
           PRIMARY KEY (\`id\`)
         ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
       }
-      // Links between the tables (skipped on a database engine that has no foreign keys).
-      const links = [
+      await addLinks(conn, [
         ["diagnostic_test_parameters", "diagnostic_test_parameters_catalog_item_id_fkey", "FOREIGN KEY (`catalog_item_id`) REFERENCES `diagnostic_catalog_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE"],
         ["diagnostic_result_values", "diagnostic_result_values_receipt_item_id_fkey", "FOREIGN KEY (`receipt_item_id`) REFERENCES `diagnostic_receipt_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE"],
         ["diagnostic_result_values", "diagnostic_result_values_parameter_id_fkey", "FOREIGN KEY (`parameter_id`) REFERENCES `diagnostic_test_parameters`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
-      ];
-      for (const [table, name, definition] of links) {
-        if (await constraintExists(conn, table, name)) continue;
-        try {
-          await conn.query(`ALTER TABLE \`${table}\` ADD CONSTRAINT \`${name}\` ${definition}`);
-        } catch (error) {
-          console.log(`[db-updates] link ${name} not added (${error.code ?? error.message}); the app works without it`);
-        }
+      ]);
+    },
+  },
+  // Same statements as prisma/migrations/20261015120000_admissions/migration.sql.
+  {
+    name: "in-patient admissions",
+    needed: async (conn) => {
+      for (const table of admissionTables) if (!(await tableExists(conn, table))) return true;
+      for (const [table, column] of admissionColumns) if (!(await columnExists(conn, table, column))) return true;
+      return false;
+    },
+    run: async (conn) => {
+      for (const [table, column, definition] of admissionColumns) {
+        if (!(await columnExists(conn, table, column))) await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
       }
+      if (!(await tableExists(conn, "admissions"))) {
+        await conn.query(`CREATE TABLE \`admissions\` (
+          \`id\` INTEGER NOT NULL AUTO_INCREMENT,
+          \`admission_number\` VARCHAR(40) NOT NULL,
+          \`patient_id\` INTEGER NOT NULL,
+          \`doctor_id\` INTEGER NOT NULL,
+          \`category\` VARCHAR(20) NOT NULL,
+          \`room_bed_id\` INTEGER NULL,
+          \`room_label\` VARCHAR(150) NOT NULL,
+          \`daily_room_rate\` DECIMAL(12, 2) NOT NULL,
+          \`daily_doctor_fee\` DECIMAL(12, 2) NOT NULL,
+          \`daily_technician_fee\` DECIMAL(12, 2) NOT NULL,
+          \`status\` VARCHAR(20) NOT NULL DEFAULT 'ADMITTED',
+          \`admitted_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+          \`invoiced_at\` DATETIME(3) NULL,
+          \`discharged_at\` DATETIME(3) NULL,
+          \`diagnosis\` VARCHAR(500) NULL,
+          \`notes\` VARCHAR(1000) NULL,
+          \`attendant_name\` VARCHAR(150) NULL,
+          \`attendant_mobile\` VARCHAR(30) NULL,
+          \`created_by_id\` INTEGER NOT NULL,
+          \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+          \`updated_at\` DATETIME(3) NOT NULL,
+          UNIQUE INDEX \`admissions_admission_number_key\`(\`admission_number\`),
+          INDEX \`admissions_status_idx\`(\`status\`),
+          INDEX \`admissions_patient_id_idx\`(\`patient_id\`),
+          INDEX \`admissions_room_bed_id_status_idx\`(\`room_bed_id\`, \`status\`),
+          PRIMARY KEY (\`id\`)
+        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      }
+      if (!(await tableExists(conn, "admission_days"))) {
+        await conn.query(`CREATE TABLE \`admission_days\` (
+          \`id\` INTEGER NOT NULL AUTO_INCREMENT,
+          \`admission_id\` INTEGER NOT NULL,
+          \`charge_date\` DATE NOT NULL,
+          \`room_label\` VARCHAR(150) NOT NULL,
+          \`room_rate\` DECIMAL(12, 2) NOT NULL,
+          \`doctor_id\` INTEGER NOT NULL,
+          \`doctor_fee\` DECIMAL(12, 2) NOT NULL,
+          \`doctor_visited\` BOOLEAN NOT NULL DEFAULT true,
+          \`technician_fee\` DECIMAL(12, 2) NOT NULL,
+          \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+          UNIQUE INDEX \`admission_days_admission_id_charge_date_key\`(\`admission_id\`, \`charge_date\`),
+          PRIMARY KEY (\`id\`)
+        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      }
+      if (!(await tableExists(conn, "admission_charges"))) {
+        await conn.query(`CREATE TABLE \`admission_charges\` (
+          \`id\` INTEGER NOT NULL AUTO_INCREMENT,
+          \`admission_id\` INTEGER NOT NULL,
+          \`description\` VARCHAR(200) NOT NULL,
+          \`amount\` DECIMAL(12, 2) NOT NULL,
+          \`created_by_id\` INTEGER NOT NULL,
+          \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+          INDEX \`admission_charges_admission_id_idx\`(\`admission_id\`),
+          PRIMARY KEY (\`id\`)
+        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      }
+      if (!(await tableExists(conn, "admission_category_fees"))) {
+        await conn.query(`CREATE TABLE \`admission_category_fees\` (
+          \`id\` INTEGER NOT NULL AUTO_INCREMENT,
+          \`category\` VARCHAR(20) NOT NULL,
+          \`technician_fee\` DECIMAL(12, 2) NOT NULL DEFAULT 0,
+          \`updated_at\` DATETIME(3) NOT NULL,
+          UNIQUE INDEX \`admission_category_fees_category_key\`(\`category\`),
+          PRIMARY KEY (\`id\`)
+        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+      }
+      for (const [table, name, column] of [["payments", "payments_admission_id_idx", "admission_id"], ["ot_cases", "ot_cases_admission_id_idx", "admission_id"], ["medicine_sales", "medicine_sales_admission_id_idx", "admission_id"], ["medicine_sales", "medicine_sales_ot_case_id_idx", "ot_case_id"]]) {
+        if (!(await indexExists(conn, table, name))) await conn.query(`CREATE INDEX \`${name}\` ON \`${table}\`(\`${column}\`)`);
+      }
+      await addLinks(conn, [
+        ["payments", "payments_admission_id_fkey", "FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
+        ["ot_cases", "ot_cases_admission_id_fkey", "FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
+        ["admissions", "admissions_patient_id_fkey", "FOREIGN KEY (`patient_id`) REFERENCES `patients`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE"],
+        ["admissions", "admissions_doctor_id_fkey", "FOREIGN KEY (`doctor_id`) REFERENCES `doctors`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE"],
+        ["admissions", "admissions_room_bed_id_fkey", "FOREIGN KEY (`room_bed_id`) REFERENCES `room_beds`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
+        ["admissions", "admissions_created_by_id_fkey", "FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE"],
+        ["admission_days", "admission_days_admission_id_fkey", "FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE CASCADE ON UPDATE CASCADE"],
+        ["admission_days", "admission_days_doctor_id_fkey", "FOREIGN KEY (`doctor_id`) REFERENCES `doctors`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE"],
+        ["admission_charges", "admission_charges_admission_id_fkey", "FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE CASCADE ON UPDATE CASCADE"],
+        ["admission_charges", "admission_charges_created_by_id_fkey", "FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE"],
+        ["medicine_sales", "medicine_sales_admission_id_fkey", "FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
+        ["medicine_sales", "medicine_sales_ot_case_id_fkey", "FOREIGN KEY (`ot_case_id`) REFERENCES `ot_cases`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
+      ]);
     },
   },
 ];

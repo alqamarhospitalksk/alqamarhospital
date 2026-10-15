@@ -8,14 +8,15 @@ function hashPassword(password: string) {
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
 }
 
-function requiredEnvironment(name: string) {
-  const value = process.env[name];
-  if (!value) throw new Error(`Set ${name} before running db:seed.`);
-  return value;
-}
-
-const managementPassword = requiredEnvironment("SEED_MANAGEMENT_PASSWORD");
-const operatorPassword = requiredEnvironment("SEED_OPERATOR_PASSWORD");
+// One starter login per role. Each password comes from .env (never from this file). A user is only
+// created when the username does not exist yet, so an existing account's password is never reset.
+// Like any new account, each one must choose its own password at first sign-in.
+const starterUsers = [
+  { name: "Management", username: "management", role: "MANAGEMENT", passwordEnv: "SEED_MANAGEMENT_PASSWORD" },
+  { name: "Operator", username: "operator", role: "OPERATOR", passwordEnv: "SEED_OPERATOR_PASSWORD" },
+  { name: "Medical Store", username: "store", role: "MEDICAL_STORE", passwordEnv: "SEED_STORE_PASSWORD" },
+  { name: "Lab", username: "lab", role: "LAB", passwordEnv: "SEED_LAB_PASSWORD" },
+] as const;
 
 const adapter = new PrismaMariaDb({
   host: process.env.DB_HOST ?? "localhost",
@@ -28,8 +29,16 @@ const adapter = new PrismaMariaDb({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  await prisma.user.upsert({ where: { username: "management" }, update: { active: true, passwordHash: hashPassword(managementPassword) }, create: { username: "management", passwordHash: hashPassword(managementPassword), role: "MANAGEMENT" } });
-  await prisma.user.upsert({ where: { username: "operator" }, update: { active: true, passwordHash: hashPassword(operatorPassword) }, create: { username: "operator", passwordHash: hashPassword(operatorPassword), role: "OPERATOR" } });
+  for (const { name, username, role, passwordEnv } of starterUsers) {
+    if (await prisma.user.findUnique({ where: { username } })) continue;
+    const password = process.env[passwordEnv];
+    if (!password) {
+      console.log(`Skipped user "${username}": set ${passwordEnv} in .env to create it.`);
+      continue;
+    }
+    await prisma.user.create({ data: { name, username, passwordHash: hashPassword(password), role, mustChangePassword: true } });
+    console.log(`Created user "${username}" (${role})`);
+  }
 
   const catalogs = [
     ["LABORATORY", "Complete blood count"], ["LABORATORY", "Liver function test"], ["ECO", "Echocardiography"], ["X-RAY", "Chest X-Ray"], ["ECG", "12-lead ECG"], ["ULTRASOUND", "Abdominal ultrasound"],

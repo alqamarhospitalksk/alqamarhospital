@@ -1,8 +1,18 @@
 Credentials 
-For operator 
+
+
+Management:
+Username: management 
+Password: management123
+
+Operator: 
 Username: operator 
 Password: operator123
 
-For management 
-Username: management 
-Password: management123
+Store:
+Username: store 
+Password: store123
+
+Lab:
+Username: lab 
+Password: lab12345

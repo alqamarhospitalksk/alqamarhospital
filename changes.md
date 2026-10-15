@@ -126,38 +126,56 @@ Each phase can be tested and released on its own.
 
 I haven't written any code yet. Once the open questions are answered (I can start on phase 1 with defaults that are easy to change later), I'll start with phase 1. I can also put this plan on a shareable page for the client.
 
+## 8. What was built (15 October 2026)
+
+Sections 1–7 above are the original plan. This section records the client's answers and the final behaviour, which takes precedence where they differ.
+
+**The client's answers**
+
+| # | Answer | Built as |
+|---|---|---|
+| 1 | Under 24 hours = 1 day; from 24 hours on, charge by calendar date. | `chargeDateKeys` in `lib/admission.ts`. Admitted on the 1st at 10:00 and still in on the 2nd at 14:00 = 2 days. The count stops at the final invoice. |
+| 2 | The doctor fee is charged by default; the operator marks "did not arrive" for a day, and that day's fee is dropped. | Each day row has `doctorVisited` (default true). The "Arrived / Did not arrive" button is on the admission page. The doctor's admission split applies per visited day. |
+| 3 | The technician fee is hospital income and differs by admission type; technicians are salaried staff. | Default technician fee per day for each admission type, set on **Rooms & beds**. It is copied into each admission, and the operator can edit it. It is not part of any doctor share. |
+| 4 | A suspicious patient is a critical admission, for both accommodation and treatment. | Category "Critical / suspicious". It can only use Critical-care rooms, or a manual room with a custom price. |
+| 5 | The patient cannot leave with money owed. | Discharge requires the hospital balance at exactly 0 and the store's medicine marked paid. An excess advance must be handed back first (a "Refund excess" button). |
+| 6 | No discount for now. | There is no discount anywhere on the admission bill. |
+| 7 | A NICU newborn is registered as a new baby patient, then admitted like everyone else. | "Register newborn" inside the admit form for NICU. It creates the patient record (with its own MR number; the parent's mobile is allowed). |
+
+**Your suggestions**
+- There is no "Admit" button on the OPD desk. Admitting is done from the new **Admissions** page.
+- **Rooms & beds** now has:
+  - a category for each room/bed (Private, Ward, Critical care, NICU)
+  - whether its daily charge is per room or per bed
+  - live occupancy
+  - an "Admission charges" panel with the technician fee per day for each admission type
+
+**Changes from the plan**
+- **OPD link dropped**: `opdVisitId` is not stored, because there is no OPD admit button.
+- **Operations**: "Add operation" on the admission creates an OT case with `admissionId`. That case is billed, paid and discharged only through the admission:
+  - The OT page shows "Billed with ADM-…" and refuses payments and discharge for it.
+  - Items added to it on the OT page must be Due.
+  - The surgeon's share counts when the admission is discharged.
+- **OT medicine from the store**: the OT/Home medicine fields were removed from "New OT Admission" (follow-up request, 15 October).
+  - The store's In-patients page lists open OT cases next to admissions. The store issues OT/home medicine to the OT patient on credit (`MedicineSale.otCaseId`).
+  - At discharge the counter pays the store, and the store marks it paid.
+  - Only then does "Discharge & Bill" unlock on the OT page (the API also refuses before that).
+  - The OT invoice lists the store medicine. Older OT cases keep and show their manually typed medicine amounts.
+- **No shared FEFO helper**: the store issues in-patient medicine from the existing Sell page in an "in-patient" mode (`/medical-store/sell?admissionId=…`). No payment or discount; a Ward / OT / Home choice instead. The FEFO code therefore stays in one place, and no shared helper was needed.
+- **Changing the stay**: room, doctor and rates can be changed (one "Room / doctor / rates" dialog). Days already charged keep their rates; the change applies from the next day unless "also the current day" is ticked. Extra charges (oxygen, dressing…) can be added to the bill.
+- **Bill structure**: two parts.
+  - The hospital part is room, visited doctor days, technician, extras and operations. It is paid to the operator (`Payment.admissionId`; advances allowed while admitted).
+  - The store part is the credit medicine. It is paid at the store, and **Mark paid** on the store's In-patients page creates the store's Payment rows. The store income therefore counts on the day the cash arrives (including in day closing), and nothing is counted twice.
+- **Returns on unpaid credit**: medicine returned before the store is paid is a CREDIT return. It lowers what is owed and moves no cash.
+- **Final invoice**: daily charges stop and the store can no longer issue medicine. "Reopen" is possible if the patient stays.
+- **Cancel**: an admission made by mistake can be cancelled while nothing has been paid, issued or operated on it.
+- **Reporting**:
+  - "In-patient admission" is a new income line on the dashboard and the reports.
+  - The dashboard has a "Currently admitted" card.
+  - Admission visit earnings are in the Payouts page's doctor balances.
+- **Database update**: a migration (`20261015120000_admissions`), an idempotent step in `scripts/apply-db-updates.cjs` (runs on the server at start-up), and the regenerated `deploy/schema.sql`.
 
 
 
 
 
-Prompt:
-below are the identified suggestion in your provided flow:
-Operator:
-Your: OPD desk: an "Admit" button on each visit row.
-My Suggestion: No the admit button to be in admission page
-
-Management:
-Rooms & beds: category and occupancy.
-Hospital settings: default technician fees.
-
-My suggestion:
-Rooma and Beds category and occupancy with charges settings per bed or per room and per NICO or critical patient room
-technician fees for each category of admission per day.
-
-Question answer fromt he clinet:
-for days calculation first count the time if less than 24 hour charge for one day, but if it increase 24 hour then charge as per calendar
-
-for question 2, give authority to operator to mark the doctor visit or not if not their daily fee will not be encounter in invoice, by default it will be mark as doctor arrive, while not arrive only in that case the operator will change state to not arrive, then no fee will eb charged for that day for the doctor.
-
-3. it is hospital income, but the technician fee is different for the different types of admission, and the technician is the hospital employee and the hospital will pay their salary.
-
-4. For suspicious patient there should be critical admission in both cases for accomodation treatemetn also.
-
-5. while patient leave the patient should clear the due to dischage, if not clear the payment the discharge option will not work.
-
-6. for now does not add the dicount section or part in invoice.
-
-7. NICO has new admission as baby patient registration and then to admit in NICO with complete procedure as other admission patient.
-
-address also the suggestions and anwer from client to the question, procedd it and go ahead for the integration.

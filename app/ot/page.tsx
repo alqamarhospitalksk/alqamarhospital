@@ -60,6 +60,12 @@ type OtCase = {
   // From /api/ot/all: what has been paid so far and what is still outstanding.
   paid?: number;
   balance?: number;
+  // Set when the operation was added from an admission: paid and discharged on that admission.
+  admission?: { id: number; admissionNumber: string } | null;
+  // Medicine the medical store issued to this patient (paid at the store, not part of `total`).
+  storeTotal?: number;
+  storeOwed?: number;
+  storeMedicines?: { saleNumber: string; purpose: string; items: string; amount: number; paid: boolean }[];
 };
 
 const paymentMethodLabels: Record<string, string> = {
@@ -120,10 +126,6 @@ export default function OtPage() {
   const [anesthesiaFee, setAnesthesiaFee] = useState("");
   const [roomFee, setRoomFee] = useState("");
   const [hospitalFee, setHospitalFee] = useState("");
-  const [otMedicineFee, setOtMedicineFee] = useState("");
-  const [otMedicineNote, setOtMedicineNote] = useState("");
-  const [homeMedicineFee, setHomeMedicineFee] = useState("");
-  const [homeMedicineNote, setHomeMedicineNote] = useState("");
   const [recommendations, setRecommendations] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   // Amount handed over at admission; empty = the whole bill. Less than the bill = an advance.
@@ -289,10 +291,6 @@ export default function OtPage() {
           anesthesiaFee: Number(anesthesiaFee || 0),
           roomFee: Number(roomFee || 0),
           hospitalFee: Number(hospitalFee || 0),
-          otMedicineFee: Number(otMedicineFee || 0),
-          otMedicineNote,
-          homeMedicineFee: Number(homeMedicineFee || 0),
-          homeMedicineNote,
           recommendations,
           paymentMethod,
           paidNow: paymentMethod !== "DUE" && paidNow !== "" ? Number(paidNow) : undefined,
@@ -307,7 +305,6 @@ export default function OtPage() {
       setPatientId(""); setDoctorId(""); setDoctorSearch(""); setShowDoctorDropdown(false); setDoctorFee(""); setRoomLabel("");
       setProcedureName(""); setDiagnosis(""); setProcedureAt(""); setTheaterFee("");
       setAnesthesiaFee(""); setRoomFee(""); setHospitalFee("");
-      setOtMedicineFee(""); setOtMedicineNote(""); setHomeMedicineFee(""); setHomeMedicineNote("");
       setPaymentMethod("");
       setPaidNow("");
       setRecommendations("");
@@ -417,7 +414,7 @@ export default function OtPage() {
   const lastCaseRecord = Math.min(casesPage * casesPageSize, filteredCases.length);
 
   // Admission form: the bill being entered, and what is being handed over now.
-  const admitTotal = [doctorFee, theaterFee, anesthesiaFee, roomFee, hospitalFee, otMedicineFee, homeMedicineFee].reduce((sum, value) => sum + Number(value || 0), 0);
+  const admitTotal = [doctorFee, theaterFee, anesthesiaFee, roomFee, hospitalFee].reduce((sum, value) => sum + Number(value || 0), 0);
   const paidNowNumber = paidNow === "" ? admitTotal : Number(paidNow);
   const paidNowInvalid = paymentMethod !== "" && paymentMethod !== "DUE" && paidNow !== "" && (!Number.isFinite(paidNowNumber) || paidNowNumber <= 0 || paidNowNumber > admitTotal + 0.005);
   // Record Payment dialog: how much is being paid now vs. what is due.
@@ -697,27 +694,9 @@ export default function OtPage() {
                 </Box>
               </HStack>
 
-              <HStack gap="3">
-                <Box flex="1">
-                  <Text fontSize="sm" fontWeight="700" mb="2">Home Medicine (PKR)</Text>
-                  <Input type="number" min="0" placeholder="0" value={homeMedicineFee} onChange={(event) => setHomeMedicineFee(event.target.value)} />
-                </Box>
-                <Box flex="1">
-                  <Text fontSize="sm" fontWeight="700" mb="2">OT Medicine (PKR)</Text>
-                  <Input type="number" min="0" placeholder="0" value={otMedicineFee} onChange={(event) => setOtMedicineFee(event.target.value)} />
-                </Box>
-              </HStack>
-
-              <Input
-                placeholder="Home medicine details (optional)"
-                value={homeMedicineNote}
-                onChange={(event) => setHomeMedicineNote(event.target.value)}
-              />
-              <Input
-                placeholder="OT medicine details (optional)"
-                value={otMedicineNote}
-                onChange={(event) => setOtMedicineNote(event.target.value)}
-              />
+              <Text fontSize="10px" color="#77908b" mt="-2">
+                OT and home medicine are issued by the medical store to this patient and paid at the store before discharge.
+              </Text>
 
               <Box>
                 <Text fontSize="sm" fontWeight="700" mb="2">Hospital Fee (PKR)</Text>
@@ -1015,7 +994,11 @@ value={rangeEnd}
                         </Badge>
                       </Table.Cell>
                       <Table.Cell>
-                        {item.paymentMethod && !(item.balance && item.balance > 0) ? (
+                        {item.admission ? (
+                          <Link href={`/admissions/${item.admission.id}`} _hover={{ textDecoration: "none" }}>
+                            <Badge colorPalette="blue" borderRadius="full" cursor="pointer">Billed with {item.admission.admissionNumber}</Badge>
+                          </Link>
+                        ) : item.paymentMethod && !(item.balance && item.balance > 0) ? (
                           <Badge colorPalette="green" borderRadius="full">
                             Paid · {paymentMethodLabels[item.paymentMethod] ?? item.paymentMethod}
                           </Badge>
@@ -1042,6 +1025,13 @@ value={rangeEnd}
                             </Button>
                           </VStack>
                         )}
+                        {!item.admission && Number(item.storeTotal ?? 0) > 0 && (
+                          <Text fontSize="10px" mt="1" fontWeight="700" color={Number(item.storeOwed ?? 0) > 0.005 ? "#a34258" : "#22633e"}>
+                            {Number(item.storeOwed ?? 0) > 0.005
+                              ? `Store medicine unpaid · PKR ${Number(item.storeOwed).toLocaleString("en-PK", { maximumFractionDigits: 2 })}`
+                              : `Store medicine paid · PKR ${Number(item.storeTotal).toLocaleString("en-PK", { maximumFractionDigits: 2 })}`}
+                          </Text>
+                        )}
                       </Table.Cell>
                       <Table.Cell fontWeight="800" color="#123d3b">PKR {item.total}</Table.Cell>
                       <Table.Cell textAlign="right">
@@ -1057,20 +1047,32 @@ value={rangeEnd}
                                 onClick={() => {
                                   setSelectedCase(String(item.id));
                                   setMedicineCase(item);
+                                  // Items on an admission's operation are collected on the admission bill.
+                                  if (item.admission) setItemPaymentMethod("DUE");
                                 }}
                               >
                                 <FontAwesomeIcon icon={faPlus} />
                                 &nbsp; Add
                               </Button>
+                              {item.admission ? (
+                                <Text fontSize="10px" color="#607d76" maxW="140px">Discharged with the admission</Text>
+                              ) : (
                               <Button
                                 size="xs"
                                 bg="#123d3b"
                                 color="white"
                                 _hover={{ bg: "#255d58" }}
                                 loading={saving && selectedCase === String(item.id)}
-                                // Locked until the patient has paid everything that is due.
-                                disabled={Number(item.balance ?? 0) > 0.005}
-                                title={Number(item.balance ?? 0) > 0.005 ? `PKR ${item.balance} is still due. Record the payment first.` : undefined}
+                                // Locked until the patient has paid everything that is due, and the
+                                // medical store has marked its medicine for this patient paid.
+                                disabled={Number(item.balance ?? 0) > 0.005 || Number(item.storeOwed ?? 0) > 0.005}
+                                title={
+                                  Number(item.balance ?? 0) > 0.005
+                                    ? `PKR ${item.balance} is still due. Record the payment first.`
+                                    : Number(item.storeOwed ?? 0) > 0.005
+                                      ? `PKR ${item.storeOwed} is owed to the medical store for medicine. Pay the store; once it marks it paid, discharge is unlocked.`
+                                      : undefined
+                                }
                                 onClick={() => {
                                   setSelectedCase(String(item.id));
                                   void caseAction("DISCHARGE", String(item.id));
@@ -1079,6 +1081,7 @@ value={rangeEnd}
                                 <FontAwesomeIcon icon={faPrint} />
                                 &nbsp; Discharge &amp; Bill
                               </Button>
+                              )}
                             </>
                           )}
                           <Button
@@ -1338,14 +1341,19 @@ value={rangeEnd}
                           <Table.Cell>Room Charge ({dischargeBillCase.roomBed.name})</Table.Cell>
                           <Table.Cell textAlign="right" fontWeight="700">{dischargeBillCase.roomFee ?? "0.00"} PKR</Table.Cell>
                         </Table.Row>
-                        <Table.Row>
-                          <Table.Cell>Home Medicine{dischargeBillCase.homeMedicineNote ? ` (${dischargeBillCase.homeMedicineNote})` : ""}</Table.Cell>
-                          <Table.Cell textAlign="right" fontWeight="700">{dischargeBillCase.homeMedicineFee ?? "0.00"} PKR</Table.Cell>
-                        </Table.Row>
-                        <Table.Row>
-                          <Table.Cell>OT Medicine{dischargeBillCase.otMedicineNote ? ` (${dischargeBillCase.otMedicineNote})` : ""}</Table.Cell>
-                          <Table.Cell textAlign="right" fontWeight="700">{dischargeBillCase.otMedicineFee ?? "0.00"} PKR</Table.Cell>
-                        </Table.Row>
+                        {/* Older cases had medicine typed in by hand; new ones get it from the store (below). */}
+                        {Number(dischargeBillCase.homeMedicineFee ?? 0) > 0 && (
+                          <Table.Row>
+                            <Table.Cell>Home Medicine{dischargeBillCase.homeMedicineNote ? ` (${dischargeBillCase.homeMedicineNote})` : ""}</Table.Cell>
+                            <Table.Cell textAlign="right" fontWeight="700">{dischargeBillCase.homeMedicineFee} PKR</Table.Cell>
+                          </Table.Row>
+                        )}
+                        {Number(dischargeBillCase.otMedicineFee ?? 0) > 0 && (
+                          <Table.Row>
+                            <Table.Cell>OT Medicine{dischargeBillCase.otMedicineNote ? ` (${dischargeBillCase.otMedicineNote})` : ""}</Table.Cell>
+                            <Table.Cell textAlign="right" fontWeight="700">{dischargeBillCase.otMedicineFee} PKR</Table.Cell>
+                          </Table.Row>
+                        )}
                         <Table.Row>
                           <Table.Cell>Hospital Fee</Table.Cell>
                           <Table.Cell textAlign="right" fontWeight="700">{dischargeBillCase.hospitalFee ?? "0.00"} PKR</Table.Cell>
@@ -1368,6 +1376,28 @@ value={rangeEnd}
                             ))}
                           </Table.Body>
                         </Table.Root>
+                      </>
+                    )}
+
+                    {dischargeBillCase.storeMedicines && dischargeBillCase.storeMedicines.length > 0 && (
+                      <>
+                        <Text fontSize="xs" textTransform="uppercase" fontWeight="800" color="#123d3b" mb="2">
+                          Medicine from the medical store (paid at the store)
+                        </Text>
+                        <Table.Root size="sm" mb="2">
+                          <Table.Body>
+                            {dischargeBillCase.storeMedicines.map((m) => (
+                              <Table.Row key={m.saleNumber}>
+                                <Table.Cell fontSize="xs">{m.purpose === "HOME" ? "Home" : m.purpose === "WARD" ? "Ward" : "OT"} · {m.items}</Table.Cell>
+                                <Table.Cell textAlign="right" fontWeight="700">{m.amount.toLocaleString("en-PK", { maximumFractionDigits: 2 })} PKR</Table.Cell>
+                              </Table.Row>
+                            ))}
+                          </Table.Body>
+                        </Table.Root>
+                        <Flex justify="space-between" fontSize="sm" fontWeight="800" mb="4" color={Number(dischargeBillCase.storeOwed ?? 0) > 0.005 ? "#a34258" : "#22633e"}>
+                          <Text>{Number(dischargeBillCase.storeOwed ?? 0) > 0.005 ? "Still to pay the store" : "Store medicine paid"}</Text>
+                          <Text>{Number(Number(dischargeBillCase.storeOwed ?? 0) > 0.005 ? dischargeBillCase.storeOwed : dischargeBillCase.storeTotal).toLocaleString("en-PK", { maximumFractionDigits: 2 })} PKR</Text>
+                        </Flex>
                       </>
                     )}
 

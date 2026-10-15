@@ -37,6 +37,7 @@ const serviceRows = [
   { key: "X-RAY", label: "X-Ray", color: "#e0a45f" },
   { key: "ULTRASOUND", label: "Ultrasound", color: "#e084a0" },
   { key: "OT", label: "Operation theater", color: "#e06c6c" },
+  { key: "ADMISSION", label: "In-patient admission", color: "#5bb1d6" },
   { key: "EMERGENCY", label: "Minor emergency", color: "#8d9db6" },
   { key: "MEDICAL_STORE", label: "Medical store", color: "#c9b36a" },
   { key: "OTHER", label: "Other / unlinked", color: "#cbd5d1" },

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../lib/auth";
 import { roleError } from "../../../../lib/roles";
 import { db } from "../../../../lib/db";
+import { creditNet, creditOwed, round2 } from "../../../../lib/admission";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -12,7 +13,14 @@ export async function GET() {
   const cases = await db.otCase.findMany({
     orderBy: { createdAt: "desc" },
     take: 100,
-    include: { patient: true, doctor: true, roomBed: true, payments: { where: { status: "PAID" }, orderBy: { createdAt: "desc" } } },
+    include: {
+      patient: true,
+      doctor: true,
+      roomBed: true,
+      payments: { where: { status: "PAID" }, orderBy: { createdAt: "desc" } },
+      admission: { select: { id: true, admissionNumber: true } },
+      medicineSales: { select: { total: true, creditStatus: true, returns: { select: { totalRefund: true, refundMode: true } } } },
+    },
   });
 
   return NextResponse.json({
@@ -31,6 +39,11 @@ export async function GET() {
         // Paid so far vs. the bill: items added after admission can leave a balance.
         paid: c.payments.reduce((sum, p) => sum + Number(p.amount), 0),
         balance: Math.max(0, Math.round((Number(c.total) - c.payments.reduce((sum, p) => sum + Number(p.amount), 0)) * 100) / 100),
+        // Set when the operation is billed through an admission (paid and discharged there).
+        admission: c.admission,
+        // Medicine the store issued to this patient, and what the store is still owed for it.
+        storeTotal: round2(c.medicineSales.reduce((sum, s) => sum + creditNet(s), 0)),
+        storeOwed: round2(c.medicineSales.reduce((sum, s) => sum + creditOwed(s), 0)),
       })),
   });
 }

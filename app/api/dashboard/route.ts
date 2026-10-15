@@ -38,7 +38,7 @@ export async function GET(request: Request) {
   const dateColStart = toDateColumnBoundary(start);
   const dateColEnd = toDateColumnBoundary(end);
 
-  const [doctorBalances, storeRefunds, doctorShares, payments, allExpenses, patientsSeen, patientCount, doctorCount, labTestCount, otCaseCount, recentPayments, revenueHistory] = await Promise.all([
+  const [doctorBalances, storeRefunds, doctorShares, payments, allExpenses, patientsSeen, patientCount, doctorCount, labTestCount, otCaseCount, recentPayments, revenueHistory, admittedNow] = await Promise.all([
     doctorBalancesLifetime(),
     storeRefundsForPeriod(start, end),
     doctorShareForPeriod(start, end, dateColStart, dateColEnd),
@@ -52,6 +52,8 @@ export async function GET(request: Request) {
     db.otCase.count(),
     db.payment.findMany({ where: { createdAt: { gte: start, lt: end }, status: "PAID" }, orderBy: { createdAt: "desc" }, take: 8, include: paymentInclude }),
     db.payment.findMany({ where: { createdAt: { gte: yearAgo }, status: "PAID" }, select: { createdAt: true, amount: true } }),
+    // Patients in a bed right now (admitted, or invoiced but not yet discharged).
+    db.admission.count({ where: { status: { in: ["ADMITTED", "INVOICED"] } } }),
   ]);
 
   const totals: Record<string, number> = Object.fromEntries(serviceKeys.map((key) => [key, 0]));
@@ -157,6 +159,7 @@ export async function GET(request: Request) {
     doctorCount,
     labTestCount,
     otCaseCount,
+    admittedNow,
     activity,
     transactions,
     expenseDetail,

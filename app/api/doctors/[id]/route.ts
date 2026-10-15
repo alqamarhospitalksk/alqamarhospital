@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../lib/auth";
 import { db } from "../../../../lib/db";
 import { parseAvailabilityDays } from "../../../../lib/doctor-availability";
+import { admissionFeeProblem } from "../../../../lib/admission";
 
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const validTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -58,6 +59,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (shares.some((s) => !Number.isFinite(s) || s < 0 || s > 100)) {
     return NextResponse.json({ error: "Diagnostic share percentages must be between 0 and 100." }, { status: 400 });
   }
+  const admissionDailyFee = Number(body?.admissionDailyFee ?? 0);
+  const admissionSplitType = text(body?.admissionSplitType).toUpperCase() || "PERCENTAGE";
+  const admissionSplitValue = Number(body?.admissionSplitValue ?? 0);
+  const admissionProblem = admissionFeeProblem(admissionDailyFee, admissionSplitType, admissionSplitValue);
+  if (admissionProblem) return NextResponse.json({ error: admissionProblem }, { status: 400 });
 
   const doctor = await db.doctor.update({
     where: { id: doctorId },
@@ -80,6 +86,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       ultrasoundSharePercent,
       ecgSharePercent,
       ecoSharePercent,
+      admissionDailyFee,
+      admissionSplitType,
+      admissionSplitValue,
     },
   });
 
@@ -104,6 +113,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       ultrasoundSharePercent: doctor.ultrasoundSharePercent.toString(),
       ecgSharePercent: doctor.ecgSharePercent.toString(),
       ecoSharePercent: doctor.ecoSharePercent.toString(),
+      admissionDailyFee: doctor.admissionDailyFee.toString(),
+      admissionSplitValue: doctor.admissionSplitValue.toString(),
     },
   });
 }

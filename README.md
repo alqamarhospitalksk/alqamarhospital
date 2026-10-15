@@ -10,7 +10,7 @@ Next.js clinic operations system using Chakra UI, Font Awesome, MySQL, and Prism
 CREATE DATABASE clinicdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-2. Copy `.env.example` to `.env` and set the MySQL connection values and two strong seed passwords.
+2. Copy `.env.example` to `.env` and set the MySQL connection values and the starter-login passwords: `SEED_MANAGEMENT_PASSWORD`, `SEED_OPERATOR_PASSWORD`, `SEED_STORE_PASSWORD` and `SEED_LAB_PASSWORD`.
 
 3. Install dependencies and apply the schema:
 
@@ -26,7 +26,7 @@ npm run db:seed
 npm run dev
 ```
 
-Open `http://localhost:3000/login` and sign in with `management` or `operator` and the password configured in `.env`.
+Open `http://localhost:3000/login` and sign in with `management`, `operator`, `store` or `lab` and the password configured in `.env`. The seed only creates logins that do not exist yet (it never resets a password), and each new login must choose its own password at first sign-in.
 
 ## Useful commands
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../lib/auth";
 import { roleError } from "../../../../lib/roles";
 import { db } from "../../../../lib/db";
+import { creditNet, creditOwed } from "../../../../lib/admission";
 
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const paymentMethods = ["CASH", "CARD", "BANK_TRANSFER", "ONLINE"];
@@ -44,10 +45,20 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       roomBed: true,
       lineItems: { orderBy: { createdAt: "asc" } },
       payments: { orderBy: { createdAt: "desc" } },
+      medicineSales: { orderBy: { createdAt: "asc" }, include: { returns: { select: { totalRefund: true, refundMode: true } }, items: { include: { medicineItem: { select: { name: true } } } } } },
     },
   });
 
   if (!otCase) return NextResponse.json({ error: "OT Case not found." }, { status: 404 });
+  const { medicineSales, ...caseFields } = otCase;
+  // Medicine from the store is paid at the store (not part of `total`); shown on the bill for the family.
+  const storeMedicines = medicineSales.map((s) => ({
+    saleNumber: s.saleNumber,
+    purpose: s.purpose ?? "OT",
+    items: s.items.map((i) => `${i.medicineItem.name} ×${Number(i.quantity)}`).join(", "),
+    amount: creditNet(s),
+    paid: s.creditStatus !== "UNSETTLED",
+  }));
 
   // The response below reflects lastInvoicedAt as it was BEFORE this update, so the
   // caller can tell what's new since the last slip. Only bump it after reading.
@@ -57,8 +68,11 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 
   return NextResponse.json({
     otCase: {
-      ...otCase,
+      ...caseFields,
       roomBed: { name: otCase.roomLabel ?? otCase.roomBed?.name ?? "—" },
+      storeMedicines,
+      storeTotal: round2(storeMedicines.reduce((sum, m) => sum + m.amount, 0)),
+      storeOwed: round2(medicineSales.reduce((sum, s) => sum + creditOwed(s), 0)),
     },
   });
 }
@@ -75,8 +89,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
   try {
     const result = await db.$transaction(async (transaction) => {
-      const otCase = await transaction.otCase.findUnique({ where: { id: caseId }, include: { patient: true, doctor: true, roomBed: true, lineItems: true, payments: true } });
+      const otCase = await transaction.otCase.findUnique({ where: { id: caseId }, include: { patient: true, doctor: true, roomBed: true, lineItems: true, payments: true, admission: { select: { admissionNumber: true } } } });
       if (!otCase) throw new Error("OT case not found.");
+      // An operation added from an admission is paid and discharged on that admission's bill only,
+      // so its money is never collected twice or in two places.
+      if (otCase.admission && ["RECORD_PAYMENT", "READY_FOR_DISCHARGE", "DISCHARGE"].includes(action)) {
+        throw new Error(`This operation is billed with admission ${otCase.admission.admissionNumber}. Take payments and discharge from the Admissions page.`);
+      }
+      if (otCase.admission && action === "CONSUME" && text(body?.paymentMethod).toUpperCase() !== "DUE") {
+        throw new Error(`This operation is billed with admission ${otCase.admission.admissionNumber}. Add the item as Due — it is collected on the admission bill.`);
+      }
 
       if (action === "RECORD_PAYMENT") {
         // Collects all or PART of what is still outstanding. A family can pay in as many instalments as
@@ -149,6 +171,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       // A patient cannot leave with money still owed: the balance must be collected first.
       const outstanding = round2(Number(total) - paidSoFar(otCase.payments));
       if (outstanding > 0.005) throw new Error(`PKR ${outstanding} is still due. Collect the payment before discharging this patient.`);
+      // Medicine the store issued to this patient must be paid at the store first (the store marks it paid).
+      const credit = await transaction.medicineSale.findMany({ where: { otCaseId: caseId, creditStatus: "UNSETTLED" }, include: { returns: { select: { totalRefund: true, refundMode: true } } } });
+      const storeOwed = round2(credit.reduce((sum, s) => sum + creditOwed(s), 0));
+      if (storeOwed > 0.005) throw new Error(`The medical store has not yet been paid PKR ${storeOwed} for this patient's medicine. Pay the store; once it marks it paid, the patient can be discharged.`);
+      // Credit sales whose medicine was all returned owe nothing; close them too.
+      if (credit.length) await transaction.medicineSale.updateMany({ where: { id: { in: credit.map((s) => s.id) } }, data: { creditStatus: "SETTLED", settledAt: dischargeDate } });
       const updatedCase = await transaction.otCase.update({ where: { id: caseId }, data: { status: "DISCHARGED", dischargeDate, total }, include: { patient: true, doctor: true, roomBed: true, lineItems: true } });
       return { kind: action, case: updatedCase };
     });

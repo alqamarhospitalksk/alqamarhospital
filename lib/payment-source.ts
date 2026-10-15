@@ -1,5 +1,5 @@
 // Every Payment row belongs to exactly one source (OPD visit, diagnostic receipt, OT case,
-// emergency visit or medicine sale). The dashboard and the report export both need to say which,
+// emergency visit, medicine sale or in-patient admission). The dashboard and the report export both need to say which,
 // so the rule lives here once — before this, emergency and medicine-store payments were silently
 // counted as "Operation theater".
 
@@ -11,6 +11,8 @@ export const serviceLabels: Record<string, string> = {
   "X-RAY": "X-Ray",
   ULTRASOUND: "Ultrasound",
   OT: "Operation theater",
+  // Hospital part of an in-patient bill (room, doctor visits, technician, extras, linked operations).
+  ADMISSION: "In-patient admission",
   EMERGENCY: "Minor emergency",
   MEDICAL_STORE: "Medical store",
   // A payment whose visit/sale record no longer exists. Still real money, so it stays in the totals.
@@ -27,6 +29,7 @@ export const paymentInclude = {
   otCase: { include: { patient: true, doctor: true } },
   emergencyVisit: { include: { patient: true } },
   medicineSale: { include: { patient: true } },
+  admission: { include: { patient: true, doctor: true } },
 } as const;
 
 type Party = { name: string; mrNumber: string } | null | undefined;
@@ -36,6 +39,7 @@ type PaymentLike = {
   otCase?: { patient?: Party; doctor?: { name: string } | null } | null;
   emergencyVisit?: { patient?: Party } | null;
   medicineSale?: { patient?: Party; customerName?: string | null } | null;
+  admission?: { patient?: Party; doctor?: { name: string } | null } | null;
 };
 
 export function paymentSource(payment: PaymentLike): string {
@@ -44,13 +48,14 @@ export function paymentSource(payment: PaymentLike): string {
   if (payment.otCase) return "OT";
   if (payment.emergencyVisit) return "EMERGENCY";
   if (payment.medicineSale) return "MEDICAL_STORE";
+  if (payment.admission) return "ADMISSION";
   return "OTHER";
 }
 
 // Patient (or walk-in customer) and doctor to show next to a payment.
 export function describePaymentParty(payment: PaymentLike) {
-  const patient = payment.opdVisit?.patient ?? payment.receipt?.patient ?? payment.otCase?.patient ?? payment.emergencyVisit?.patient ?? payment.medicineSale?.patient;
-  const doctor = payment.opdVisit?.doctor ?? payment.receipt?.doctor ?? payment.otCase?.doctor;
+  const patient = payment.opdVisit?.patient ?? payment.receipt?.patient ?? payment.otCase?.patient ?? payment.emergencyVisit?.patient ?? payment.medicineSale?.patient ?? payment.admission?.patient;
+  const doctor = payment.opdVisit?.doctor ?? payment.receipt?.doctor ?? payment.otCase?.doctor ?? payment.admission?.doctor;
   return {
     patientName: patient?.name ?? payment.medicineSale?.customerName ?? "Unknown patient",
     mrNumber: patient?.mrNumber ?? "",

@@ -12,10 +12,22 @@ type Room = {
   name: string;
   roomType: string;
   dailyRate: string;
+  category: string;
+  unitType: string;
   active: boolean;
+  occupiedBy: { admissionNumber: string; admittedAt: string; patientName: string; mrNumber: string } | null;
 };
+type CategoryFee = { category: string; label: string; technicianFee: number };
 
-const emptyForm = { name: "", roomType: "", dailyRate: "" };
+const emptyForm = { name: "", roomType: "", dailyRate: "", category: "WARD", unitType: "BED" };
+// Same categories as lib/admission.ts: they decide which admissions may use the room.
+const roomCategories = [
+  { value: "PRIVATE", label: "Private room", hint: "Medical / surgical patients" },
+  { value: "WARD", label: "Ward", hint: "Medical / surgical patients" },
+  { value: "CRITICAL", label: "Critical care", hint: "Critical and suspicious patients" },
+  { value: "NICU", label: "NICU", hint: "Newborns" },
+];
+const categoryLabel = (value: string) => roomCategories.find((c) => c.value === value)?.label ?? value;
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -27,6 +39,9 @@ export default function RoomsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const [fees, setFees] = useState<CategoryFee[]>([]);
+  const [savingFees, setSavingFees] = useState(false);
+
   async function loadRooms() {
     const response = await fetch("/api/rooms");
     const data = await response.json();
@@ -34,12 +49,36 @@ export default function RoomsPage() {
     else toast.error(data.error ?? "Unable to load rooms and beds.");
   }
 
+  async function loadFees() {
+    const response = await fetch("/api/admission-fees");
+    const data = await response.json();
+    if (response.ok) setFees(data.fees);
+  }
+
   useEffect(() => {
     async function loadInitial() {
-      await loadRooms();
+      await Promise.all([loadRooms(), loadFees()]);
     }
     void loadInitial();
   }, []);
+
+  async function saveFees() {
+    setSavingFees(true);
+    try {
+      const response = await fetch("/api/admission-fees", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fees }) });
+      const data = await response.json();
+      if (!response.ok) {
+        toast.error(data.error ?? "Unable to save the admission charges.");
+        return;
+      }
+      setFees(data.fees);
+      toast.success("Technician fees saved. New admissions will use them.");
+    } catch {
+      toast.error("Unable to reach the clinic server.");
+    } finally {
+      setSavingFees(false);
+    }
+  }
 
   function openAddModal() {
     setEditing(null);
@@ -49,7 +88,7 @@ export default function RoomsPage() {
 
   function openEditModal(room: Room) {
     setEditing(room.id);
-    setForm({ name: room.name, roomType: room.roomType, dailyRate: room.dailyRate });
+    setForm({ name: room.name, roomType: room.roomType, dailyRate: room.dailyRate, category: room.category, unitType: room.unitType });
     setShowModal(true);
   }
 
@@ -86,7 +125,7 @@ export default function RoomsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ active: !room.active }),
     });
-    if (!response.ok) toast.error("Unable to update room status.");
+    if (!response.ok) toast.error((await response.json().catch(() => null))?.error ?? "Unable to update room status.");
     else {
       toast.success(`Room ${room.name} status updated.`);
       await loadRooms();
@@ -143,8 +182,34 @@ export default function RoomsPage() {
 
       {/* Main Content */}
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
-
-
+        {/* Admission charges: technician fee per day for each kind of admission */}
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" boxShadow="0 2px 12px rgba(14,36,32,0.04)" p="5" mb="6">
+          <Flex justify="space-between" align={{ base: "stretch", md: "center" }} direction={{ base: "column", md: "row" }} gap="3" mb="4">
+            <Box>
+              <Heading size="sm">Admission charges</Heading>
+              <Text fontSize="xs" color="#607d76">
+                Technician fee per day for each type of admission (hospital income; technicians are paid their salary). The room charge per day is set on each room/bed below; the doctor&apos;s visit fee on the Doctors page.
+              </Text>
+            </Box>
+            <Button size="sm" bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={savingFees} onClick={saveFees} disabled={fees.length === 0}>
+              Save technician fees
+            </Button>
+          </Flex>
+          <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }} gap="4">
+            {fees.map((fee) => (
+              <Field.Root key={fee.category}>
+                <Field.Label fontWeight="700" fontSize="sm">{fee.label}</Field.Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={String(fee.technicianFee)}
+                  onChange={(event) => setFees((current) => current.map((f) => (f.category === fee.category ? { ...f, technicianFee: Number(event.target.value) } : f)))}
+                />
+                <Text fontSize="10px" color="#77908b">PKR per day</Text>
+              </Field.Root>
+            ))}
+          </Grid>
+        </Box>
 
         {/* Room & Bed Register Table */}
         <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" boxShadow="0 2px 12px rgba(14,36,32,0.04)" overflow="hidden">
@@ -166,8 +231,10 @@ export default function RoomsPage() {
               <Table.Header>
                 <Table.Row bg="#fafcfb">
                   <Table.ColumnHeader>Name</Table.ColumnHeader>
+                  <Table.ColumnHeader>Category</Table.ColumnHeader>
                   <Table.ColumnHeader>Type</Table.ColumnHeader>
                   <Table.ColumnHeader>Daily Rate</Table.ColumnHeader>
+                  <Table.ColumnHeader>Occupancy</Table.ColumnHeader>
                   <Table.ColumnHeader>Status</Table.ColumnHeader>
                   <Table.ColumnHeader textAlign="right">Actions</Table.ColumnHeader>
                 </Table.Row>
@@ -175,7 +242,7 @@ export default function RoomsPage() {
               <Table.Body>
                 {rooms.length === 0 ? (
                   <Table.Row>
-                    <Table.Cell colSpan={5}>
+                    <Table.Cell colSpan={7}>
                       <Text py="8" textAlign="center" color="#77908b">
                         No rooms or beds configured.
                       </Text>
@@ -185,9 +252,21 @@ export default function RoomsPage() {
                   visibleRooms.map((room) => (
                     <Table.Row key={room.id} _hover={{ bg: "#f9fbfa" }}>
                       <Table.Cell fontWeight="700">{room.name}</Table.Cell>
+                      <Table.Cell fontSize="sm">{categoryLabel(room.category)}</Table.Cell>
                       <Table.Cell fontSize="sm">{room.roomType}</Table.Cell>
                       <Table.Cell fontWeight="700" color="#126b68">
                         PKR {room.dailyRate}
+                        <Text fontSize="10px" fontWeight="600" color="#77908b">{room.unitType === "ROOM" ? "per room / day" : "per bed / day"}</Text>
+                      </Table.Cell>
+                      <Table.Cell fontSize="sm">
+                        {room.occupiedBy ? (
+                          <>
+                            <Badge colorPalette="orange" borderRadius="full">Occupied</Badge>
+                            <Text fontSize="xs" color="#506c65">{room.occupiedBy.patientName} · {room.occupiedBy.admissionNumber}</Text>
+                          </>
+                        ) : (
+                          <Badge colorPalette="green" borderRadius="full" variant="subtle">Free</Badge>
+                        )}
                       </Table.Cell>
                       <Table.Cell>
                         <Badge colorPalette={room.active ? "green" : "gray"} borderRadius="full">
@@ -296,7 +375,7 @@ export default function RoomsPage() {
                 <Box>
                   <Heading size="sm">{editing ? "Edit Room / Bed" : "Add New Room or Bed"}</Heading>
                   <Text fontSize="xs" color="#a8c5bd">
-                    Bed capacity and daily charges for OT admission.
+                    Where admitted patients stay, and what a day costs.
                   </Text>
                 </Box>
               </HStack>
@@ -333,6 +412,25 @@ export default function RoomsPage() {
                       value={form.roomType}
                       onChange={(event) => setForm({ ...form, roomType: event.target.value })}
                     />
+                  </Field.Root>
+
+                  <Field.Root required>
+                    <Field.Label fontWeight="700">Category</Field.Label>
+                    <NativeSelect.Root>
+                      <NativeSelect.Field value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>
+                        {roomCategories.map((c) => <option key={c.value} value={c.value}>{c.label} — {c.hint}</option>)}
+                      </NativeSelect.Field>
+                    </NativeSelect.Root>
+                  </Field.Root>
+
+                  <Field.Root required>
+                    <Field.Label fontWeight="700">Daily charge is</Field.Label>
+                    <NativeSelect.Root>
+                      <NativeSelect.Field value={form.unitType} onChange={(event) => setForm({ ...form, unitType: event.target.value })}>
+                        <option value="BED">Per bed (one bed in a shared room / ward)</option>
+                        <option value="ROOM">Per room (the whole room for one patient)</option>
+                      </NativeSelect.Field>
+                    </NativeSelect.Root>
                   </Field.Root>
 
                   <Field.Root required>

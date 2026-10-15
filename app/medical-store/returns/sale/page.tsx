@@ -16,6 +16,7 @@ type ReturnHistoryItem = {
   reason: string;
   restock: boolean;
   totalRefund: string;
+  refundMode?: string;
   createdBy: string;
   createdAt: string;
   items: { medicineName: string; quantity: string; unitPrice: string; total: string }[];
@@ -115,7 +116,11 @@ export default function SaleReturnPage() {
         toast.error(data.error ?? "Unable to record the return.");
         return;
       }
-      toast.success(`Return ${data.return.returnNumber} recorded — refund PKR ${data.return.totalRefund}.`);
+      toast.success(
+        data.return.refundMode === "CREDIT"
+          ? `Return ${data.return.returnNumber} recorded — PKR ${data.return.totalRefund} taken off the in-patient's unpaid medicine bill (no cash handed back).`
+          : `Return ${data.return.returnNumber} recorded — refund PKR ${data.return.totalRefund}.`
+      );
       setSaleId(""); setSaleSearch(""); setQuantities({}); setReason(""); setRestock(true);
       await load();
     } catch {
@@ -299,7 +304,10 @@ export default function SaleReturnPage() {
                       <Table.Cell fontWeight="800" color="#126b68">{r.returnNumber}</Table.Cell>
                       <Table.Cell fontSize="sm">{r.saleNumber}</Table.Cell>
                       <Table.Cell fontSize="xs" color="#556e68">{r.items.map((i) => `${i.medicineName} x${i.quantity}`).join(", ")}</Table.Cell>
-                      <Table.Cell fontWeight="700" color="#a34258">PKR {r.totalRefund}</Table.Cell>
+                      <Table.Cell fontWeight="700" color="#a34258">
+                        PKR {r.totalRefund}
+                        {r.refundMode === "CREDIT" && <Text fontSize="10px" fontWeight="600" color="#607d76">credited to in-patient bill</Text>}
+                      </Table.Cell>
                       <Table.Cell><Badge colorPalette={r.restock ? "green" : "orange"} borderRadius="full">{r.restock ? "Restocked" : "Quarantined"}</Badge></Table.Cell>
                       <Table.Cell fontSize="xs" color="#556e68" maxW="200px">{r.reason}</Table.Cell>
                       <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>

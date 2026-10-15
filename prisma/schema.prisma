@@ -88,6 +88,8 @@ model User {
   medicinePurchaseReturns  MedicinePurchaseReturn[]
   supplierPayments         SupplierPayment[]
   medicineDayClosings      MedicineDayClosing[]
+  admissions               Admission[]
+  admissionCharges         AdmissionCharge[]
 
   @@map("users")
 }
@@ -111,6 +113,7 @@ model Patient {
   otCases         OtCase[]
   emergencyVisits EmergencyVisit[]
   medicineSales   MedicineSale[]
+  admissions      Admission[]
 
   @@index([cnic])
   @@index([mobile])
@@ -137,6 +140,10 @@ model Doctor {
   ultrasoundSharePercent Decimal             @default(0) @map("ultrasound_share_percent") @db.Decimal(5, 2)
   ecgSharePercent        Decimal             @default(0) @map("ecg_share_percent") @db.Decimal(5, 2)
   ecoSharePercent        Decimal             @default(0) @map("eco_share_percent") @db.Decimal(5, 2)
+  // Daily visit fee for an admitted patient, and how it splits — kept separate from the OPD split.
+  admissionDailyFee      Decimal             @default(0) @map("admission_daily_fee") @db.Decimal(12, 2)
+  admissionSplitType     String              @default("PERCENTAGE") @map("admission_split_type") @db.VarChar(20)
+  admissionSplitValue    Decimal             @default(0) @map("admission_split_value") @db.Decimal(12, 2)
   active                 Boolean             @default(true)
   createdAt              DateTime            @default(now()) @map("created_at")
   updatedAt              DateTime            @updatedAt @map("updated_at")
@@ -144,6 +151,8 @@ model Doctor {
   receipts               DiagnosticReceipt[]
   otCases                OtCase[]
   expenses               Expense[]
+  admissions             Admission[]
+  admissionDays          AdmissionDay[]
 
   @@map("doctors")
 }
@@ -317,6 +326,9 @@ model Payment {
   otCaseId         Int?               @map("ot_case_id")
   emergencyVisitId Int?               @map("emergency_visit_id")
   medicineSaleId   Int?               @map("medicine_sale_id")
+  // Hospital part of an in-patient bill (advances, part-payments, and a negative row for an
+  // excess advance handed back). The store's medicines are paid through medicineSaleId instead.
+  admissionId      Int?               @map("admission_id")
   createdById      Int                @map("created_by_id")
   createdAt        DateTime           @default(now()) @map("created_at")
   opdVisit         OpdVisit?          @relation(fields: [opdVisitId], references: [id])
@@ -324,9 +336,11 @@ model Payment {
   otCase           OtCase?            @relation(fields: [otCaseId], references: [id])
   emergencyVisit   EmergencyVisit?    @relation(fields: [emergencyVisitId], references: [id])
   medicineSale     MedicineSale?      @relation(fields: [medicineSaleId], references: [id])
+  admission        Admission?         @relation(fields: [admissionId], references: [id])
   createdBy        User               @relation(fields: [createdById], references: [id])
 
   @@index([createdAt, status])
+  @@index([admissionId])
   @@map("payments")
 }
 
@@ -379,10 +393,15 @@ model RoomBed {
   name      String   @db.VarChar(100)
   roomType  String   @map("room_type") @db.VarChar(80)
   dailyRate Decimal  @map("daily_rate") @db.Decimal(12, 2)
+  // PRIVATE | WARD | CRITICAL | NICU — decides which admissions can use it (see lib/admission.ts).
+  category  String   @default("WARD") @db.VarChar(20)
+  // ROOM = the daily rate is for the whole room, BED = for one bed in a shared room.
+  unitType  String   @default("BED") @map("unit_type") @db.VarChar(10)
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   otCases   OtCase[]
+  admissions Admission[]
 
   @@unique([name])
   @@map("room_beds")
@@ -413,17 +432,24 @@ model OtCase {
   status           OtStatus     @default(BOOKED)
   diagnosis        String?      @db.VarChar(500)
   procedureName    String?      @map("procedure_name") @db.VarChar(200)
+  // Set when the operation was added from an admission: it is then billed, paid and discharged
+  // through that admission, never on its own (see app/api/admissions/[id]/route.ts).
+  admissionId      Int?         @map("admission_id")
   createdById      Int          @map("created_by_id")
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
   patient          Patient      @relation(fields: [patientId], references: [id])
   doctor           Doctor       @relation(fields: [doctorId], references: [id])
   roomBed          RoomBed?     @relation(fields: [roomBedId], references: [id])
+  admission        Admission?   @relation(fields: [admissionId], references: [id])
   createdBy        User         @relation(fields: [createdById], references: [id])
   lineItems        OtLineItem[]
   payments         Payment[]
+  // Medicine the store issued on credit for this operation (standalone OT cases only).
+  medicineSales    MedicineSale[]
 
   @@index([patientId, status])
+  @@index([admissionId])
   @@index([roomBedId, status])
   @@map("ot_cases")
 }
@@ -529,6 +555,102 @@ model DailySequence {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("daily_sequences")
+}
+
+// ---------------------------------------------------------------------------
+// In-patient admissions. Rules (day counting, who may use which bed, how the bill
+// adds up) live in lib/admission.ts.
+// ---------------------------------------------------------------------------
+
+model Admission {
+  id                 Int               @id @default(autoincrement())
+  admissionNumber    String            @unique @map("admission_number") @db.VarChar(40)
+  patientId          Int               @map("patient_id")
+  // Attending doctor. Each day row keeps its own copy, so a change applies from that day on.
+  doctorId           Int               @map("doctor_id")
+  // MEDICAL | SURGICAL | CRITICAL (also used for suspicious patients) | NICU
+  category           String            @db.VarChar(20)
+  roomBedId          Int?              @map("room_bed_id")
+  // The configured bed's name, or a manually entered room.
+  roomLabel          String            @map("room_label") @db.VarChar(150)
+  // Rates copied in at admission (editable by the operator); later profile changes don't touch them.
+  dailyRoomRate      Decimal           @map("daily_room_rate") @db.Decimal(12, 2)
+  dailyDoctorFee     Decimal           @map("daily_doctor_fee") @db.Decimal(12, 2)
+  dailyTechnicianFee Decimal           @map("daily_technician_fee") @db.Decimal(12, 2)
+  // ADMITTED -> INVOICED -> DISCHARGED, or CANCELLED (admitted by mistake, nothing billed).
+  status             String            @default("ADMITTED") @db.VarChar(20)
+  admittedAt         DateTime          @default(now()) @map("admitted_at")
+  // Daily charges stop here. Cleared again if the invoice is reopened.
+  invoicedAt         DateTime?         @map("invoiced_at")
+  dischargedAt       DateTime?         @map("discharged_at")
+  diagnosis          String?           @db.VarChar(500)
+  notes              String?           @db.VarChar(1000)
+  attendantName      String?           @map("attendant_name") @db.VarChar(150)
+  attendantMobile    String?           @map("attendant_mobile") @db.VarChar(30)
+  createdById        Int               @map("created_by_id")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  patient            Patient           @relation(fields: [patientId], references: [id])
+  doctor             Doctor            @relation(fields: [doctorId], references: [id])
+  roomBed            RoomBed?          @relation(fields: [roomBedId], references: [id])
+  createdBy          User              @relation(fields: [createdById], references: [id])
+  days               AdmissionDay[]
+  charges            AdmissionCharge[]
+  payments           Payment[]
+  otCases            OtCase[]
+  medicineSales      MedicineSale[]
+
+  @@index([status])
+  @@index([patientId])
+  @@index([roomBedId, status])
+  @@map("admissions")
+}
+
+// One row per charged calendar day: room, doctor visit and technician fee for that date.
+// The unique key lets the daily rows be added again and again without ever charging a day twice.
+model AdmissionDay {
+  id            Int       @id @default(autoincrement())
+  admissionId   Int       @map("admission_id")
+  chargeDate    DateTime  @map("charge_date") @db.Date
+  roomLabel     String    @map("room_label") @db.VarChar(150)
+  roomRate      Decimal   @map("room_rate") @db.Decimal(12, 2)
+  doctorId      Int       @map("doctor_id")
+  doctorFee     Decimal   @map("doctor_fee") @db.Decimal(12, 2)
+  // The operator unticks this when the doctor did not come that day: no doctor fee for the day.
+  doctorVisited Boolean   @default(true) @map("doctor_visited")
+  technicianFee Decimal   @map("technician_fee") @db.Decimal(12, 2)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  admission     Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  doctor        Doctor    @relation(fields: [doctorId], references: [id])
+
+  @@unique([admissionId, chargeDate])
+  @@map("admission_days")
+}
+
+// Anything else billed during the stay (oxygen, a procedure, consumables...). Hospital income.
+model AdmissionCharge {
+  id          Int       @id @default(autoincrement())
+  admissionId Int       @map("admission_id")
+  description String    @db.VarChar(200)
+  amount      Decimal   @db.Decimal(12, 2)
+  createdById Int       @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  admission   Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id])
+
+  @@index([admissionId])
+  @@map("admission_charges")
+}
+
+// Default technician fee per day for each admission category (set on the Rooms & beds page).
+// The technician is a salaried hospital employee, so this fee is hospital income.
+model AdmissionCategoryFee {
+  id            Int      @id @default(autoincrement())
+  category      String   @unique @db.VarChar(20)
+  technicianFee Decimal  @default(0) @map("technician_fee") @db.Decimal(12, 2)
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("admission_category_fees")
 }
 
 // ---------------------------------------------------------------------------
@@ -676,15 +798,28 @@ model MedicineSale {
   discountReason String?            @map("discount_reason") @db.VarChar(500)
   total          Decimal            @db.Decimal(12, 2)
   status         PaymentStatus      @default(PAID)
+  // In-patient medicine issued on credit: admissionId (or otCaseId, for an OT case that is not part
+  // of an admission) is set, purpose is WARD | OT | HOME and creditStatus is UNSETTLED until the
+  // store marks it paid (SETTLED, with its Payment row). All stay null for a normal counter sale,
+  // which is paid on the spot.
+  admissionId    Int?               @map("admission_id")
+  otCaseId       Int?               @map("ot_case_id")
+  purpose        String?            @db.VarChar(10)
+  creditStatus   String?            @map("credit_status") @db.VarChar(12)
+  settledAt      DateTime?          @map("settled_at")
   createdById    Int                @map("created_by_id")
   createdAt      DateTime           @default(now()) @map("created_at")
   patient        Patient?           @relation(fields: [patientId], references: [id])
+  admission      Admission?         @relation(fields: [admissionId], references: [id])
+  otCase         OtCase?            @relation(fields: [otCaseId], references: [id])
   createdBy      User               @relation(fields: [createdById], references: [id])
   items          MedicineSaleItem[]
   payments       Payment[]
   returns        MedicineSaleReturn[]
 
   @@unique([saleDate, dailyToken])
+  @@index([admissionId])
+  @@index([otCaseId])
   @@map("medicine_sales")
 }
 
@@ -753,6 +888,9 @@ model MedicineSaleReturn {
   reason       String                   @db.VarChar(500)
   restock      Boolean                  @default(false)
   totalRefund  Decimal                  @default(0) @map("total_refund") @db.Decimal(12, 2)
+  // CASH = money handed back from the counter. CREDIT = the sale was an unsettled in-patient
+  // credit sale, so the return only lowers what the patient owes (no cash leaves the drawer).
+  refundMode   String                   @default("CASH") @map("refund_mode") @db.VarChar(10)
   createdById  Int                      @map("created_by_id")
   createdAt    DateTime                 @default(now()) @map("created_at")
   sale         MedicineSale             @relation(fields: [saleId], references: [id])

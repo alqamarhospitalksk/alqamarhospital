@@ -56,6 +56,9 @@ CREATE TABLE `doctors` (
     `ultrasound_share_percent` DECIMAL(5, 2) NOT NULL DEFAULT 0,
     `ecg_share_percent` DECIMAL(5, 2) NOT NULL DEFAULT 0,
     `eco_share_percent` DECIMAL(5, 2) NOT NULL DEFAULT 0,
+    `admission_daily_fee` DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    `admission_split_type` VARCHAR(20) NOT NULL DEFAULT 'PERCENTAGE',
+    `admission_split_value` DECIMAL(12, 2) NOT NULL DEFAULT 0,
     `active` BOOLEAN NOT NULL DEFAULT true,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
@@ -115,6 +118,24 @@ CREATE TABLE `diagnostic_catalog_items` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `diagnostic_test_parameters` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `catalog_item_id` INTEGER NOT NULL,
+    `sort_order` INTEGER NOT NULL DEFAULT 0,
+    `kind` VARCHAR(15) NOT NULL,
+    `name` VARCHAR(200) NOT NULL,
+    `unit` VARCHAR(30) NULL,
+    `alt_unit` VARCHAR(30) NULL,
+    `alt_factor` DECIMAL(14, 6) NULL,
+    `ref_low` DECIMAL(14, 4) NULL,
+    `ref_high` DECIMAL(14, 4) NULL,
+    `ref_text` VARCHAR(200) NULL,
+
+    INDEX `diagnostic_test_parameters_catalog_item_id_sort_order_idx`(`catalog_item_id`, `sort_order`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `diagnostic_receipts` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `receipt_number` VARCHAR(40) NOT NULL,
@@ -158,6 +179,25 @@ CREATE TABLE `diagnostic_receipt_items` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `diagnostic_result_values` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `receipt_item_id` INTEGER NOT NULL,
+    `parameter_id` INTEGER NULL,
+    `sort_order` INTEGER NOT NULL DEFAULT 0,
+    `kind` VARCHAR(15) NOT NULL,
+    `name` VARCHAR(200) NOT NULL,
+    `unit` VARCHAR(30) NULL,
+    `alt_unit` VARCHAR(30) NULL,
+    `alt_value` VARCHAR(40) NULL,
+    `reference_text` VARCHAR(200) NULL,
+    `value` VARCHAR(300) NOT NULL,
+    `flag` VARCHAR(10) NULL,
+
+    INDEX `diagnostic_result_values_receipt_item_id_sort_order_idx`(`receipt_item_id`, `sort_order`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `payments` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `amount` DECIMAL(12, 2) NOT NULL,
@@ -170,10 +210,12 @@ CREATE TABLE `payments` (
     `ot_case_id` INTEGER NULL,
     `emergency_visit_id` INTEGER NULL,
     `medicine_sale_id` INTEGER NULL,
+    `admission_id` INTEGER NULL,
     `created_by_id` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     INDEX `payments_created_at_status_idx`(`created_at`, `status`),
+    INDEX `payments_admission_id_idx`(`admission_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -221,6 +263,8 @@ CREATE TABLE `room_beds` (
     `name` VARCHAR(100) NOT NULL,
     `room_type` VARCHAR(80) NOT NULL,
     `daily_rate` DECIMAL(12, 2) NOT NULL,
+    `category` VARCHAR(20) NOT NULL DEFAULT 'WARD',
+    `unit_type` VARCHAR(10) NOT NULL DEFAULT 'BED',
     `active` BOOLEAN NOT NULL DEFAULT true,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
@@ -255,12 +299,14 @@ CREATE TABLE `ot_cases` (
     `status` ENUM('BOOKED', 'IN_PROGRESS', 'READY_FOR_DISCHARGE', 'DISCHARGED', 'CANCELLED') NOT NULL DEFAULT 'BOOKED',
     `diagnosis` VARCHAR(500) NULL,
     `procedure_name` VARCHAR(200) NULL,
+    `admission_id` INTEGER NULL,
     `created_by_id` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
     UNIQUE INDEX `ot_cases_case_number_key`(`case_number`),
     INDEX `ot_cases_patient_id_status_idx`(`patient_id`, `status`),
+    INDEX `ot_cases_admission_id_idx`(`admission_id`),
     INDEX `ot_cases_room_bed_id_status_idx`(`room_bed_id`, `status`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -366,6 +412,78 @@ CREATE TABLE `daily_sequences` (
     `updated_at` DATETIME(3) NOT NULL,
 
     UNIQUE INDEX `daily_sequences_sequence_key_key`(`sequence_key`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `admissions` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `admission_number` VARCHAR(40) NOT NULL,
+    `patient_id` INTEGER NOT NULL,
+    `doctor_id` INTEGER NOT NULL,
+    `category` VARCHAR(20) NOT NULL,
+    `room_bed_id` INTEGER NULL,
+    `room_label` VARCHAR(150) NOT NULL,
+    `daily_room_rate` DECIMAL(12, 2) NOT NULL,
+    `daily_doctor_fee` DECIMAL(12, 2) NOT NULL,
+    `daily_technician_fee` DECIMAL(12, 2) NOT NULL,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'ADMITTED',
+    `admitted_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `invoiced_at` DATETIME(3) NULL,
+    `discharged_at` DATETIME(3) NULL,
+    `diagnosis` VARCHAR(500) NULL,
+    `notes` VARCHAR(1000) NULL,
+    `attendant_name` VARCHAR(150) NULL,
+    `attendant_mobile` VARCHAR(30) NULL,
+    `created_by_id` INTEGER NOT NULL,
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updated_at` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `admissions_admission_number_key`(`admission_number`),
+    INDEX `admissions_status_idx`(`status`),
+    INDEX `admissions_patient_id_idx`(`patient_id`),
+    INDEX `admissions_room_bed_id_status_idx`(`room_bed_id`, `status`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `admission_days` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `admission_id` INTEGER NOT NULL,
+    `charge_date` DATE NOT NULL,
+    `room_label` VARCHAR(150) NOT NULL,
+    `room_rate` DECIMAL(12, 2) NOT NULL,
+    `doctor_id` INTEGER NOT NULL,
+    `doctor_fee` DECIMAL(12, 2) NOT NULL,
+    `doctor_visited` BOOLEAN NOT NULL DEFAULT true,
+    `technician_fee` DECIMAL(12, 2) NOT NULL,
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `admission_days_admission_id_charge_date_key`(`admission_id`, `charge_date`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `admission_charges` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `admission_id` INTEGER NOT NULL,
+    `description` VARCHAR(200) NOT NULL,
+    `amount` DECIMAL(12, 2) NOT NULL,
+    `created_by_id` INTEGER NOT NULL,
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `admission_charges_admission_id_idx`(`admission_id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `admission_category_fees` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `category` VARCHAR(20) NOT NULL,
+    `technician_fee` DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    `updated_at` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `admission_category_fees_category_key`(`category`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -490,10 +608,17 @@ CREATE TABLE `medicine_sales` (
     `discount_reason` VARCHAR(500) NULL,
     `total` DECIMAL(12, 2) NOT NULL,
     `status` ENUM('PAID', 'REFUNDED', 'PARTIALLY_REFUNDED', 'CANCELLED') NOT NULL DEFAULT 'PAID',
+    `admission_id` INTEGER NULL,
+    `ot_case_id` INTEGER NULL,
+    `purpose` VARCHAR(10) NULL,
+    `credit_status` VARCHAR(12) NULL,
+    `settled_at` DATETIME(3) NULL,
     `created_by_id` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     UNIQUE INDEX `medicine_sales_sale_number_key`(`sale_number`),
+    INDEX `medicine_sales_admission_id_idx`(`admission_id`),
+    INDEX `medicine_sales_ot_case_id_idx`(`ot_case_id`),
     UNIQUE INDEX `medicine_sales_sale_date_daily_token_key`(`sale_date`, `daily_token`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -554,6 +679,7 @@ CREATE TABLE `medicine_sale_returns` (
     `reason` VARCHAR(500) NOT NULL,
     `restock` BOOLEAN NOT NULL DEFAULT false,
     `total_refund` DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    `refund_mode` VARCHAR(10) NOT NULL DEFAULT 'CASH',
     `created_by_id` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
@@ -620,6 +746,9 @@ ALTER TABLE `emergency_visits` ADD CONSTRAINT `emergency_visits_patient_id_fkey`
 ALTER TABLE `emergency_visits` ADD CONSTRAINT `emergency_visits_created_by_id_fkey` FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `diagnostic_test_parameters` ADD CONSTRAINT `diagnostic_test_parameters_catalog_item_id_fkey` FOREIGN KEY (`catalog_item_id`) REFERENCES `diagnostic_catalog_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `diagnostic_receipts` ADD CONSTRAINT `diagnostic_receipts_opd_visit_id_fkey` FOREIGN KEY (`opd_visit_id`) REFERENCES `opd_visits`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -644,6 +773,12 @@ ALTER TABLE `diagnostic_receipt_items` ADD CONSTRAINT `diagnostic_receipt_items_
 ALTER TABLE `diagnostic_receipt_items` ADD CONSTRAINT `diagnostic_receipt_items_result_uploaded_by_id_fkey` FOREIGN KEY (`result_uploaded_by_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `diagnostic_result_values` ADD CONSTRAINT `diagnostic_result_values_receipt_item_id_fkey` FOREIGN KEY (`receipt_item_id`) REFERENCES `diagnostic_receipt_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `diagnostic_result_values` ADD CONSTRAINT `diagnostic_result_values_parameter_id_fkey` FOREIGN KEY (`parameter_id`) REFERENCES `diagnostic_test_parameters`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `payments` ADD CONSTRAINT `payments_opd_visit_id_fkey` FOREIGN KEY (`opd_visit_id`) REFERENCES `opd_visits`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -657,6 +792,9 @@ ALTER TABLE `payments` ADD CONSTRAINT `payments_emergency_visit_id_fkey` FOREIGN
 
 -- AddForeignKey
 ALTER TABLE `payments` ADD CONSTRAINT `payments_medicine_sale_id_fkey` FOREIGN KEY (`medicine_sale_id`) REFERENCES `medicine_sales`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `payments` ADD CONSTRAINT `payments_admission_id_fkey` FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `payments` ADD CONSTRAINT `payments_created_by_id_fkey` FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -680,6 +818,9 @@ ALTER TABLE `ot_cases` ADD CONSTRAINT `ot_cases_doctor_id_fkey` FOREIGN KEY (`do
 ALTER TABLE `ot_cases` ADD CONSTRAINT `ot_cases_room_bed_id_fkey` FOREIGN KEY (`room_bed_id`) REFERENCES `room_beds`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `ot_cases` ADD CONSTRAINT `ot_cases_admission_id_fkey` FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `ot_cases` ADD CONSTRAINT `ot_cases_created_by_id_fkey` FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -699,6 +840,30 @@ ALTER TABLE `audit_logs` ADD CONSTRAINT `audit_logs_user_id_fkey` FOREIGN KEY (`
 
 -- AddForeignKey
 ALTER TABLE `sessions` ADD CONSTRAINT `sessions_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `admissions` ADD CONSTRAINT `admissions_patient_id_fkey` FOREIGN KEY (`patient_id`) REFERENCES `patients`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `admissions` ADD CONSTRAINT `admissions_doctor_id_fkey` FOREIGN KEY (`doctor_id`) REFERENCES `doctors`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `admissions` ADD CONSTRAINT `admissions_room_bed_id_fkey` FOREIGN KEY (`room_bed_id`) REFERENCES `room_beds`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `admissions` ADD CONSTRAINT `admissions_created_by_id_fkey` FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `admission_days` ADD CONSTRAINT `admission_days_admission_id_fkey` FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `admission_days` ADD CONSTRAINT `admission_days_doctor_id_fkey` FOREIGN KEY (`doctor_id`) REFERENCES `doctors`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `admission_charges` ADD CONSTRAINT `admission_charges_admission_id_fkey` FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `admission_charges` ADD CONSTRAINT `admission_charges_created_by_id_fkey` FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `supplier_payments` ADD CONSTRAINT `supplier_payments_supplier_id_fkey` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -726,6 +891,12 @@ ALTER TABLE `medicine_batches` ADD CONSTRAINT `medicine_batches_purchase_id_fkey
 
 -- AddForeignKey
 ALTER TABLE `medicine_sales` ADD CONSTRAINT `medicine_sales_patient_id_fkey` FOREIGN KEY (`patient_id`) REFERENCES `patients`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medicine_sales` ADD CONSTRAINT `medicine_sales_admission_id_fkey` FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `medicine_sales` ADD CONSTRAINT `medicine_sales_ot_case_id_fkey` FOREIGN KEY (`ot_case_id`) REFERENCES `ot_cases`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `medicine_sales` ADD CONSTRAINT `medicine_sales_created_by_id_fkey` FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -783,49 +954,3 @@ ALTER TABLE `medicine_purchase_return_items` ADD CONSTRAINT `medicine_purchase_r
 
 -- AddForeignKey
 ALTER TABLE `medicine_purchase_return_items` ADD CONSTRAINT `medicine_purchase_return_items_batch_id_fkey` FOREIGN KEY (`batch_id`) REFERENCES `medicine_batches`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- CreateTable
-CREATE TABLE `diagnostic_test_parameters` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `catalog_item_id` INTEGER NOT NULL,
-    `sort_order` INTEGER NOT NULL DEFAULT 0,
-    `kind` VARCHAR(15) NOT NULL,
-    `name` VARCHAR(200) NOT NULL,
-    `unit` VARCHAR(30) NULL,
-    `alt_unit` VARCHAR(30) NULL,
-    `alt_factor` DECIMAL(14, 6) NULL,
-    `ref_low` DECIMAL(14, 4) NULL,
-    `ref_high` DECIMAL(14, 4) NULL,
-    `ref_text` VARCHAR(200) NULL,
-
-    INDEX `diagnostic_test_parameters_catalog_item_id_sort_order_idx`(`catalog_item_id`, `sort_order`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `diagnostic_result_values` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `receipt_item_id` INTEGER NOT NULL,
-    `parameter_id` INTEGER NULL,
-    `sort_order` INTEGER NOT NULL DEFAULT 0,
-    `kind` VARCHAR(15) NOT NULL,
-    `name` VARCHAR(200) NOT NULL,
-    `unit` VARCHAR(30) NULL,
-    `alt_unit` VARCHAR(30) NULL,
-    `alt_value` VARCHAR(40) NULL,
-    `reference_text` VARCHAR(200) NULL,
-    `value` VARCHAR(300) NOT NULL,
-    `flag` VARCHAR(10) NULL,
-
-    INDEX `diagnostic_result_values_receipt_item_id_sort_order_idx`(`receipt_item_id`, `sort_order`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- AddForeignKey
-ALTER TABLE `diagnostic_test_parameters` ADD CONSTRAINT `diagnostic_test_parameters_catalog_item_id_fkey` FOREIGN KEY (`catalog_item_id`) REFERENCES `diagnostic_catalog_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `diagnostic_result_values` ADD CONSTRAINT `diagnostic_result_values_receipt_item_id_fkey` FOREIGN KEY (`receipt_item_id`) REFERENCES `diagnostic_receipt_items`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `diagnostic_result_values` ADD CONSTRAINT `diagnostic_result_values_parameter_id_fkey` FOREIGN KEY (`parameter_id`) REFERENCES `diagnostic_test_parameters`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

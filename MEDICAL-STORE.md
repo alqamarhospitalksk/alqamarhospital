@@ -35,7 +35,18 @@ route in this module (enforced per-route server-side, not just hidden in the nav
 - Optional discount in PKR (a reason is required if the discount is greater than zero).
 - Payment method: Cash / Card / Bank Transfer / Online.
 - "Complete Sale" posts the transaction and opens a printable 80mm receipt with a daily token number.
-- Recent Sales table with a re-print button.
+- Recent Sales table with a re-print button. In-patient credit sales show their admission number and whether they are paid yet.
+
+### In-patients — `/medical-store/inpatients`
+- **Admitted and OT patients**: every patient currently admitted (Admissions page) and every open OT case (OT page), with what the store has issued so far. **Issue medicine** opens the Sell page in in-patient mode (`/medical-store/sell?admissionId=…` or `?otCaseId=…`):
+  - the patient is fixed;
+  - there is no discount and no payment;
+  - the store chooses what the medicine is for: **Ward**, **OT** or **Home (discharge)**.
+  
+  The medicine still leaves stock first-expiry-first-out, and the sale is recorded as unpaid credit on the patient's bill.
+- Once the operator generates an admission's final invoice, or discharges an OT patient, no more medicine can be issued to it. (An operation done during an admission is charged to the admission, not listed separately.)
+- **Waiting for payment**: every stay that still owes the store. When the money reaches the counter (from the family, or handed over by the operator), click **Mark paid** and choose the method. This creates the store's payment for each credit sale, so it counts as store income and in **today's day closing**. The operator cannot discharge the patient until this is done.
+- **Returns** of unused medicine on an unpaid credit sale (Sale Returns page) only reduce what the patient owes; no cash is handed back, and they don't appear as cash refunds in day closing. After the bill is paid, a return is a normal cash refund.
 
 ### Stock Adjustments — `/medical-store/adjustments`
 - Search a medicine, pick the exact batch (shows remaining quantity + expiry), choose a reason — Damage, Expired, Return to Supplier, or Stock Correction — enter the quantity to remove, and a required free-text reason.

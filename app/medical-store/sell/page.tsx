@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Badge, Box, Button, Flex, Heading, HStack, Input, NativeSelect, Table, Text } from "@chakra-ui/react";
+import { Badge, Box, Button, Flex, Heading, HStack, Input, Link, NativeSelect, Table, Text } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCashRegister, faPlus, faPrint, faTrash, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
@@ -44,8 +44,24 @@ type Sale = {
   paymentMethod: string;
   customerName: string;
   mrNumber: string | null;
+  // Set for medicine issued on credit: the admission or OT case it is charged to.
+  billNumber?: string | null;
+  purpose?: string | null;
   items: { name: string; quantity: string; unitPrice: string; total: string; costPriceAtSale?: string | null }[];
 };
+// The patient bill this page is issuing to, when opened from In-patients (?admissionId=… or ?otCaseId=…).
+type InPatient = {
+  kind: "ADMISSION" | "OT";
+  id: number;
+  number: string;
+  status: string;
+  canIssue: boolean;
+  category: string;
+  roomLabel: string;
+  patient: { id: number; name: string; mrNumber: string };
+  medicines: { issued: number; owed: number };
+};
+const purposeLabels: Record<string, string> = { WARD: "Ward medicine", OT: "OT medicine", HOME: "Home (discharge) medicine" };
 type SaleHistoryItem = Sale & { id: number; createdAt: string; status: string };
 type HistoryRange = "ALL" | "TODAY" | "WEEK" | "MONTH";
 
@@ -91,6 +107,20 @@ export default function SellMedicinePage() {
   const [discountReason, setDiscountReason] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [saving, setSaving] = useState(false);
+  const [inPatient, setInPatient] = useState<InPatient | null>(null);
+  const [purpose, setPurpose] = useState("WARD");
+
+  // `query` is "admissionId=…" or "otCaseId=…".
+  async function loadInPatient(query: string) {
+    try {
+      const res = await fetch(`/api/medical-store/inpatients?${query}`);
+      const data = await res.json();
+      if (res.ok) setInPatient(data.bill);
+      else toast.error(data.error ?? "Unable to load the admitted patient.");
+    } catch {
+      toast.error("Unable to reach the clinic server.");
+    }
+  }
 
   const [sale, setSale] = useState<Sale | null>(null);
   const [showSlipModal, setShowSlipModal] = useState(false);
@@ -159,6 +189,14 @@ export default function SellMedicinePage() {
 
   useEffect(() => {
     void load();
+    const params = new URLSearchParams(window.location.search);
+    const admissionId = params.get("admissionId");
+    const otCaseId = params.get("otCaseId");
+    if (admissionId) void loadInPatient(`admissionId=${encodeURIComponent(admissionId)}`);
+    else if (otCaseId) {
+      void loadInPatient(`otCaseId=${encodeURIComponent(otCaseId)}`);
+      setPurpose("OT");
+    }
   }, []);
 
   useEffect(() => {
@@ -243,40 +281,50 @@ export default function SellMedicinePage() {
       toast.error("Add at least one medicine to sell.");
       return;
     }
-    if (!useWalkIn && !patientId) {
+    if (!inPatient && !useWalkIn && !patientId) {
       toast.error("Select a patient or switch to walk-in customer.");
       return;
     }
-    if (useWalkIn && !walkInName.trim()) {
+    if (!inPatient && useWalkIn && !walkInName.trim()) {
       toast.error("Enter the walk-in customer's name.");
       return;
     }
+    const saleLines = validLines.map((l) => {
+      const med = medicines.find((m) => String(m.id) === l.medicineItemId);
+      return { medicineItemId: Number(l.medicineItemId), quantity: lineUnits(l, med) };
+    });
     setSaving(true);
     try {
       const res = await fetch("/api/medical-store/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientId: useWalkIn ? null : Number(patientId),
-          customerName: useWalkIn ? walkInName.trim() : null,
-          lines: validLines.map((l) => {
-            const med = medicines.find((m) => String(m.id) === l.medicineItemId);
-            return { medicineItemId: Number(l.medicineItemId), quantity: lineUnits(l, med) };
-          }),
-          discount: Number(discount || 0),
-          discountReason,
-          paymentMethod,
-        }),
+        body: JSON.stringify(
+          inPatient
+            ? { [inPatient.kind === "ADMISSION" ? "admissionId" : "otCaseId"]: inPatient.id, purpose, lines: saleLines }
+            : {
+                patientId: useWalkIn ? null : Number(patientId),
+                customerName: useWalkIn ? walkInName.trim() : null,
+                lines: saleLines,
+                discount: Number(discount || 0),
+                discountReason,
+                paymentMethod,
+              }
+        ),
       });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Unable to record sale.");
         return;
       }
-      toast.success(`Sale ${data.sale.saleNumber} recorded — PKR ${data.sale.total}.`);
+      toast.success(inPatient ? `${data.sale.saleNumber} issued to ${inPatient.number} — PKR ${data.sale.total} added to the bill.` : `Sale ${data.sale.saleNumber} recorded — PKR ${data.sale.total}.`);
       setSale(data.sale);
       setShowSlipModal(true);
-      resetForm();
+      if (inPatient) {
+        setLines([{ ...emptyLine }]);
+        void loadInPatient(`${inPatient.kind === "ADMISSION" ? "admissionId" : "otCaseId"}=${inPatient.id}`);
+      } else {
+        resetForm();
+      }
       await load();
     } catch {
       toast.error("Unable to reach the clinic server.");
@@ -328,7 +376,9 @@ export default function SellMedicinePage() {
       ${rows}
       <div class="rule"></div>
       ${discountRow}<div class="row total"><span>TOTAL</span><span>PKR ${escapeHtml(s.total)}</span></div>
-      <div class="row"><span>Payment</span><strong>${escapeHtml(s.paymentMethod.replaceAll("_", " "))}</strong></div>
+      ${s.billNumber
+        ? `<div class="row"><span>For</span><strong>${escapeHtml(purposeLabels[s.purpose ?? ""] ?? "In-patient")}</strong></div><div class="row"><span>Payment</span><strong>On patient bill ${escapeHtml(s.billNumber)}</strong></div>`
+        : `<div class="row"><span>Payment</span><strong>${escapeHtml(s.paymentMethod.replaceAll("_", " "))}</strong></div>`}
       <div class="footer">Thank you</div>
     </main></body></html>`);
     printWindow.document.close();
@@ -345,26 +395,52 @@ export default function SellMedicinePage() {
       <Flex as="header" h="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" justify="space-between" px={{ base: "20px", md: "42px" }}>
         <Box>
           <Heading size="lg" letterSpacing="-0.04em">
-            Sell Medicine
+            {inPatient ? "Issue Medicine — In-patient" : "Sell Medicine"}
           </Heading>
         </Box>
+        {inPatient && (
+          <Link href="/medical-store/sell" fontSize="sm" color="#126b68" fontWeight="700">Back to counter sale</Link>
+        )}
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+        {inPatient && (
+          <Box bg={inPatient.canIssue ? "#eef6f4" : "#fdf1e7"} border="1px solid" borderColor={inPatient.canIssue ? "#c8dad5" : "#f0d6b8"} borderRadius="12px" p="5" mb="6">
+            <Flex justify="space-between" gap="4" flexWrap="wrap">
+              <Box>
+                <Text fontSize="xs" fontWeight="800" color="#607d76" textTransform="uppercase" letterSpacing="0.06em">Charged to {inPatient.kind === "OT" ? "OT case" : "admission"} {inPatient.number}</Text>
+                <Text fontWeight="800" fontSize="lg" color="#123d3b">{inPatient.patient.name} <Text as="span" fontSize="sm" color="#607d76">({inPatient.patient.mrNumber})</Text></Text>
+                <Text fontSize="sm" color="#506c65">{inPatient.category} · {inPatient.roomLabel}</Text>
+              </Box>
+              <Box textAlign="right">
+                <Text fontSize="xs" color="#607d76">Issued so far</Text>
+                <Text fontWeight="800" color="#123d3b">PKR {inPatient.medicines.issued.toLocaleString("en-PK", { maximumFractionDigits: 2 })}</Text>
+                <Text fontSize="xs" color="#a34258">Unpaid PKR {inPatient.medicines.owed.toLocaleString("en-PK", { maximumFractionDigits: 2 })}</Text>
+              </Box>
+            </Flex>
+            {!inPatient.canIssue && (
+              <Text fontSize="sm" color="#b26732" fontWeight="700" mt="3">
+                {inPatient.kind === "OT" ? "This OT patient has been discharged" : "This stay has been invoiced"}, so no more medicine can be charged to it.
+              </Text>
+            )}
+          </Box>
+        )}
         <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" p={{ base: "20px", md: "28px" }} mb="8">
           <HStack mb="5" justify="space-between">
             <HStack>
               <Flex w="36px" h="36px" bg="#e9f1ef" color="#126b68" borderRadius="9px" align="center" justify="center">
                 <FontAwesomeIcon icon={faCashRegister} />
               </Flex>
-              <Heading size="sm">New Sale</Heading>
+              <Heading size="sm">{inPatient ? "Medicine for this patient" : "New Sale"}</Heading>
             </HStack>
-            <Button size="xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => setUseWalkIn((v) => !v)}>
-              {useWalkIn ? "Switch to registered patient" : "Switch to walk-in customer"}
-            </Button>
+            {!inPatient && (
+              <Button size="xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => setUseWalkIn((v) => !v)}>
+                {useWalkIn ? "Switch to registered patient" : "Switch to walk-in customer"}
+              </Button>
+            )}
           </HStack>
 
-          {useWalkIn ? (
+          {inPatient ? null : useWalkIn ? (
             <Box mb="5" maxW="360px">
               <Text fontSize="sm" fontWeight="700" mb="2">Walk-in Customer Name</Text>
               <Input placeholder="Customer name" value={walkInName} onChange={(e) => setWalkInName(e.target.value)} />
@@ -403,7 +479,7 @@ export default function SellMedicinePage() {
             </Box>
           )}
 
-          {!useWalkIn && selectedPatient && (
+          {!inPatient && !useWalkIn && selectedPatient && (
             <Box mb="5" bg="#fafcfb" border="1px solid #e1e9e6" borderRadius="10px" p="4" maxW="720px">
               <Text fontSize="xs" fontWeight="700" color="#607d76" textTransform="uppercase" letterSpacing="0.06em" mb="2">
                 {selectedPatient.name}&apos;s previous purchases
@@ -565,6 +641,16 @@ export default function SellMedicinePage() {
             &nbsp; Add Line
           </Button>
 
+          {inPatient ? (
+            <Box mb="5" maxW="320px">
+              <Text fontSize="sm" fontWeight="700" mb="2">Medicine is for</Text>
+              <NativeSelect.Root>
+                <NativeSelect.Field value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+                  {Object.entries(purposeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </NativeSelect.Field>
+              </NativeSelect.Root>
+            </Box>
+          ) : (
           <HStack gap="3" mb="5" flexWrap="wrap" align="end">
             <Box>
               <Text fontSize="sm" fontWeight="700" mb="2">Discount (PKR)</Text>
@@ -586,12 +672,13 @@ export default function SellMedicinePage() {
               </NativeSelect.Root>
             </Box>
           </HStack>
+          )}
 
           <Flex justify="space-between" align="center" bg="#f5f7f8" p="4" borderRadius="8px">
-            <Text fontWeight="800" fontSize="lg" color="#123d3b">Total: PKR {total.toFixed(2)}</Text>
-            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={saving} onClick={submitSale}>
+            <Text fontWeight="800" fontSize="lg" color="#123d3b">Total: PKR {(inPatient ? subtotal : total).toFixed(2)}</Text>
+            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={saving} onClick={submitSale} disabled={Boolean(inPatient && !inPatient.canIssue)}>
               <FontAwesomeIcon icon={faCashRegister} />
-              &nbsp; Complete Sale
+              &nbsp; {inPatient ? "Issue on patient's bill" : "Complete Sale"}
             </Button>
           </Flex>
         </Box>
@@ -636,7 +723,15 @@ export default function SellMedicinePage() {
                       <Table.Cell><Badge bg="#dce96f" color="#123d3b" fontWeight="800" borderRadius="full" px="2">#{s.dailyToken}</Badge></Table.Cell>
                       <Table.Cell fontSize="sm">{s.customerName}</Table.Cell>
                       <Table.Cell fontWeight="800" color="#123d3b">PKR {s.total}</Table.Cell>
-                      <Table.Cell><Badge colorPalette={s.status === "PAID" ? "green" : "red"} borderRadius="full">{s.status}</Badge></Table.Cell>
+                      <Table.Cell>
+                        {s.billNumber ? (
+                          <Badge colorPalette={s.paymentMethod === "CREDIT" ? "orange" : "green"} borderRadius="full">
+                            {s.billNumber} · {s.paymentMethod === "CREDIT" ? "unpaid" : "paid"}
+                          </Badge>
+                        ) : (
+                          <Badge colorPalette={s.status === "PAID" ? "green" : "red"} borderRadius="full">{s.status}</Badge>
+                        )}
+                      </Table.Cell>
                       <Table.Cell textAlign="right">
                         <Button size="xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => printReceipt(s)}>
                           <FontAwesomeIcon icon={faPrint} />

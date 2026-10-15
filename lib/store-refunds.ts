@@ -2,10 +2,11 @@ import { db } from "./db";
 
 // Money handed back to medicine-store customers (sale returns). The sale itself was counted in the
 // gross when it was paid, so the refund has to come back out of the gross on the day it is paid —
-// otherwise returned medicines would keep showing as income.
+// otherwise returned medicines would keep showing as income. A return on an unsettled in-patient
+// credit sale (refundMode CREDIT) handed no money back and was never counted as income, so it is left out.
 export async function storeRefundsForPeriod(since: Date, until: Date) {
   const returns = await db.medicineSaleReturn.findMany({
-    where: { createdAt: { gte: since, lt: until } },
+    where: { createdAt: { gte: since, lt: until }, refundMode: "CASH" },
     orderBy: { createdAt: "asc" },
     include: { sale: { include: { patient: true } } },
   });

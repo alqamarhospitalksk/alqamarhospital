@@ -4,7 +4,7 @@ import { DateInput } from "./date-input";
 import { useEffect, useState } from "react";
 import { Box, Button, Flex, Grid, Heading, HStack, NativeSelect, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowTrendUp, faBed, faChevronDown, faChartLine, faCoins, faFileInvoiceDollar, faFlaskVial, faSackDollar, faTrashCan, faUserDoctor, faUserGroup, faUsers } from "@fortawesome/free-solid-svg-icons";
+import { faArrowTrendUp, faBed, faChevronDown, faChartLine, faCoins, faFileInvoiceDollar, faFlaskVial, faHospitalUser, faSackDollar, faTrashCan, faUserDoctor, faUserGroup, faUsers } from "@fortawesome/free-solid-svg-icons";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "react-toastify";
 import { StatCard } from "./stat-card";
@@ -17,6 +17,7 @@ const allServices = [
   { key: "X-RAY", label: "X-Ray", color: "#fb923c" },
   { key: "ULTRASOUND", label: "Ultrasound", color: "#f472b6" },
   { key: "OT", label: "Operation Theater", color: "#f87171" },
+  { key: "ADMISSION", label: "In-patient Admission", color: "#38bdf8" },
   { key: "EMERGENCY", label: "Minor Emergency", color: "#94a3b8" },
   { key: "MEDICAL_STORE", label: "Medical Store", color: "#d4b96a" },
   { key: "OTHER", label: "Other / unlinked", color: "#cbd5d1" },
@@ -39,6 +40,7 @@ type Summary = {
   doctorCount: number;
   labTestCount: number;
   otCaseCount: number;
+  admittedNow: number;
   revenueHistory: RevenueHistoryEntry[];
 };
 const emptySummary: Summary = {
@@ -58,6 +60,7 @@ const emptySummary: Summary = {
   doctorCount: 0,
   labTestCount: 0,
   otCaseCount: 0,
+  admittedNow: 0,
   revenueHistory: [],
 };
 const money = (value: number) => `PKR ${value.toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
@@ -317,7 +320,8 @@ variant="flushed"
           </Grid>
 
           {/* Lifetime figures — not tied to the period picker. */}
-          <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }} gap="4" mb="8">
+          <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(5, 1fr)" }} gap="4" mb="8">
+            <StatCard compact label="Currently Admitted" value={summary.admittedNow} icon={faHospitalUser} color="#0e7490" />
             <StatCard compact label="Active Doctors" value={summary.doctorCount} icon={faUserDoctor} color="#4a3aa7" />
             <StatCard compact label="Total Registered Patients" value={summary.patientCount} icon={faUsers} color="#126b68" />
             <StatCard compact label="Total Lab Tests" value={summary.labTestCount} icon={faFlaskVial} color="#b26732" />

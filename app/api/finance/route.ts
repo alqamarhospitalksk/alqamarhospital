@@ -4,7 +4,7 @@ import { roleError } from "../../../lib/roles";
 import { db } from "../../../lib/db";
 import { getLastSalaryPayoutMap, type LastSalaryPayout } from "../../../lib/employee-salary";
 import { getPaymentCycleInfo } from "../../../lib/payment-cycle";
-import { computeDoctorShare } from "../../../lib/doctor-share";
+import { admissionShareDays, computeDoctorShare } from "../../../lib/doctor-share";
 import { toDateColumnBoundary } from "../../../lib/date-range";
 
 const methods = ["CASH", "CARD", "BANK_TRANSFER", "ONLINE"] as const;
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
   // Fetched unfiltered (lifetime) once, then filtered in memory below for both the
   // period-scoped display columns and the always-lifetime balance calculation —
   // avoids running each query twice against the database.
-  const [employees, rawDoctors, expenses, opdVisitsAll, otCasesAll, doctorPayouts, diagnosticReceiptsAll] = await Promise.all([
+  const [employees, rawDoctors, expenses, opdVisitsAll, otCasesAll, doctorPayouts, diagnosticReceiptsAll, admissionDaysAll] = await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     db.doctor.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     db.expense.findMany({ where: ledgerWhere, orderBy: [{ expenseDate: "desc" }, { id: "desc" }], take: ledger ? 1000 : 50, include: { doctor: true, employee: true } }),
@@ -99,6 +99,7 @@ export async function GET(request: Request) {
     db.otCase.findMany({ where: { status: "DISCHARGED" }, select: { doctorId: true, doctorFee: true, dischargeDate: true } }),
     db.expense.findMany({ where: { category: "DOCTOR_PAYOUT" }, select: { doctorId: true, amount: true } }),
     db.diagnosticReceipt.findMany({ where: { status: "PAID" }, select: { doctorId: true, module: true, total: true, createdAt: true } }),
+    admissionShareDays(),
   ]);
 
   const inRange = (d: Date) => (!since || d >= since) && (!until || d < until);
@@ -106,9 +107,10 @@ export async function GET(request: Request) {
   const opdVisits = bounded ? opdVisitsAll.filter((v) => inRange(v.visitDate)) : opdVisitsAll;
   const otCases = bounded ? otCasesAll.filter((c) => c.dischargeDate && inRange(c.dischargeDate)) : otCasesAll;
   const diagnosticReceipts = bounded ? diagnosticReceiptsAll.filter((r) => inRange(r.createdAt)) : diagnosticReceiptsAll;
+  const admissionDays = bounded ? admissionDaysAll.filter((d) => d.dischargedAt && inRange(d.dischargedAt)) : admissionDaysAll;
 
   const doctorPayoutSummaries = rawDoctors.map((doc) => {
-    const { totalCollected, hospitalShare, diagnosticShare, doctorShare } = computeDoctorShare(doc, opdVisits, otCases, diagnosticReceipts);
+    const { totalCollected, hospitalShare, diagnosticShare, admissionShare, doctorShare } = computeDoctorShare(doc, opdVisits, otCases, diagnosticReceipts, admissionDays);
 
     const paidToDate = doctorPayouts
       .filter((p) => p.doctorId === doc.id)
@@ -116,7 +118,7 @@ export async function GET(request: Request) {
     // Balance Due is a running accounts-payable figure — always the doctor's LIFETIME
     // earned share minus lifetime payouts, never the period-filtered share above, so
     // switching Today/Weekly/Monthly/Custom never changes what's actually owed.
-    const lifetimeShare = bounded ? computeDoctorShare(doc, opdVisitsAll, otCasesAll, diagnosticReceiptsAll).doctorShare : doctorShare;
+    const lifetimeShare = bounded ? computeDoctorShare(doc, opdVisitsAll, otCasesAll, diagnosticReceiptsAll, admissionDaysAll).doctorShare : doctorShare;
     const balanceDue = lifetimeShare - paidToDate;
 
     return {
@@ -129,6 +131,7 @@ export async function GET(request: Request) {
       totalCollected,
       hospitalShare,
       diagnosticShare,
+      admissionShare,
       doctorShare,
       paidToDate,
       balanceDue,

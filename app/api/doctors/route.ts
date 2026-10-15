@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
 import { db } from "../../../lib/db";
 import { parseAvailabilityDays } from "../../../lib/doctor-availability";
+import { admissionFeeProblem } from "../../../lib/admission";
 
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const validTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -22,6 +23,7 @@ export async function GET() {
       availability: true, availabilityDays: true, availabilityFrom: true, availabilityTo: true,
       consultationFee: true, hospitalSplitType: true, hospitalSplitValue: true,
       labSharePercent: true, xraySharePercent: true, ultrasoundSharePercent: true, ecgSharePercent: true, ecoSharePercent: true,
+      admissionDailyFee: true, admissionSplitType: true, admissionSplitValue: true,
     },
   });
 
@@ -36,6 +38,8 @@ export async function GET() {
       ultrasoundSharePercent: doctor.ultrasoundSharePercent.toString(),
       ecgSharePercent: doctor.ecgSharePercent.toString(),
       ecoSharePercent: doctor.ecoSharePercent.toString(),
+      admissionDailyFee: doctor.admissionDailyFee.toString(),
+      admissionSplitValue: doctor.admissionSplitValue.toString(),
     })),
   });
 }
@@ -65,6 +69,11 @@ export async function POST(request: Request) {
   const ecgSharePercent = sharePercent(body?.ecgSharePercent);
   const ecoSharePercent = sharePercent(body?.ecoSharePercent);
   const shares = [labSharePercent, xraySharePercent, ultrasoundSharePercent, ecgSharePercent, ecoSharePercent];
+  const admissionDailyFee = Number(body?.admissionDailyFee ?? 0);
+  const admissionSplitType = text(body?.admissionSplitType).toUpperCase() || "PERCENTAGE";
+  const admissionSplitValue = Number(body?.admissionSplitValue ?? 0);
+  const admissionProblem = admissionFeeProblem(admissionDailyFee, admissionSplitType, admissionSplitValue);
+  if (admissionProblem) return NextResponse.json({ error: admissionProblem }, { status: 400 });
 
   if (!name || !specialization || !availabilityDays.length || !validTime(availabilityFrom) || !validTime(availabilityTo) || availabilityFrom >= availabilityTo || !Number.isFinite(fee) || fee < 0 || !Number.isFinite(splitValue) || splitValue < 0) {
     return NextResponse.json({ error: "Enter valid doctor details, availability, and fee values." }, { status: 400 });
@@ -81,6 +90,7 @@ export async function POST(request: Request) {
       availability, availabilityDays: JSON.stringify(availabilityDays), availabilityFrom, availabilityTo,
       consultationFee: fee, hospitalSplitType: splitType, hospitalSplitValue: splitValue,
       labSharePercent, xraySharePercent, ultrasoundSharePercent, ecgSharePercent, ecoSharePercent,
+      admissionDailyFee, admissionSplitType, admissionSplitValue,
     },
   });
   await db.auditLog.create({ data: { action: "CREATE", entity: "Doctor", entityId: String(doctor.id), userId: user.id, afterJson: JSON.stringify({ name, specialization, consultationFee: fee }) } });
@@ -96,6 +106,8 @@ export async function POST(request: Request) {
       ultrasoundSharePercent: doctor.ultrasoundSharePercent.toString(),
       ecgSharePercent: doctor.ecgSharePercent.toString(),
       ecoSharePercent: doctor.ecoSharePercent.toString(),
+      admissionDailyFee: doctor.admissionDailyFee.toString(),
+      admissionSplitValue: doctor.admissionSplitValue.toString(),
     },
   }, { status: 201 });
 }

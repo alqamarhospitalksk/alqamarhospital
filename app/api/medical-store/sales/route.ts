@@ -3,6 +3,7 @@ import { getCurrentUser } from "../../../../lib/auth";
 import { db } from "../../../../lib/db";
 import { runTransaction } from "../../../../lib/transaction";
 import { toDateColumnBoundary } from "../../../../lib/date-range";
+import { MEDICINE_PURPOSES, OPEN_OT_STATUSES } from "../../../../lib/admission";
 
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const methods = ["CASH", "CARD", "BANK_TRANSFER", "ONLINE"];
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     where: patientId ? { patientId } : undefined,
     orderBy: { id: "desc" },
     take: patientId ? 10 : 50,
-    include: { patient: true, items: { include: { medicineItem: true } }, payments: { take: 1 } },
+    include: { patient: true, items: { include: { medicineItem: true } }, payments: { take: 1 }, admission: { select: { admissionNumber: true } }, otCase: { select: { caseNumber: true } } },
   });
 
   // Sale Returns needs to know how much of each line item has already been returned, so it
@@ -48,7 +49,12 @@ export async function GET(request: Request) {
       discount: s.discount.toString(),
       total: s.total.toString(),
       status: s.status,
-      paymentMethod: s.payments[0]?.method ?? "CASH",
+      // An in-patient credit sale has no payment until the store marks it paid.
+      paymentMethod: s.creditStatus === "UNSETTLED" ? "CREDIT" : s.payments[0]?.method ?? "CASH",
+      creditStatus: s.creditStatus,
+      purpose: s.purpose,
+      // The admission or OT case a credit sale is charged to.
+      billNumber: s.admission?.admissionNumber ?? s.otCase?.caseNumber ?? null,
       // costPriceAtSale is intentionally included here for internal use (e.g. future profit
       // reporting) but the printed customer receipt (app/medical-store/sell/page.tsx) only
       // ever reads name/quantity/total from an item — it never surfaces this field.
@@ -63,11 +69,18 @@ export async function POST(request: Request) {
   if (!canAccess(user.role)) return NextResponse.json({ error: "Medical store access is required." }, { status: 403 });
 
   const body = await request.json().catch(() => null);
-  const patientId = body?.patientId ? Number(body.patientId) : null;
-  const customerName = text(body?.customerName) || null;
-  const discount = Number(body?.discount ?? 0);
-  const discountReason = text(body?.discountReason) || null;
-  const paymentMethod = text(body?.paymentMethod) || "CASH";
+  // In-patient credit issue: medicine for an admitted patient (admissionId) or an OT patient
+  // (otCaseId), charged to their stay. No payment and no discount here — the store marks it paid
+  // when the patient settles at discharge (In-patients page).
+  const admissionId = body?.admissionId ? Number(body.admissionId) : null;
+  const otCaseId = !admissionId && body?.otCaseId ? Number(body.otCaseId) : null;
+  const credit = admissionId !== null || otCaseId !== null;
+  const purpose = text(body?.purpose).toUpperCase();
+  let patientId = body?.patientId ? Number(body.patientId) : null;
+  const customerName = credit ? null : text(body?.customerName) || null;
+  const discount = credit ? 0 : Number(body?.discount ?? 0);
+  const discountReason = credit ? null : text(body?.discountReason) || null;
+  const paymentMethod = credit ? "CREDIT" : text(body?.paymentMethod) || "CASH";
   const rawLines = Array.isArray(body?.lines) ? body.lines : [];
 
   const lines: { medicineItemId: number; quantity: number }[] = [];
@@ -81,14 +94,38 @@ export async function POST(request: Request) {
   }
 
   if (lines.length === 0) return NextResponse.json({ error: "Add at least one medicine to the sale." }, { status: 400 });
+  if (credit && !(MEDICINE_PURPOSES as readonly string[]).includes(purpose)) return NextResponse.json({ error: "Select what the medicine is for (ward, OT or home)." }, { status: 400 });
+  if (admissionId !== null) {
+    if (!Number.isInteger(admissionId)) return NextResponse.json({ error: "Invalid admission." }, { status: 400 });
+    const admission = await db.admission.findUnique({ where: { id: admissionId }, select: { status: true, patientId: true, admissionNumber: true } });
+    if (!admission) return NextResponse.json({ error: "Admission not found." }, { status: 404 });
+    // Once the final invoice is out the bill is closed, so nothing more can be charged to it.
+    if (admission.status !== "ADMITTED") return NextResponse.json({ error: `${admission.admissionNumber} is no longer open for medicine (it is ${admission.status.toLowerCase()}).` }, { status: 409 });
+    patientId = admission.patientId;
+  }
+  if (otCaseId !== null) {
+    if (!Number.isInteger(otCaseId)) return NextResponse.json({ error: "Invalid OT case." }, { status: 400 });
+    const otCase = await db.otCase.findUnique({ where: { id: otCaseId }, select: { status: true, patientId: true, caseNumber: true, admission: { select: { admissionNumber: true } } } });
+    if (!otCase) return NextResponse.json({ error: "OT case not found." }, { status: 404 });
+    if (otCase.admission) return NextResponse.json({ error: `${otCase.caseNumber} is part of admission ${otCase.admission.admissionNumber}. Issue the medicine to that admission.` }, { status: 409 });
+    if (!OPEN_OT_STATUSES.includes(otCase.status)) return NextResponse.json({ error: `${otCase.caseNumber} is no longer open for medicine (it is ${otCase.status.toLowerCase().replaceAll("_", " ")}).` }, { status: 409 });
+    patientId = otCase.patientId;
+  }
   if (!patientId && !customerName) return NextResponse.json({ error: "Select a patient or enter a walk-in customer name." }, { status: 400 });
-  if (!methods.includes(paymentMethod)) return NextResponse.json({ error: "Select a valid payment method." }, { status: 400 });
+  if (!credit && !methods.includes(paymentMethod)) return NextResponse.json({ error: "Select a valid payment method." }, { status: 400 });
   if (!Number.isFinite(discount) || discount < 0 || (discount > 0 && !discountReason)) {
     return NextResponse.json({ error: "A valid discount amount and reason are required for a discount." }, { status: 400 });
   }
 
   try {
     const result = await runTransaction(async (transaction) => {
+      // Checked again inside the transaction: the operator may have invoiced the stay a moment ago.
+      if (admissionId && (await transaction.admission.findUnique({ where: { id: admissionId }, select: { status: true } }))?.status !== "ADMITTED") {
+        throw new Error("This admission has just been invoiced; no more medicine can be charged to it.");
+      }
+      if (otCaseId && !OPEN_OT_STATUSES.includes((await transaction.otCase.findUnique({ where: { id: otCaseId }, select: { status: true } }))?.status ?? "")) {
+        throw new Error("This OT case has just been discharged; no more medicine can be charged to it.");
+      }
       if (patientId) {
         const patient = await transaction.patient.findUnique({ where: { id: patientId } });
         if (!patient) throw new Error("Patient not found.");
@@ -169,13 +206,14 @@ export async function POST(request: Request) {
           discount,
           discountReason,
           total,
+          ...(credit ? { admissionId, otCaseId, purpose, creditStatus: "UNSETTLED" } : {}),
           createdById: user.id,
           items: { create: saleItemsData },
         },
-        include: { patient: true, items: { include: { medicineItem: true } } },
+        include: { patient: true, items: { include: { medicineItem: true } }, admission: { select: { admissionNumber: true } }, otCase: { select: { caseNumber: true } } },
       });
 
-      await transaction.payment.create({ data: { amount: total, method: paymentMethod as "CASH", medicineSaleId: sale.id, createdById: user.id } });
+      if (!credit) await transaction.payment.create({ data: { amount: total, method: paymentMethod as "CASH", medicineSaleId: sale.id, createdById: user.id } });
 
       await transaction.medicineStockTransaction.createMany({
         data: stockTransactionsData.map((t) => ({ ...t, referenceType: "MedicineSale", referenceId: sale.id })),
@@ -191,7 +229,7 @@ export async function POST(request: Request) {
         entityId: String(result.id),
         userId: user.id,
         reason: discountReason,
-        afterJson: JSON.stringify({ saleNumber: result.saleNumber, total: result.total.toString() }),
+        afterJson: JSON.stringify({ saleNumber: result.saleNumber, total: result.total.toString(), ...(credit ? { admissionId, otCaseId, purpose, credit: true } : {}) }),
       },
     });
 
@@ -205,6 +243,8 @@ export async function POST(request: Request) {
           discount: result.discount.toString(),
           total: result.total.toString(),
           paymentMethod,
+          purpose: result.purpose,
+          billNumber: result.admission?.admissionNumber ?? result.otCase?.caseNumber ?? null,
           customerName: result.patient?.name ?? result.customerName ?? "Walk-in",
           mrNumber: result.patient?.mrNumber ?? null,
           // costPriceAtSale rides along here for the on-screen post-sale preview's hover
