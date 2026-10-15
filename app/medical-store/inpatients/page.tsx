@@ -5,6 +5,7 @@ import { Badge, Box, Button, Flex, Heading, Link, NativeSelect, Table, Text } fr
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBedPulse, faCashRegister, faHandHoldingDollar, faPills, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../../refresh-button";
 import { medicinePurposeLabels } from "../../../lib/admission";
 
 type Summary = { issued: number; owed: number; byPurpose: Record<string, number>; saleCount: number };
@@ -87,6 +88,7 @@ export default function InPatientsPage() {
     <Box minH="100vh" bg="#f5f7f8" color="#17252b">
       <Flex as="header" h="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" justify="space-between" px={{ base: "20px", md: "42px" }}>
         <Heading size="lg" letterSpacing="-0.04em">In-patients</Heading>
+        <RefreshButton onRefresh={load} />
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>

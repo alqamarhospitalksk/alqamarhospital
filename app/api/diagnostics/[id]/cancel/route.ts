@@ -22,8 +22,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const targetStatus = action === "REFUND" ? "REFUNDED" : "CANCELLED";
 
   const updated = await db.$transaction(async (transaction) => {
-    const existing = await transaction.diagnosticReceipt.findUnique({ where: { id: receiptId } });
+    const existing = await transaction.diagnosticReceipt.findUnique({ where: { id: receiptId }, include: { admission: { select: { admissionNumber: true, status: true } } } });
     if (!existing) throw new Error("Diagnostic receipt not found.");
+    // A test on an admission is part of that bill: it can only come off while the stay is still open.
+    if (existing.admission && existing.admission.status !== "ADMITTED") {
+      throw new Error(`This test is billed on admission ${existing.admission.admissionNumber}, which is no longer open. Reopen its invoice first.`);
+    }
     if (existing.status === "CANCELLED" || existing.status === "REFUNDED") {
       throw new Error(`Receipt is already ${existing.status.toLowerCase()}.`);
     }

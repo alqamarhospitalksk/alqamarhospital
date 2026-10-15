@@ -20,7 +20,8 @@ import {
 
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const paymentMethods = ["CASH", "CARD", "BANK_TRANSFER", "ONLINE"];
-const actions = ["COLLECT", "REFUND", "SET_DOCTOR_VISIT", "ADD_CHARGE", "REMOVE_CHARGE", "ADD_OPERATION", "UPDATE_STAY", "INVOICE", "REOPEN", "DISCHARGE", "CANCEL"];
+const actions = ["COLLECT", "REFUND", "SET_DOCTOR_VISIT", "ADD_CHARGE", "REMOVE_CHARGE", "ADD_OPERATION", "ORDER_TESTS", "CANCEL_TEST", "UPDATE_STAY", "INVOICE", "REOPEN", "DISCHARGE", "CANCEL"];
+const testModules = ["LABORATORY", "ECO", "X-RAY", "ECG", "ULTRASOUND"];
 const amount = (value: unknown) => {
   const n = Number(value ?? 0);
   return Number.isFinite(n) && n >= 0 ? round2(n) : NaN;
@@ -182,6 +183,52 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         return { admission, audit: { caseNumber, procedureName, doctorId, ...fees }, message: `Operation ${caseNumber} added to the bill.` };
       }
 
+      if (action === "ORDER_TESTS") {
+        requireStatus(admission, ["ADMITTED"], "Tests can only be ordered while the patient is admitted (reopen the invoice first).");
+        const serviceModule = text(body?.module).toUpperCase();
+        const itemIds: number[] = Array.isArray(body?.itemIds) ? body.itemIds.map(Number).filter(Number.isInteger) : [];
+        if (!testModules.includes(serviceModule) || itemIds.length === 0) throw new Error("Select the tests to order.");
+        const items = await transaction.diagnosticCatalogItem.findMany({ where: { id: { in: itemIds }, module: serviceModule, active: true } });
+        if (items.length !== new Set(itemIds).size) throw new Error("One or more selected tests are unavailable.");
+        const total = round2(items.reduce((sum, item) => sum + Number(item.price), 0));
+        // Same numbering as the OPD tests counter, so the lab sees one sequence per module and day.
+        const dateKey = localDateKey(new Date());
+        const sequenceKey = `DIAGNOSTIC:${serviceModule}:${dateKey}`;
+        const sequence = await transaction.dailySequence.upsert({ where: { sequenceKey }, create: { sequenceKey, nextValue: 2 }, update: { nextValue: { increment: 1 } } });
+        const moduleToken = sequence.nextValue - 1;
+        const receiptNumber = `${serviceModule.slice(0, 3)}-${dateKey.replaceAll("-", "")}-${String(moduleToken).padStart(4, "0")}`;
+        // No payment here: the tests go on this admission's hospital bill. The attending doctor is the
+        // referring doctor, exactly as the OPD doctor is for counter tests.
+        await transaction.diagnosticReceipt.create({
+          data: {
+            receiptNumber,
+            module: serviceModule,
+            moduleToken,
+            admissionId: id,
+            patientId: admission.patientId,
+            doctorId: admission.doctorId,
+            subtotal: total,
+            total,
+            createdById: user.id,
+            items: { create: items.map((item) => ({ catalogItemId: item.id, nameAtSale: item.name, priceAtSale: item.price })) },
+          },
+        });
+        return { admission, audit: { receiptNumber, module: serviceModule, tests: items.map((i) => i.name), total }, message: `${receiptNumber}: ${items.length} test${items.length === 1 ? "" : "s"} sent to the lab (${pkr(total)} added to the bill).` };
+      }
+
+      if (action === "CANCEL_TEST") {
+        requireStatus(admission, ["ADMITTED"], "Reopen the invoice to cancel a test.");
+        const receiptId = Number(body?.receiptId);
+        const reason = text(body?.reason);
+        if (!reason) throw new Error("Enter why the test is being cancelled.");
+        const receipt = await transaction.diagnosticReceipt.findFirst({ where: { id: receiptId, admissionId: id }, include: { items: { include: { resultValues: true } } } });
+        if (!receipt) throw new Error("Test not found on this admission.");
+        if (receipt.status !== "PAID") throw new Error("This test is already cancelled.");
+        if (receipt.items.some((item) => item.result || item.resultValues.length > 0)) throw new Error("The lab has already entered results for this test; it cannot be cancelled.");
+        await transaction.diagnosticReceipt.update({ where: { id: receiptId }, data: { status: "CANCELLED" } });
+        return { admission, audit: { cancelledTest: receipt.receiptNumber, reason }, message: `${receipt.receiptNumber} cancelled and taken off the bill.` };
+      }
+
       if (action === "UPDATE_STAY") {
         requireStatus(admission, ["ADMITTED"], "Reopen the invoice to change the room, doctor or rates.");
         const roomBedId = body?.roomBedId ? Number(body.roomBedId) : null;
@@ -248,12 +295,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       requireStatus(admission, ["ADMITTED"], "Only an admitted patient can be cancelled.");
       const reason = text(body?.reason);
       if (!reason) throw new Error("Enter why this admission is being cancelled.");
-      const [payments, sales, operations] = await Promise.all([
+      const [payments, sales, operations, tests] = await Promise.all([
         transaction.payment.count({ where: { admissionId: id } }),
         transaction.medicineSale.count({ where: { admissionId: id } }),
         transaction.otCase.count({ where: { admissionId: id, status: { not: "CANCELLED" } } }),
+        transaction.diagnosticReceipt.count({ where: { admissionId: id, status: "PAID" } }),
       ]);
-      if (payments || sales || operations) throw new Error("This admission already has payments, medicines or operations. It cannot be cancelled — invoice and discharge it instead.");
+      if (payments || sales || operations || tests) throw new Error("This admission already has payments, medicines, tests or operations. It cannot be cancelled — invoice and discharge it instead.");
       const cancelled = await transaction.admission.update({ where: { id }, data: { status: "CANCELLED" } });
       return { admission: cancelled, audit: { reason }, message: "Admission cancelled." };
     });

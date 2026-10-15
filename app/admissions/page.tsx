@@ -6,6 +6,7 @@ import { Badge, Box, Button, Flex, Grid, Heading, HStack, Input, NativeSelect, T
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBaby, faCheck, faHospitalUser, faPlus, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../refresh-button";
 import { DateInput } from "../date-input";
 import { TablePagination } from "../table-pagination";
 import { bedLabel, bedsFor, formatDateTime, pkr, statusColors, statusLabels, type Bill, type Lookups } from "./shared";
@@ -224,6 +225,8 @@ export default function AdmissionsPage() {
         px={{ base: "20px", md: "42px" }}
       >
         <Heading size="lg" letterSpacing="-0.04em">Admissions</Heading>
+        <HStack gap="3">
+        <RefreshButton onRefresh={() => load(tab)} />
         <Button
           bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
           color="white"
@@ -237,6 +240,7 @@ export default function AdmissionsPage() {
           <FontAwesomeIcon icon={faPlus} />
           &nbsp; Admit patient
         </Button>
+        </HStack>
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>

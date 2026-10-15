@@ -17,11 +17,14 @@ import {
   faPrint,
   faRotateLeft,
   faStethoscope,
+  faFlask,
   faTrash,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../../refresh-button";
 import { DateTimeInput } from "../../date-input";
+import { useConfirm } from "../../confirm-dialog";
 import { formatDate } from "../../../lib/format-date";
 import { medicinePurposeLabels } from "../../../lib/admission";
 import { bedLabel, bedsFor, escapeHtml, formatDateTime, paymentMethodLabels, pkr, statusColors, statusLabels, type Bill, type Lookups } from "../shared";
@@ -50,11 +53,41 @@ type Admission = {
   charges: { id: number; description: string; amount: number; createdAt: string }[];
   operations: { id: number; caseNumber: string; status: string; procedureName: string | null; procedureAt: string | null; doctorName: string; total: number; breakdown: { theaterFee: number; doctorFee: number; anesthesiaFee: number; hospitalFee: number; items: number } }[];
   payments: { id: number; amount: number; method: string; status: string; note: string | null; createdAt: string }[];
+  tests: AdmissionTest[];
   medicines: { id: number; saleNumber: string; purpose: string; creditStatus: string | null; createdAt: string; settledAt: string | null; total: number; net: number; owed: number; items: { name: string; quantity: number; total: number }[] }[];
   bill: Bill;
 };
 
-type ModalKind = "collect" | "refund" | "charge" | "operation" | "stay" | "cancel" | null;
+// A lab / diagnostic test receipt ordered during the stay, with whatever results the lab has entered.
+type AdmissionTest = {
+  id: number;
+  receiptNumber: string;
+  module: string;
+  status: string;
+  createdAt: string;
+  total: string;
+  items: {
+    id: number;
+    name: string;
+    price: string;
+    done: boolean;
+    result: string | null;
+    remarks: string | null;
+    resultUploadedAt: string | null;
+    values: { id: number; kind: string; name: string; unit: string | null; altUnit: string | null; altValue: string | null; referenceText: string | null; value: string; flag: string | null }[];
+  }[];
+};
+type CatalogTest = { id: number; name: string; price: string };
+const testModules = [
+  { value: "LABORATORY", label: "Laboratory" },
+  { value: "X-RAY", label: "X-Ray" },
+  { value: "ULTRASOUND", label: "Ultrasound" },
+  { value: "ECG", label: "ECG" },
+  { value: "ECO", label: "ECO" },
+];
+const testModuleLabel = (value: string) => testModules.find((m) => m.value === value)?.label ?? value;
+
+type ModalKind = "collect" | "refund" | "charge" | "operation" | "stay" | "cancel" | "tests" | "cancelTest" | null;
 
 function Modal({ title, subtitle, onClose, children, footer }: { title: string; subtitle?: string; onClose: () => void; children: ReactNode; footer: ReactNode }) {
   return (
@@ -120,6 +153,27 @@ export default function AdmissionProfilePage() {
   const [operationForm, setOperationForm] = useState({ doctorId: "", procedureName: "", procedureAt: "", theaterFee: "", doctorFee: "", anesthesiaFee: "", hospitalFee: "" });
   const [stayForm, setStayForm] = useState({ roomMode: "BED", roomBedId: "", roomLabel: "", dailyRoomRate: "", doctorId: "", dailyDoctorFee: "", dailyTechnicianFee: "", diagnosis: "", notes: "", applyToday: false });
   const [cancelReason, setCancelReason] = useState("");
+  const [confirm, confirmDialog] = useConfirm();
+  const [testModule, setTestModule] = useState("LABORATORY");
+  const [testCatalog, setTestCatalog] = useState<CatalogTest[]>([]);
+  const [testSearch, setTestSearch] = useState("");
+  const [selectedTests, setSelectedTests] = useState<number[]>([]);
+  const [cancelTest, setCancelTest] = useState<AdmissionTest | null>(null);
+
+  // Same test & price catalog the OPD tests counter uses.
+  async function loadTestCatalog(module: string) {
+    setTestModule(module);
+    setSelectedTests([]);
+    setTestCatalog([]);
+    try {
+      const res = await fetch(`/api/diagnostics?module=${encodeURIComponent(module)}`);
+      const data = await res.json();
+      if (res.ok) setTestCatalog(data.catalog ?? []);
+      else toast.error(data.error ?? "Unable to load the test list.");
+    } catch {
+      toast.error("Unable to reach the clinic server.");
+    }
+  }
 
   async function load(admissionId: string) {
     try {
@@ -216,6 +270,7 @@ export default function AdmissionProfilePage() {
       row("Technician", bill.technicianTotal),
       ...a.charges.map((c) => row(c.description, c.amount)),
       ...a.operations.filter((o) => o.status !== "CANCELLED").map((o) => row(`Operation ${o.caseNumber}${o.procedureName ? ` — ${o.procedureName}` : ""}`, o.total)),
+      ...a.tests.filter((t) => t.status === "PAID").map((t) => row(`${testModuleLabel(t.module)} ${t.receiptNumber}: ${t.items.map((i) => i.name).join(", ")}`, Number(t.total))),
     ].join("");
     const storeRows = Object.entries(bill.storeByPurpose).filter(([, value]) => value > 0).map(([purpose, value]) => row(medicinePurposeLabels[purpose] ?? purpose, value)).join("");
     const balanceLabel = bill.hospitalBalance < -0.005 ? "To hand back" : "Balance due";
@@ -307,6 +362,7 @@ export default function AdmissionProfilePage() {
           </Box>
         </HStack>
         <HStack gap="2" flexWrap="wrap">
+          <RefreshButton onRefresh={() => load(id)} />
           {(isAdmitted || isInvoiced) && (
             <Button size="sm" bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} onClick={openCollect}>
               <FontAwesomeIcon icon={faMoneyBillWave} />&nbsp; {isAdmitted ? "Collect advance" : "Collect payment"}
@@ -325,11 +381,21 @@ export default function AdmissionProfilePage() {
               <Button size="sm" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={openOperation} disabled={!lookups}>
                 <FontAwesomeIcon icon={faStethoscope} />&nbsp; Add operation
               </Button>
+              <Button size="sm" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => { setTestSearch(""); setModal("tests"); void loadTestCatalog("LABORATORY"); }}>
+                <FontAwesomeIcon icon={faFlask} />&nbsp; Lab tests
+              </Button>
               <Button size="sm" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={openStay} disabled={!lookups}>
                 <FontAwesomeIcon icon={faArrowRightArrowLeft} />&nbsp; Room / doctor / rates
               </Button>
               <Button size="sm" bg="#b26732" color="white" _hover={{ bg: "#94552a" }} loading={busy}
-                onClick={() => { if (window.confirm("Generate the final invoice? Daily charges stop now and the store can no longer add medicine. You can reopen it if the patient stays.")) void act("INVOICE"); }}>
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Generate final invoice?",
+                    message: "Daily charges stop now and the medical store can no longer add medicine. You can reopen the invoice if the patient stays.",
+                    confirmLabel: "Generate invoice",
+                  });
+                  if (ok) void act("INVOICE");
+                }}>
                 <FontAwesomeIcon icon={faFileInvoice} />&nbsp; Final invoice
               </Button>
             </>
@@ -341,7 +407,10 @@ export default function AdmissionProfilePage() {
               </Button>
               <Button size="sm" bg="#22633e" color="white" _hover={{ bg: "#1b4f31" }} loading={busy} disabled={!readyToDischarge}
                 title={readyToDischarge ? undefined : "Clear the hospital balance and get the store to mark its medicines paid first."}
-                onClick={() => { if (window.confirm(`Discharge ${a.patient.name}?`)) void act("DISCHARGE"); }}>
+                onClick={async () => {
+                  const ok = await confirm({ title: "Discharge patient?", message: `${a.patient.name} will be discharged and the bed becomes free. This cannot be undone.`, confirmLabel: "Discharge", tone: "danger" });
+                  if (ok) void act("DISCHARGE");
+                }}>
                 <FontAwesomeIcon icon={faDoorOpen} />&nbsp; Discharge
               </Button>
             </>
@@ -485,7 +554,10 @@ export default function AdmissionProfilePage() {
                       <Table.Cell textAlign="right" fontWeight="700">{pkr(c.amount)}</Table.Cell>
                       <Table.Cell textAlign="right" w="40px">
                         {isAdmitted && (
-                          <Button size="2xs" variant="ghost" color="#a34258" disabled={busy} onClick={() => { if (window.confirm(`Remove "${c.description}"?`)) void act("REMOVE_CHARGE", { chargeId: c.id }); }}>
+                          <Button size="2xs" variant="ghost" color="#a34258" disabled={busy} onClick={async () => {
+                            const ok = await confirm({ title: "Remove charge?", message: `"${c.description}" (${pkr(c.amount)}) will be taken off the bill.`, confirmLabel: "Remove", tone: "danger" });
+                            if (ok) void act("REMOVE_CHARGE", { chargeId: c.id });
+                          }}>
                             <FontAwesomeIcon icon={faTrash} />
                           </Button>
                         )}
@@ -548,6 +620,67 @@ export default function AdmissionProfilePage() {
                 </Table.Body>
               </Table.Root>
             </Box>
+          )}
+        </Section>
+
+        <Section title="Lab & diagnostic tests" right={<Text fontWeight="800">{pkr(bill.testsTotal)}</Text>}>
+          {a.tests.length === 0 ? (
+            <Text px="5" py="4" fontSize="sm" color="#77908b">None. Use “Lab tests” to send tests to the lab; results appear here and on the Lab results page.</Text>
+          ) : (
+            <VStack align="stretch" gap="0">
+              {a.tests.map((t) => {
+                const cancelled = t.status !== "PAID";
+                const done = t.items.length > 0 && t.items.every((i) => i.done);
+                const hasResults = t.items.some((i) => i.done || i.values.length > 0 || i.result);
+                return (
+                  <Box key={t.id} px="5" py="4" borderBottom="1px solid #edf2f0" opacity={cancelled ? 0.6 : 1}>
+                    <Flex justify="space-between" align="center" gap="3" flexWrap="wrap" mb="2">
+                      <HStack gap="2" flexWrap="wrap">
+                        <Text fontWeight="800" color="#126b68">{t.receiptNumber}</Text>
+                        <Badge borderRadius="full" colorPalette="purple">{testModuleLabel(t.module)}</Badge>
+                        <Badge borderRadius="full" colorPalette={cancelled ? "gray" : done ? "green" : "orange"}>{cancelled ? "Cancelled" : done ? "Results ready" : "Waiting for lab"}</Badge>
+                        <Text fontSize="xs" color="#77908b">{formatDateTime(t.createdAt)}</Text>
+                      </HStack>
+                      <HStack gap="3">
+                        <Text fontWeight="800" textDecoration={cancelled ? "line-through" : undefined}>{pkr(Number(t.total))}</Text>
+                        {isAdmitted && !cancelled && !hasResults && (
+                          <Button size="2xs" variant="ghost" color="#a34258" onClick={() => { setCancelTest(t); setCancelReason(""); setModal("cancelTest"); }}>
+                            <FontAwesomeIcon icon={faBan} />&nbsp; Cancel
+                          </Button>
+                        )}
+                      </HStack>
+                    </Flex>
+                    {t.items.map((item) => (
+                      <Box key={item.id} mb="2">
+                        <Flex justify="space-between" fontSize="sm">
+                          <Text fontWeight="700">{item.name}</Text>
+                          <Text color="#77908b">{item.done ? `Result ${formatDateTime(item.resultUploadedAt)}` : "Pending"}</Text>
+                        </Flex>
+                        {item.values.length > 0 && (
+                          <Table.Root size="sm" mt="1">
+                            <Table.Body>
+                              {item.values.map((v) => v.kind === "HEADING" ? (
+                                <Table.Row key={v.id} bg="#fafcfb"><Table.Cell colSpan={3} fontSize="xs" fontWeight="800" textTransform="uppercase" color="#123d3b">{v.name}</Table.Cell></Table.Row>
+                              ) : (
+                                <Table.Row key={v.id}>
+                                  <Table.Cell fontSize="xs">{v.name}</Table.Cell>
+                                  <Table.Cell fontSize="xs" fontWeight="800" color={v.flag === "HIGH" || v.flag === "LOW" || v.flag === "ABNORMAL" ? "#a34258" : "#123d3b"}>
+                                    {v.value} {v.unit ?? ""}{v.altValue ? ` (${v.altValue} ${v.altUnit ?? ""})` : ""}{v.flag && v.flag !== "NORMAL" ? ` · ${v.flag}` : ""}
+                                  </Table.Cell>
+                                  <Table.Cell fontSize="xs" color="#77908b">{v.referenceText ?? ""}</Table.Cell>
+                                </Table.Row>
+                              ))}
+                            </Table.Body>
+                          </Table.Root>
+                        )}
+                        {item.result && <Text fontSize="xs" whiteSpace="pre-wrap" mt="1" color="#3e5e58">{item.result}</Text>}
+                        {item.remarks && <Text fontSize="xs" mt="1" color="#607d76">Remarks: {item.remarks}</Text>}
+                      </Box>
+                    ))}
+                  </Box>
+                );
+              })}
+            </VStack>
           )}
         </Section>
 
@@ -624,6 +757,69 @@ export default function AdmissionProfilePage() {
             <Input placeholder="What is it for?" value={chargeForm.description} onChange={(e) => setChargeForm({ ...chargeForm, description: e.target.value })} />
             <Input type="number" min="0" placeholder="Amount" value={chargeForm.amount} onChange={(e) => setChargeForm({ ...chargeForm, amount: e.target.value })} />
           </Grid>
+        </Modal>
+      )}
+
+      {modal === "tests" && (() => {
+        const query = testSearch.trim().toLowerCase();
+        const shown = testCatalog.filter((t) => !query || t.name.toLowerCase().includes(query));
+        const chosen = testCatalog.filter((t) => selectedTests.includes(t.id));
+        const chosenTotal = chosen.reduce((sum, t) => sum + Number(t.price), 0);
+        return (
+          <Modal
+            title="Order lab tests"
+            subtitle="Sent to the lab straight away. The amount goes on this patient's hospital bill (no payment now)."
+            onClose={() => setModal(null)}
+            footer={<>
+              <Text fontWeight="800" mr="auto" color="#123d3b">{chosen.length} test{chosen.length === 1 ? "" : "s"} · {pkr(chosenTotal)}</Text>
+              <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
+              <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={busy} disabled={chosen.length === 0}
+                onClick={() => void act("ORDER_TESTS", { module: testModule, itemIds: selectedTests })}>
+                Send to lab
+              </Button>
+            </>}
+          >
+            <VStack align="stretch" gap="3">
+              <HStack gap="2" flexWrap="wrap">
+                {testModules.map((m) => (
+                  <Button key={m.value} size="xs" variant={testModule === m.value ? "solid" : "outline"} bg={testModule === m.value ? "#123d3b" : undefined} color={testModule === m.value ? "white" : "#123d3b"}
+                    onClick={() => void loadTestCatalog(m.value)}>
+                    {m.label}
+                  </Button>
+                ))}
+              </HStack>
+              <Input placeholder="Search tests…" value={testSearch} onChange={(e) => setTestSearch(e.target.value)} />
+              <Box maxH="340px" overflowY="auto" border="1px solid #e1e9e6" borderRadius="10px">
+                {shown.length === 0 ? (
+                  <Text px="4" py="3" fontSize="sm" color="#77908b">{testCatalog.length === 0 ? "Loading tests… (or none configured for this module)" : "No tests match."}</Text>
+                ) : shown.map((t) => {
+                  const checked = selectedTests.includes(t.id);
+                  return (
+                    <HStack key={t.id} as="label" px="4" py="2.5" gap="3" cursor="pointer" borderBottom="1px solid #f0f4f3" bg={checked ? "#f0faf7" : undefined} _hover={{ bg: "#f7faf9" }}>
+                      <input type="checkbox" checked={checked} onChange={() => setSelectedTests((current) => (checked ? current.filter((id) => id !== t.id) : [...current, t.id]))} />
+                      <Text flex="1" fontSize="sm" fontWeight={checked ? "700" : "500"}>{t.name}</Text>
+                      <Text fontSize="sm" fontWeight="700" color="#126b68">{pkr(Number(t.price))}</Text>
+                    </HStack>
+                  );
+                })}
+              </Box>
+              <Text fontSize="xs" color="#607d76">One module at a time; order again for X-Ray, ultrasound, etc. The referring doctor is the attending doctor ({a.doctor.name}).</Text>
+            </VStack>
+          </Modal>
+        );
+      })()}
+
+      {modal === "cancelTest" && cancelTest && (
+        <Modal
+          title={`Cancel ${cancelTest.receiptNumber}`}
+          subtitle={`${cancelTest.items.map((i) => i.name).join(", ")} · ${pkr(Number(cancelTest.total))} comes off the bill.`}
+          onClose={() => setModal(null)}
+          footer={<>
+            <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
+            <Button bg="#a34258" color="white" loading={busy} onClick={() => void act("CANCEL_TEST", { receiptId: cancelTest.id, reason: cancelReason })}>Cancel test</Button>
+          </>}
+        >
+          <Textarea placeholder="Reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
         </Modal>
       )}
 
@@ -738,6 +934,7 @@ export default function AdmissionProfilePage() {
           <Textarea placeholder="Reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
         </Modal>
       )}
+      {confirmDialog}
     </Box>
   );
 }

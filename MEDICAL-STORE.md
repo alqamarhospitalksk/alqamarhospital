@@ -47,6 +47,7 @@ route in this module (enforced per-route server-side, not just hidden in the nav
 - Once the operator generates an admission's final invoice, or discharges an OT patient, no more medicine can be issued to it. (An operation done during an admission is charged to the admission, not listed separately.)
 - **Waiting for payment**: every stay that still owes the store. When the money reaches the counter (from the family, or handed over by the operator), click **Mark paid** and choose the method. This creates the store's payment for each credit sale, so it counts as store income and in **today's day closing**. The operator cannot discharge the patient until this is done.
 - **Returns** of unused medicine on an unpaid credit sale (Sale Returns page) only reduce what the patient owes; no cash is handed back, and they don't appear as cash refunds in day closing. After the bill is paid, a return is a normal cash refund.
+- **Revenue**: medicine given on credit is not counted in the Store Dashboard or Reports until it is marked paid. It then counts on the day it was paid, minus anything returned before payment.
 
 ### Stock Adjustments — `/medical-store/adjustments`
 - Search a medicine, pick the exact batch (shows remaining quantity + expiry), choose a reason — Damage, Expired, Return to Supplier, or Stock Correction — enter the quantity to remove, and a required free-text reason.

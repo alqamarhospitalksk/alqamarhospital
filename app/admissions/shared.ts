@@ -7,6 +7,7 @@ export type Bill = {
   technicianTotal: number;
   extrasTotal: number;
   operationsTotal: number;
+  testsTotal: number;
   hospitalTotal: number;
   hospitalPaid: number;
   hospitalBalance: number;

@@ -31,6 +31,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../refresh-button";
 
 type Patient = {
   id: number;
@@ -452,6 +453,7 @@ export default function OpdPage() {
             </Heading>
           </Box>
         </HStack>
+        <RefreshButton onRefresh={loadInitialData} />
       </Flex>
 
       {/* Main Content */}

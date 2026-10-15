@@ -27,6 +27,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../refresh-button";
 
 type Patient = {
   id: number;
@@ -289,6 +290,7 @@ export default function EmergencyPage() {
             </Heading>
           </Box>
         </HStack>
+        <RefreshButton onRefresh={loadInitialData} />
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>

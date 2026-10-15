@@ -23,7 +23,9 @@ export async function GET(request: Request) {
   const fetchHistory = params.get("history") === "true";
 
   if (fetchHistory) {
+    // The counter's own (paid) receipts only; tests ordered for admitted patients are on their admission bill.
     const receipts = await db.diagnosticReceipt.findMany({
+      where: { opdVisitId: { not: null } },
       orderBy: { id: "desc" },
       take: 40,
       include: {
@@ -49,7 +51,7 @@ export async function GET(request: Request) {
         status: r.status,
         result: r.result,
         createdAt: r.createdAt,
-        opdNumber: r.opdVisit.opdNumber,
+        opdNumber: r.opdVisit!.opdNumber,
         patient: {
           name: r.patient.name,
           mrNumber: r.patient.mrNumber,

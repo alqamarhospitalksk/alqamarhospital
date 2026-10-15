@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCashRegister, faHourglassHalf, faSkullCrossbones, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../refresh-button";
 import { StatCard } from "../stat-card";
 
 type StockRow = {
@@ -381,6 +382,7 @@ export default function MedicalStoreDashboardPage() {
             Store Dashboard
           </Heading>
         </Box>
+        <Box ml="auto"><RefreshButton onRefresh={() => load()} /></Box>
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>

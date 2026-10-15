@@ -7,6 +7,7 @@ import { Badge, Box, Button, Flex, Heading, HStack, Input, NativeSelect, Table, 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faClipboardCheck, faPenToSquare, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../../refresh-button";
 
 type ResultItem = { id: number; name: string; done: boolean };
 type ResultReceipt = {
@@ -17,6 +18,9 @@ type ResultReceipt = {
   resultStatus: "PENDING" | "DONE";
   createdAt: string;
   opdNumber: string | null;
+  // Set when the test was ordered for an admitted patient.
+  admissionNumber?: string | null;
+  roomLabel?: string | null;
   patient: { name: string; mrNumber: string };
   doctor: { name: string };
   items: ResultItem[];
@@ -215,6 +219,7 @@ export default function LabUploadPage() {
             Enter Laboratory Results
           </Heading>
         </Box>
+        <RefreshButton onRefresh={() => load()} />
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
@@ -343,7 +348,12 @@ value={rangeEnd}
                 ) : (
                   visible.map((r) => (
                     <Table.Row key={r.id} _hover={{ bg: "#f9fbfa" }}>
-                      <Table.Cell fontWeight="800" color="#126b68">{r.receiptNumber}</Table.Cell>
+                      <Table.Cell fontWeight="800" color="#126b68">
+                        {r.receiptNumber}
+                        {r.admissionNumber && (
+                          <Badge display="block" w="fit-content" mt="1" colorPalette="blue" borderRadius="full" fontSize="10px" title={r.roomLabel ?? undefined}>In-patient {r.admissionNumber}</Badge>
+                        )}
+                      </Table.Cell>
                       <Table.Cell>
                         <Badge bg="#dce96f" color="#123d3b" fontWeight="800" borderRadius="full" px="2">#{r.moduleToken}</Badge>
                       </Table.Cell>

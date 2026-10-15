@@ -33,6 +33,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../refresh-button";
 
 type Patient = {
   id: number;
@@ -266,6 +267,8 @@ export default function PatientsPage() {
             </Heading>
           </Box>
         </HStack>
+        <HStack gap="3">
+        <RefreshButton onRefresh={() => loadPatients()} />
         <Button
           bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
           color="white" borderRadius="9px" fontWeight="700"
@@ -278,6 +281,7 @@ export default function PatientsPage() {
           <FontAwesomeIcon icon={faPlus} />
           &nbsp; Register patient
         </Button>
+        </HStack>
       </Flex>
 
       {/* Main Content */}

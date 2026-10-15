@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowTrendUp, faBed, faChevronDown, faChartLine, faCoins, faFileInvoiceDollar, faFlaskVial, faHospitalUser, faSackDollar, faTrashCan, faUserDoctor, faUserGroup, faUsers } from "@fortawesome/free-solid-svg-icons";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "react-toastify";
+import { RefreshButton } from "./refresh-button";
 import { StatCard } from "./stat-card";
 
 const allServices = [
@@ -209,6 +210,7 @@ export default function Dashboard() {
           <Box>
             <Heading size="lg" letterSpacing="-0.03em" color="#0e2420">Management Dashboard</Heading>
           </Box>
+          <RefreshButton onRefresh={loadSummary} />
         </Flex>
 
         <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>

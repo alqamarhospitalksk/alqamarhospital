@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { toDateColumnBoundary } from "./date-range";
+import { serializeResultItem } from "./lab-catalog";
 
 // In-patient admissions: the rules shared by the operator's Admissions pages, the medical store's
 // In-patients page and the reports.
@@ -139,7 +140,14 @@ export const admissionBillInclude = {
     orderBy: { createdAt: "asc" },
     include: { items: { include: { medicineItem: { select: { name: true } } } }, returns: { select: { totalRefund: true, refundMode: true } } },
   },
+  diagnosticReceipts: {
+    orderBy: { createdAt: "asc" },
+    include: { items: { orderBy: { id: "asc" }, include: { resultValues: { orderBy: { sortOrder: "asc" } } } } },
+  },
 } satisfies Prisma.AdmissionInclude;
+
+// Cancelled or refunded test receipts are not on the bill.
+export const BILLED_TEST_STATUSES = ["PAID"];
 
 export type AdmissionWithBill = Prisma.AdmissionGetPayload<{ include: typeof admissionBillInclude }>;
 
@@ -158,7 +166,9 @@ export function admissionBill(admission: AdmissionWithBill) {
   const extrasTotal = admission.charges.reduce((sum, c) => sum + Number(c.amount), 0);
   const operations = admission.otCases.filter((c) => c.status !== "CANCELLED");
   const operationsTotal = operations.reduce((sum, c) => sum + Number(c.total), 0);
-  const hospitalTotal = round2(roomTotal + doctorTotal + technicianTotal + extrasTotal + operationsTotal);
+  // Lab and other diagnostic tests ordered during the stay (no payment at the counter; billed here).
+  const testsTotal = admission.diagnosticReceipts.filter((r) => BILLED_TEST_STATUSES.includes(r.status)).reduce((sum, r) => sum + Number(r.total), 0);
+  const hospitalTotal = round2(roomTotal + doctorTotal + technicianTotal + extrasTotal + operationsTotal + testsTotal);
   // Admission payments include a negative row when an excess advance was handed back.
   const hospitalPaid = round2(paid(admission.payments) + operations.reduce((sum, c) => sum + paid(c.payments), 0));
 
@@ -173,6 +183,7 @@ export function admissionBill(admission: AdmissionWithBill) {
     technicianTotal: round2(technicianTotal),
     extrasTotal: round2(extrasTotal),
     operationsTotal: round2(operationsTotal),
+    testsTotal: round2(testsTotal),
     hospitalTotal,
     hospitalPaid,
     // Negative = the patient paid more than the bill (an advance), to be handed back before discharge.
@@ -245,6 +256,15 @@ export function serializeAdmission(admission: AdmissionWithBill) {
         items: c.lineItems.reduce((sum, item) => sum + Number(item.total), 0),
       },
     })),
+    tests: admission.diagnosticReceipts.map((r) => ({
+      id: r.id,
+      receiptNumber: r.receiptNumber,
+      module: r.module,
+      status: r.status,
+      createdAt: r.createdAt,
+      total: money(r.total),
+      items: r.items.map((item) => ({ ...serializeResultItem(item), price: money(item.priceAtSale) })),
+    })),
     payments: admission.payments.map((p) => ({ id: p.id, amount: money(p.amount), method: p.method, status: p.status, note: p.note, createdAt: p.createdAt })),
     medicines: bill.medicines.map(({ sale, net, owed }) => ({
       id: sale.id,
@@ -265,6 +285,7 @@ export function serializeAdmission(admission: AdmissionWithBill) {
       technicianTotal: bill.technicianTotal,
       extrasTotal: bill.extrasTotal,
       operationsTotal: bill.operationsTotal,
+      testsTotal: bill.testsTotal,
       hospitalTotal: bill.hospitalTotal,
       hospitalPaid: bill.hospitalPaid,
       hospitalBalance: bill.hospitalBalance,

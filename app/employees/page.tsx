@@ -6,6 +6,7 @@ import { Badge, Box, Button, Field, Flex, Grid, Heading, HStack, Input, Link, Na
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faPen, faPlus, faUserTie, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { useConfirm } from "../confirm-dialog";
 import { getPaymentCycleInfo, type PaymentCycleStatus } from "../../lib/payment-cycle";
 
 const paymentStatusCopy: Record<PaymentCycleStatus, { label: string; palette: string }> = {
@@ -53,6 +54,7 @@ type Employee = {
 const emptyForm = { name: "", designation: "", contact: "", joiningDate: "", monthlySalary: "", paymentCycleDay: "" };
 
 export default function EmployeesPage() {
+  const [confirm, confirmDialog] = useConfirm();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -132,7 +134,7 @@ export default function EmployeesPage() {
 
   async function toggleActive(employee: Employee) {
     const nextActive = !employee.active;
-    if (!nextActive && !window.confirm(`Deactivate ${employee.name}? They'll no longer be selectable for new payouts, but existing payout history is kept.`)) return;
+    if (!nextActive && !(await confirm({ title: "Deactivate employee?", message: `${employee.name} will no longer be selectable for new payouts. Existing payout history is kept.`, confirmLabel: "Deactivate", tone: "danger" }))) return;
     setTogglingId(employee.id);
     try {
       const response = await fetch(`/api/employees/${employee.id}`, {
@@ -443,6 +445,7 @@ export default function EmployeesPage() {
           </Box>
         </Flex>
       )}
+      {confirmDialog}
     </Box>
   );
 }

@@ -90,6 +90,8 @@ Domain notes:
 - **Medical store**: medicines have packaging levels (`lib/medical-store-packaging.ts`). Stock lives in expiry-dated batches and sales draw first-expiry-first-out. Every movement is a `MedicineStockTransaction`. Details in `MEDICAL-STORE.md`.
   - In-patient medicine is a `MedicineSale` with `admissionId` or `otCaseId` (an OT case outside any admission), `purpose` (WARD/OT/HOME) and `creditStatus` UNSETTLED. It has no Payment until the store's "Mark paid" (`app/api/medical-store/inpatients`) creates it. `creditOwed`/`creditNet` in `lib/admission.ts` compute what is owed.
   - A return on an unsettled credit sale has `refundMode` CREDIT. It is excluded from cash refunds (`lib/store-refunds.ts`, day closing).
+  - Store revenue (store dashboard, `lib/medical-store-report.ts`): counter sales count when sold. Credit sales count only once SETTLED, dated `settledAt`, and their CREDIT returns come off on that date.
+- **Diagnostic receipts** come from the OPD tests counter (`opdVisitId`, paid on the spot) or from an admission (`admissionId`, action ORDER_TESTS: no payment, the total is on the admission's hospital bill, the referring doctor is the attending doctor). `opdVisitId` is therefore optional. The lab's result entry is the same for both.
 - **Payments**: each `Payment` belongs to exactly one source (OPD / receipt / OT / emergency / medicine sale / admission). Use `lib/payment-source.ts` to label them; never re-derive this.
 - **Employees/payouts**: salary cycle rules live in `lib/payment-cycle.ts` and are shared by both pages.
 
@@ -114,7 +116,9 @@ if (denied) return denied;
 
 **Page** (`app/<area>/page.tsx`): `"use client"`, data via `fetch("/api/...")`, errors through
 `toast.error(data.error ?? "...")`, built from Chakra components and Font Awesome icons, with `TablePagination`
-for lists. Live screens use `usePolling`, not `setInterval`.
+for lists. Live screens use `usePolling`, not `setInterval`. Put a `RefreshButton` (`app/refresh-button.tsx`) in the
+header of dashboards and of lists other staff change. Never use `window.confirm`/`alert`: use `useConfirm()` from
+`app/confirm-dialog.tsx` (`if (!(await confirm({ title, message }))) return;` and render its dialog once).
 
 **Printing**: receipts, slips and lab reports are HTML strings written into `window.open(...)` and printed
 on 80mm thermal paper (`@page { size: 80mm auto }`). Escape user values with the page's `escapeHtml`.

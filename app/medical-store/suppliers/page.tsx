@@ -5,11 +5,13 @@ import { Badge, Box, Button, Field, Flex, Grid, Heading, HStack, Input, NativeSe
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBan, faCheck, faPen, faPlus, faTruckMedical, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { useConfirm } from "../../confirm-dialog";
 
 type Supplier = { id: number; name: string; contactPerson: string | null; phone: string | null; address: string | null; active: boolean };
 const emptyForm = { name: "", contactPerson: "", phone: "", address: "" };
 
 export default function SuppliersPage() {
+  const [confirm, confirmDialog] = useConfirm();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
@@ -85,7 +87,7 @@ export default function SuppliersPage() {
 
   async function toggleActive(supplier: Supplier) {
     const nextActive = !supplier.active;
-    if (nextActive === false && !window.confirm(`Deactivate ${supplier.name}? They'll no longer be selectable for new purchases, but existing purchase history is kept.`)) return;
+    if (nextActive === false && !(await confirm({ title: "Deactivate supplier?", message: `${supplier.name} will no longer be selectable for new purchases. Existing purchase history is kept.`, confirmLabel: "Deactivate", tone: "danger" }))) return;
     setTogglingId(supplier.id);
     try {
       const res = await fetch(`/api/medical-store/suppliers/${supplier.id}`, {
@@ -279,6 +281,7 @@ export default function SuppliersPage() {
           </Box>
         </Flex>
       )}
+      {confirmDialog}
     </Box>
   );
 }

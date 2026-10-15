@@ -28,6 +28,7 @@ export async function GET(request: Request) {
       patient: true,
       doctor: true,
       opdVisit: true,
+      admission: { select: { admissionNumber: true, roomLabel: true } },
       printedBy: { select: { username: true } },
       items: {
         orderBy: { id: "asc" },
@@ -60,6 +61,9 @@ export async function GET(request: Request) {
           resultStatus,
           createdAt: r.createdAt,
           opdNumber: r.opdVisit?.opdNumber ?? null,
+          // Set for tests ordered for an admitted patient (billed on the admission, not paid at the counter).
+          admissionNumber: r.admission?.admissionNumber ?? null,
+          roomLabel: r.admission?.roomLabel ?? null,
           printedAt: r.printedAt,
           printedBy: r.printedBy?.username ?? null,
           patient: { name: r.patient!.name, mrNumber: r.patient!.mrNumber, gender: r.patient!.gender },

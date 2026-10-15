@@ -53,9 +53,13 @@ const admissionColumns = [
   ["medicine_sales", "purpose", "VARCHAR(10) NULL"],
   ["medicine_sales", "settled_at", "DATETIME(3) NULL"],
   ["medicine_sales", "ot_case_id", "INTEGER NULL"],
+  ["diagnostic_receipts", "admission_id", "INTEGER NULL"],
   ["medicine_sale_returns", "refund_mode", "VARCHAR(10) NOT NULL DEFAULT 'CASH'"],
 ];
 const admissionTables = ["admissions", "admission_days", "admission_charges", "admission_category_fees"];
+// Lab tests ordered for an admitted patient have no OPD visit, so opd_visit_id must allow NULL.
+const opdVisitOptional = async (conn) =>
+  (await conn.query("SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'diagnostic_receipts' AND column_name = 'opd_visit_id' AND is_nullable = 'YES'")).length > 0;
 
 // Same statements as prisma/migrations/20261003120000_lab_result_templates/migration.sql.
 const updates = [
@@ -113,12 +117,14 @@ const updates = [
     needed: async (conn) => {
       for (const table of admissionTables) if (!(await tableExists(conn, table))) return true;
       for (const [table, column] of admissionColumns) if (!(await columnExists(conn, table, column))) return true;
-      return false;
+      return !(await opdVisitOptional(conn));
     },
     run: async (conn) => {
       for (const [table, column, definition] of admissionColumns) {
         if (!(await columnExists(conn, table, column))) await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
       }
+      // Only allows NULL; the existing link to opd_visits and every existing value stay as they are.
+      if (!(await opdVisitOptional(conn))) await conn.query("ALTER TABLE `diagnostic_receipts` MODIFY `opd_visit_id` INTEGER NULL");
       if (!(await tableExists(conn, "admissions"))) {
         await conn.query(`CREATE TABLE \`admissions\` (
           \`id\` INTEGER NOT NULL AUTO_INCREMENT,
@@ -187,7 +193,7 @@ const updates = [
           PRIMARY KEY (\`id\`)
         ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
       }
-      for (const [table, name, column] of [["payments", "payments_admission_id_idx", "admission_id"], ["ot_cases", "ot_cases_admission_id_idx", "admission_id"], ["medicine_sales", "medicine_sales_admission_id_idx", "admission_id"], ["medicine_sales", "medicine_sales_ot_case_id_idx", "ot_case_id"]]) {
+      for (const [table, name, column] of [["payments", "payments_admission_id_idx", "admission_id"], ["ot_cases", "ot_cases_admission_id_idx", "admission_id"], ["medicine_sales", "medicine_sales_admission_id_idx", "admission_id"], ["medicine_sales", "medicine_sales_ot_case_id_idx", "ot_case_id"], ["diagnostic_receipts", "diagnostic_receipts_admission_id_idx", "admission_id"]]) {
         if (!(await indexExists(conn, table, name))) await conn.query(`CREATE INDEX \`${name}\` ON \`${table}\`(\`${column}\`)`);
       }
       await addLinks(conn, [
@@ -203,6 +209,7 @@ const updates = [
         ["admission_charges", "admission_charges_created_by_id_fkey", "FOREIGN KEY (`created_by_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE"],
         ["medicine_sales", "medicine_sales_admission_id_fkey", "FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
         ["medicine_sales", "medicine_sales_ot_case_id_fkey", "FOREIGN KEY (`ot_case_id`) REFERENCES `ot_cases`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
+        ["diagnostic_receipts", "diagnostic_receipts_admission_id_fkey", "FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE"],
       ]);
     },
   },

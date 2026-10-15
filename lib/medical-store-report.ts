@@ -6,13 +6,27 @@ export async function buildMedicalStoreReport(fromDate: Date, toDate: Date) {
   // saleDate is a `@db.Date` column — see lib/date-range.ts for why it needs UTC-anchored
   // boundaries instead of the plain local-time fromDate/toDate used for the createdAt
   // (DateTime) queries below.
+  //
+  // In-patient medicine given on credit is not revenue until the store marks it paid: such a sale
+  // counts on its settledAt date, and its CREDIT returns (medicine handed back before payment) come
+  // off on that same date. Counter sales and cash refunds count on the day they happen.
   const [sales, saleReturns, purchases, purchaseReturns, activeBatches] = await Promise.all([
     db.medicineSale.findMany({
-      where: { saleDate: { gte: toDateColumnBoundary(fromDate), lte: toDateColumnBoundary(toDate) } },
+      where: {
+        OR: [
+          { creditStatus: null, saleDate: { gte: toDateColumnBoundary(fromDate), lte: toDateColumnBoundary(toDate) } },
+          { creditStatus: "SETTLED", settledAt: { gte: fromDate, lte: toDate } },
+        ],
+      },
       include: { items: { include: { medicineItem: true } } },
     }),
     db.medicineSaleReturn.findMany({
-      where: { createdAt: { gte: fromDate, lte: toDate } },
+      where: {
+        OR: [
+          { refundMode: "CASH", createdAt: { gte: fromDate, lte: toDate } },
+          { refundMode: "CREDIT", sale: { creditStatus: "SETTLED", settledAt: { gte: fromDate, lte: toDate } } },
+        ],
+      },
       include: { items: { include: { saleItem: { include: { medicineItem: true } } } } },
     }),
     db.medicinePurchase.findMany({

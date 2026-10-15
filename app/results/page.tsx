@@ -20,6 +20,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faClockRotateLeft, faEye, faPrint, faVial, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../refresh-button";
 import { qualitativeLabel } from "../../lib/lab-results";
 
 type ResultValue = {
@@ -57,6 +58,8 @@ type ResultReceipt = {
   resultStatus: "PENDING" | "DONE";
   createdAt: string;
   opdNumber: string | null;
+  // Set when the test was ordered for an admitted patient.
+  admissionNumber?: string | null;
   printedAt: string | null;
   printedBy: string | null;
   patient: { name: string; mrNumber: string; gender: string };
@@ -266,6 +269,7 @@ export default function ResultsPage() {
     return (
       r.receiptNumber.toLowerCase().includes(q) ||
       (r.opdNumber ?? "").toLowerCase().includes(q) ||
+      (r.admissionNumber ?? "").toLowerCase().includes(q) ||
       r.patient.name.toLowerCase().includes(q) ||
       r.patient.mrNumber.toLowerCase().includes(q) ||
       r.doctor.name.toLowerCase().includes(q) ||
@@ -303,6 +307,7 @@ export default function ResultsPage() {
             </Heading>
           </Box>
         </HStack>
+        <RefreshButton onRefresh={() => load()} />
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
@@ -438,6 +443,9 @@ value={customEnd}
                     <Table.Row key={r.id} _hover={{ bg: "#f9fbfa" }}>
                       <Table.Cell fontWeight="800" color="#126b68">
                         {r.receiptNumber}
+                        {r.admissionNumber && (
+                          <Badge display="block" w="fit-content" mt="1" colorPalette="blue" borderRadius="full" fontSize="10px">In-patient {r.admissionNumber}</Badge>
+                        )}
                       </Table.Cell>
                       <Table.Cell>
                         <Badge bg="#dce96f" color="#123d3b" fontWeight="800" borderRadius="full" px="2">

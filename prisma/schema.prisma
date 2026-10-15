@@ -243,7 +243,10 @@ model DiagnosticReceipt {
   receiptNumber  String                  @unique @map("receipt_number") @db.VarChar(40)
   module         String                  @db.VarChar(30)
   moduleToken    Int                     @map("module_token")
-  opdVisitId     Int                     @map("opd_visit_id")
+  // Tests are ordered either at the OPD tests counter (opdVisitId, paid on the spot) or for an
+  // admitted patient (admissionId, no payment: the total goes on the admission's hospital bill).
+  opdVisitId     Int?                    @map("opd_visit_id")
+  admissionId    Int?                    @map("admission_id")
   patientId      Int                     @map("patient_id")
   doctorId       Int                     @map("doctor_id")
   subtotal       Decimal                 @db.Decimal(12, 2)
@@ -256,7 +259,8 @@ model DiagnosticReceipt {
   printedById    Int?                    @map("printed_by_id")
   createdById    Int                     @map("created_by_id")
   createdAt      DateTime                @default(now()) @map("created_at")
-  opdVisit       OpdVisit                @relation(fields: [opdVisitId], references: [id])
+  opdVisit       OpdVisit?               @relation(fields: [opdVisitId], references: [id], onDelete: Restrict)
+  admission      Admission?              @relation(fields: [admissionId], references: [id])
   patient        Patient                 @relation(fields: [patientId], references: [id])
   doctor         Doctor                  @relation(fields: [doctorId], references: [id])
   createdBy      User                    @relation(fields: [createdById], references: [id])
@@ -266,6 +270,7 @@ model DiagnosticReceipt {
 
   @@unique([module, createdAt, moduleToken])
   @@index([opdVisitId])
+  @@index([admissionId])
   @@map("diagnostic_receipts")
 }
 
@@ -599,6 +604,7 @@ model Admission {
   payments           Payment[]
   otCases            OtCase[]
   medicineSales      MedicineSale[]
+  diagnosticReceipts DiagnosticReceipt[]
 
   @@index([status])
   @@index([patientId])

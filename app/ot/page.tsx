@@ -30,6 +30,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../refresh-button";
 
 type Patient = { id: number; mrNumber: string; name: string; fatherName?: string; cnic?: string | null };
 type Doctor = { id: number; name: string; specialization: string; consultationFee: string; availability: string | null; availabilityDays: number[]; availabilityFrom: string | null; availabilityTo: string | null };
@@ -451,6 +452,8 @@ export default function OtPage() {
             </Heading>
           </Box>
         </HStack>
+        <HStack gap="3">
+        <RefreshButton onRefresh={() => Promise.all([load(), loadAllCases()])} />
         <Button
           bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
           color="white"
@@ -465,6 +468,7 @@ export default function OtPage() {
           <FontAwesomeIcon icon={faPlus} />
           &nbsp; New OT Admission
         </Button>
+        </HStack>
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>

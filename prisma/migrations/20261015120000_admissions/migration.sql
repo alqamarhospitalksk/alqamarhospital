@@ -144,3 +144,13 @@ CREATE INDEX `medicine_sales_ot_case_id_idx` ON `medicine_sales`(`ot_case_id`);
 
 -- AddForeignKey
 ALTER TABLE `medicine_sales` ADD CONSTRAINT `medicine_sales_ot_case_id_fkey` FOREIGN KEY (`ot_case_id`) REFERENCES `ot_cases`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AlterTable
+ALTER TABLE `diagnostic_receipts` ADD COLUMN `admission_id` INTEGER NULL,
+    MODIFY `opd_visit_id` INTEGER NULL;
+
+-- CreateIndex
+CREATE INDEX `diagnostic_receipts_admission_id_idx` ON `diagnostic_receipts`(`admission_id`);
+
+-- AddForeignKey
+ALTER TABLE `diagnostic_receipts` ADD CONSTRAINT `diagnostic_receipts_admission_id_fkey` FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

@@ -141,7 +141,8 @@ CREATE TABLE `diagnostic_receipts` (
     `receipt_number` VARCHAR(40) NOT NULL,
     `module` VARCHAR(30) NOT NULL,
     `module_token` INTEGER NOT NULL,
-    `opd_visit_id` INTEGER NOT NULL,
+    `opd_visit_id` INTEGER NULL,
+    `admission_id` INTEGER NULL,
     `patient_id` INTEGER NOT NULL,
     `doctor_id` INTEGER NOT NULL,
     `subtotal` DECIMAL(12, 2) NOT NULL,
@@ -157,6 +158,7 @@ CREATE TABLE `diagnostic_receipts` (
 
     UNIQUE INDEX `diagnostic_receipts_receipt_number_key`(`receipt_number`),
     INDEX `diagnostic_receipts_opd_visit_id_idx`(`opd_visit_id`),
+    INDEX `diagnostic_receipts_admission_id_idx`(`admission_id`),
     UNIQUE INDEX `diagnostic_receipts_module_created_at_module_token_key`(`module`, `created_at`, `module_token`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -750,6 +752,9 @@ ALTER TABLE `diagnostic_test_parameters` ADD CONSTRAINT `diagnostic_test_paramet
 
 -- AddForeignKey
 ALTER TABLE `diagnostic_receipts` ADD CONSTRAINT `diagnostic_receipts_opd_visit_id_fkey` FOREIGN KEY (`opd_visit_id`) REFERENCES `opd_visits`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `diagnostic_receipts` ADD CONSTRAINT `diagnostic_receipts_admission_id_fkey` FOREIGN KEY (`admission_id`) REFERENCES `admissions`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `diagnostic_receipts` ADD CONSTRAINT `diagnostic_receipts_patient_id_fkey` FOREIGN KEY (`patient_id`) REFERENCES `patients`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

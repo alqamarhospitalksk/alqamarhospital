@@ -34,6 +34,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { RefreshButton } from "../refresh-button";
 
 const moduleOptions = ["LABORATORY", "ECO", "X-RAY", "ECG", "ULTRASOUND"];
 const moduleCopyLabels: Record<string, string> = {
@@ -396,6 +397,7 @@ export default function DiagnosticsPage() {
             </Heading>
           </Box>
         </HStack>
+        <RefreshButton onRefresh={loadHistory} />
       </Flex>
 
       {/* Main Content */}
