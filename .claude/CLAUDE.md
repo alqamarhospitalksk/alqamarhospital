@@ -45,7 +45,9 @@ which breaks a running `next dev`; build into another folder with `NEXT_DIST_DIR
 ```
 app/                     pages (all "use client") + app/api/** route handlers
   workspace-shell.tsx    sidebar nav per role, session check, forced password change, lab-result polling
-  dashboard.tsx          management dashboard (rendered by app/page.tsx, which redirects other roles)
+  dashboard.tsx          management dashboard (rendered by app/page.tsx, which redirects LAB/store)
+  operator-dashboard.tsx front-desk dashboard for OPERATOR (also rendered by app/page.tsx)
+  dashboard-ui.tsx       shared dashboard pieces (KPI tile, panel, ranked bars, header, chart colours)
   use-polling.ts         polling hook: no overlap, pauses in hidden tabs, slows down after failures
   stat-card / table-pagination / date-input / ledger-date-filter   shared UI pieces
 lib/                     server helpers (db, auth, roles, transactions, business rules)
@@ -62,12 +64,13 @@ changes.md               design of the Admission (in-patient) module, with what 
 
 ## Roles and modules
 
-`UserRole` = `OPERATOR | MANAGEMENT | LAB | MEDICAL_STORE` (`lib/roles.ts`). The landing page per role is
-`/`, `/patients`, `/lab` or `/medical-store`. Nav is in `app/workspace-shell.tsx`:
+`UserRole` = `OPERATOR | MANAGEMENT | LAB | MEDICAL_STORE` (`lib/roles.ts`). Every role lands on `/` after login:
+management and operators get their dashboard there (`app/dashboard.tsx`, `app/operator-dashboard.tsx`), LAB and
+MEDICAL_STORE are redirected to `/lab` and `/medical-store`. Nav is in `app/workspace-shell.tsx`:
 
 | Role | Pages |
 |---|---|
-| OPERATOR (front desk) | `/patients`, `/opd`, `/diagnostics` (tests billing), `/results`, `/admissions` (+ `/admissions/[id]`), `/ot`, `/emergency` |
+| OPERATOR (front desk) | `/` dashboard (today only: counts, pending results, desk collection; API `app/api/dashboard/operator`), `/patients`, `/opd`, `/diagnostics` (tests billing), `/results`, `/admissions` (+ `/admissions/[id]`), `/ot`, `/emergency` |
 | MANAGEMENT | `/` dashboard, `/doctors`, `/reports`, `/payouts`, `/employees`, `/expenses`, `/hospital-settings`, `/inventory`, `/rooms` (beds + admission technician fees), `/users` |
 | LAB | `/lab`, `/lab/upload` (enter results), `/configuration` (test and price catalog with result templates) |
 | MEDICAL_STORE | `/medical-store/**`: catalog, suppliers, supplier-payments, purchase, reorder, sell (POS; `?admissionId=` / `?otCaseId=` = in-patient credit mode), inpatients, day-closing, adjustments, stock-count, stock-history, expiry, returns/sale, returns/purchase, reports |

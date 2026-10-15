@@ -12,7 +12,7 @@ import "react-toastify/dist/ReactToastify.css";
 type Role = "OPERATOR" | "MANAGEMENT" | "LAB" | "MEDICAL_STORE";
 
 const navigation: { label: string; icon: typeof faGaugeHigh; href: string; roles: Role[] }[] = [
-  { label: "Dashboard", icon: faGaugeHigh, href: "/", roles: ["MANAGEMENT"] },
+  { label: "Dashboard", icon: faGaugeHigh, href: "/", roles: ["MANAGEMENT", "OPERATOR"] },
   { label: "Patients", icon: faPeopleGroup, href: "/patients", roles: ["OPERATOR"] },
   { label: "OPD desk", icon: faNotesMedical, href: "/opd", roles: ["OPERATOR"] },
   { label: "Doctors", icon: faUserDoctor, href: "/doctors", roles: ["MANAGEMENT"] },
