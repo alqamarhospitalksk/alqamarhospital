@@ -2,7 +2,7 @@
 import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
-import { usePolling } from "../use-polling";
+import { useResultsPolling } from "../use-results-polling";
 import {
   Badge,
   Box,
@@ -145,8 +145,8 @@ export default function ResultsPage() {
     void loadHospitalSettings();
   }, []);
 
-  // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
-  usePolling(() => load(true), 15000, { runNow: false });
+  // Checks every 15s whether any result changed and only then reloads the list; pauses while the tab is hidden.
+  useResultsPolling(() => load(true));
 
   // Prints the filled-in template(s) laid out like the clinic's old result form: patient block,
   // then Test | Result | Units | Reference Range per test, section headings, and the remarks line.

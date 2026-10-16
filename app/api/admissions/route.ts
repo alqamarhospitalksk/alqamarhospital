@@ -7,6 +7,7 @@ import {
   ACTIVE_STATUSES,
   ADMISSION_CATEGORIES,
   accrueAdmissionDays,
+  accrueAdmissionDaysForAll,
   admissionBillInclude,
   admissionCategoryLabels,
   allowedRoomCategories,
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
 
   // Bring every current stay's daily charges up to today before showing running totals.
   const active = await db.admission.findMany({ where: { status: { in: ACTIVE_STATUSES } } });
-  for (const admission of active) await accrueAdmissionDays(db, admission);
+  await accrueAdmissionDaysForAll(db, active);
 
   const [admissions, counts, lookups] = await Promise.all([
     db.admission.findMany({ where: { status: { in: statuses } }, orderBy: { admittedAt: "desc" }, take: 200, include: admissionBillInclude }),

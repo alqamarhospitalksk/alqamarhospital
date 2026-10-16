@@ -1,4 +1,6 @@
-// Runs before `next dev` / `next start` (npm "predev" / "prestart"), after ensure-deps.
+// Runs once after `npm run build` (npm "postbuild"), or by hand with `npm run db:update`.
+// It used to run before every `next dev` / `next start`; a database that is already up to date
+// does not need it on each start, so it now runs only when a new version is built.
 //
 // Adds database structure that a newer version of the app needs, WITHOUT touching existing data.
 // Every step first checks whether it is already there, so running it again changes nothing.

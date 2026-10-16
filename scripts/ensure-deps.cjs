@@ -84,7 +84,8 @@ function findProblems() {
 
 function npm(args) {
   const cache = path.join(os.tmpdir(), "careledger-npm-cache");
-  return spawnSync("npm", [...args, "--no-audit", "--no-fund", "--prefer-offline", "--cache", cache], {
+  // One command string with `shell: true` (an argument list there is deprecated, DEP0190).
+  return spawnSync(["npm", ...args, "--no-audit", "--no-fund", "--prefer-offline", "--cache", JSON.stringify(cache)].join(" "), {
     cwd: root,
     stdio: "inherit",
     shell: true, // needed on Windows, where npm is a .cmd file
@@ -101,7 +102,7 @@ function ensurePrismaClient() {
   if (fs.existsSync(generated)) return;
   console.log("[ensure-deps] database client not generated - running prisma generate");
   const cache = path.join(os.tmpdir(), "careledger-npm-cache");
-  const status = spawnSync("npx", ["prisma", "generate"], {
+  const status = spawnSync("npx prisma generate", {
     cwd: root,
     stdio: "inherit",
     shell: true,

@@ -2,7 +2,7 @@
 import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
-import { usePolling } from "../use-polling";
+import { useResultsPolling } from "../use-results-polling";
 import { Box, Button, Flex, Grid, HStack, Heading, NativeSelect, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -164,8 +164,8 @@ export default function LabDashboardPage() {
     void load();
   }, []);
 
-  // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
-  usePolling(() => load(true), 15000, { runNow: false });
+  // Checks every 15s whether any result changed and only then reloads the list; pauses while the tab is hidden.
+  useResultsPolling(() => load(true));
 
   // Pending backlog is a "right now" snapshot, not tied to any date range — it stays as-is
   // regardless of which period is selected below.

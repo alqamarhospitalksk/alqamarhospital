@@ -72,8 +72,10 @@ npx prisma generate
 npm run build
 ```
 
-If `npm run build` is killed for lack of memory, build on your PC (`npm run build`), upload the `.next`
-folder, and skip the build command — but still run `npx prisma generate` on the server.
+`npm run build` also brings the database structure up to date when it finishes (it only adds what a new
+version needs and never changes existing data). If `npm run build` is killed for lack of memory, build on
+your PC (`npm run build`), upload the `.next` folder, and skip the build command — but still run
+`npx prisma generate` and `npm run db:update` on the server.
 
 3. Click **Restart** on the Node.js app page.
 
@@ -104,7 +106,8 @@ folder, and skip the build command — but still run `npx prisma generate` on th
 
 1. Export the database (phpMyAdmin) first.
 2. Upload the changed files (or the new zip) over the old ones — never overwrite `.env` settings in the panel.
-3. **Run NPM Install** (only if `package.json` changed), then in Terminal: `npx prisma generate` and `npm run build`.
+3. **Run NPM Install** (only if `package.json` changed), then in Terminal: `npx prisma generate` and `npm run build`
+   (the build also applies any database update the new version needs; with a `.next` built on your PC, run `npm run db:update` instead).
 4. If an update includes a new `.sql` file, import it in phpMyAdmin.
 5. Click **Restart**.
 

@@ -105,14 +105,14 @@ type AccrualAdmission = {
 // at the admission's current rates, and never changes a day that already exists, so running it
 // any number of times charges each day once. After the invoice it stops at the invoice time.
 export async function accrueAdmissionDays(client: Prisma.TransactionClient, admission: AccrualAdmission) {
-  if (!ACTIVE_STATUSES.includes(admission.status)) return 0;
-  const keys = chargeDateKeys(admission.admittedAt, admission.invoicedAt ?? new Date());
-  const existing = await client.admissionDay.findMany({ where: { admissionId: admission.id }, select: { chargeDate: true } });
-  const have = new Set(existing.map((day) => dayKeyOf(day.chargeDate)));
-  const missing = keys.filter((key) => !have.has(key));
-  if (missing.length === 0) return 0;
-  await client.admissionDay.createMany({
-    data: missing.map((key) => ({
+  return accrueAdmissionDaysForAll(client, [admission]);
+}
+
+// The day rows an admission is missing, given the dates it already has.
+function missingDayRows(admission: AccrualAdmission, have: Set<string>) {
+  return chargeDateKeys(admission.admittedAt, admission.invoicedAt ?? new Date())
+    .filter((key) => !have.has(key))
+    .map((key) => ({
       admissionId: admission.id,
       chargeDate: dateColumn(key),
       roomLabel: admission.roomLabel,
@@ -120,10 +120,24 @@ export async function accrueAdmissionDays(client: Prisma.TransactionClient, admi
       doctorId: admission.doctorId,
       doctorFee: admission.dailyDoctorFee,
       technicianFee: admission.dailyTechnicianFee,
-    })),
-    // Two screens opening the same admission at the same moment must not fail on the unique key.
-    skipDuplicates: true,
-  });
+    }));
+}
+
+// The same for many admissions at once (the Admissions list): one read and at most one insert,
+// instead of a round trip to the database per admission on every list load.
+export async function accrueAdmissionDaysForAll(client: Prisma.TransactionClient, admissions: AccrualAdmission[]) {
+  const active = admissions.filter((admission) => ACTIVE_STATUSES.includes(admission.status));
+  if (active.length === 0) return 0;
+  const existing = await client.admissionDay.findMany({ where: { admissionId: { in: active.map((a) => a.id) } }, select: { admissionId: true, chargeDate: true } });
+  const have = new Map<number, Set<string>>();
+  for (const day of existing) {
+    if (!have.has(day.admissionId)) have.set(day.admissionId, new Set());
+    have.get(day.admissionId)!.add(dayKeyOf(day.chargeDate));
+  }
+  const missing = active.flatMap((admission) => missingDayRows(admission, have.get(admission.id) ?? new Set()));
+  if (missing.length === 0) return 0;
+  // Two screens opening the same admission at the same moment must not fail on the unique key.
+  await client.admissionDay.createMany({ data: missing, skipDuplicates: true });
   return missing.length;
 }
 
