@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Badge, Box, Button, Flex, Heading, HStack, Input, Link, NativeSelect, Table, Text } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -91,7 +91,19 @@ function levelOptions(medicine: Medicine | undefined) {
   return [...packLevels, { key: "BASE", name: medicine.unit, cumulativeUnits: 1 }];
 }
 
-export default function SellMedicinePage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const firstValue = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) || null;
+
+export default function SellMedicinePage({ searchParams }: { searchParams: SearchParams }) {
+  // "Issue medicine" on the In-patients page opens this page with ?admissionId=… or ?otCaseId=….
+  // Reading it from the page props (not after the first paint) means the page is in in-patient mode
+  // from its very first render: the counter-sale patient search never shows while the bill loads.
+  const query = use(searchParams);
+  const admissionParam = firstValue(query.admissionId);
+  const otCaseParam = admissionParam ? null : firstValue(query.otCaseId);
+  const billQuery = admissionParam ? `admissionId=${encodeURIComponent(admissionParam)}` : otCaseParam ? `otCaseId=${encodeURIComponent(otCaseParam)}` : null;
+  const inPatientMode = billQuery !== null;
+
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [history, setHistory] = useState<SaleHistoryItem[]>([]);
   const [historyPage, setHistoryPage] = useState(1);
@@ -108,17 +120,22 @@ export default function SellMedicinePage() {
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [saving, setSaving] = useState(false);
   const [inPatient, setInPatient] = useState<InPatient | null>(null);
-  const [purpose, setPurpose] = useState("WARD");
+  const [inPatientError, setInPatientError] = useState<string | null>(null);
+  const [purpose, setPurpose] = useState(otCaseParam ? "OT" : "WARD");
 
   // `query` is "admissionId=…" or "otCaseId=…".
   async function loadInPatient(query: string) {
     try {
       const res = await fetch(`/api/medical-store/inpatients?${query}`);
       const data = await res.json();
-      if (res.ok) setInPatient(data.bill);
-      else toast.error(data.error ?? "Unable to load the admitted patient.");
+      if (res.ok) {
+        setInPatient(data.bill);
+        setInPatientError(null);
+      } else {
+        setInPatientError(data.error ?? "Unable to load the admitted patient.");
+      }
     } catch {
-      toast.error("Unable to reach the clinic server.");
+      setInPatientError("Unable to reach the clinic server.");
     }
   }
 
@@ -189,15 +206,8 @@ export default function SellMedicinePage() {
 
   useEffect(() => {
     void load();
-    const params = new URLSearchParams(window.location.search);
-    const admissionId = params.get("admissionId");
-    const otCaseId = params.get("otCaseId");
-    if (admissionId) void loadInPatient(`admissionId=${encodeURIComponent(admissionId)}`);
-    else if (otCaseId) {
-      void loadInPatient(`otCaseId=${encodeURIComponent(otCaseId)}`);
-      setPurpose("OT");
-    }
-  }, []);
+    if (billQuery) void loadInPatient(billQuery);
+  }, [billQuery]);
 
   useEffect(() => {
     const q = patientSearch.trim();
@@ -281,11 +291,15 @@ export default function SellMedicinePage() {
       toast.error("Add at least one medicine to sell.");
       return;
     }
-    if (!inPatient && !useWalkIn && !patientId) {
+    if (inPatientMode && !inPatient) {
+      toast.error("The admitted patient has not loaded yet. Wait a moment or press Retry.");
+      return;
+    }
+    if (!inPatientMode && !useWalkIn && !patientId) {
       toast.error("Select a patient or switch to walk-in customer.");
       return;
     }
-    if (!inPatient && useWalkIn && !walkInName.trim()) {
+    if (!inPatientMode && useWalkIn && !walkInName.trim()) {
       toast.error("Enter the walk-in customer's name.");
       return;
     }
@@ -395,15 +409,27 @@ export default function SellMedicinePage() {
       <Flex as="header" h="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" justify="space-between" px={{ base: "20px", md: "42px" }}>
         <Box>
           <Heading size="lg" letterSpacing="-0.04em">
-            {inPatient ? "Issue Medicine — In-patient" : "Sell Medicine"}
+            {inPatientMode ? "Issue Medicine — In-patient" : "Sell Medicine"}
           </Heading>
         </Box>
-        {inPatient && (
+        {inPatientMode && (
           <Link href="/medical-store/sell" fontSize="sm" color="#126b68" fontWeight="700">Back to counter sale</Link>
         )}
       </Flex>
 
       <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+        {inPatientMode && !inPatient && (
+          <Flex bg={inPatientError ? "#fdf1e7" : "#eef6f4"} border="1px solid" borderColor={inPatientError ? "#f0d6b8" : "#c8dad5"} borderRadius="12px" p="5" mb="6" justify="space-between" align="center" gap="4" flexWrap="wrap">
+            <Text fontSize="sm" fontWeight="700" color={inPatientError ? "#b26732" : "#506c65"}>
+              {inPatientError ?? "Loading the admitted patient…"}
+            </Text>
+            {inPatientError && billQuery && (
+              <Button size="sm" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => { setInPatientError(null); void loadInPatient(billQuery); }}>
+                Retry
+              </Button>
+            )}
+          </Flex>
+        )}
         {inPatient && (
           <Box bg={inPatient.canIssue ? "#eef6f4" : "#fdf1e7"} border="1px solid" borderColor={inPatient.canIssue ? "#c8dad5" : "#f0d6b8"} borderRadius="12px" p="5" mb="6">
             <Flex justify="space-between" gap="4" flexWrap="wrap">
@@ -431,16 +457,31 @@ export default function SellMedicinePage() {
               <Flex w="36px" h="36px" bg="#e9f1ef" color="#126b68" borderRadius="9px" align="center" justify="center">
                 <FontAwesomeIcon icon={faCashRegister} />
               </Flex>
-              <Heading size="sm">{inPatient ? "Medicine for this patient" : "New Sale"}</Heading>
+              <Heading size="sm">{inPatientMode ? "Medicine for this patient" : "New Sale"}</Heading>
             </HStack>
-            {!inPatient && (
+            {!inPatientMode && (
               <Button size="xs" variant="outline" borderColor="#c8dad5" color="#126b68" onClick={() => setUseWalkIn((v) => !v)}>
                 {useWalkIn ? "Switch to registered patient" : "Switch to walk-in customer"}
               </Button>
             )}
           </HStack>
 
-          {inPatient ? null : useWalkIn ? (
+          {inPatientMode ? (
+            // The patient comes with the admission / OT case, so the field is filled in and locked.
+            <Box mb="5" maxW="360px">
+              <Text fontSize="sm" fontWeight="700" mb="2">Patient</Text>
+              <Input
+                readOnly
+                value={inPatient ? `${inPatient.patient.mrNumber} · ${inPatient.patient.name}` : inPatientError ? "" : "Loading…"}
+                placeholder="Patient not loaded"
+                bg="#f0faf7"
+                borderColor="#126b68"
+                fontSize="sm"
+                cursor="default"
+                title="Set by the admission this medicine is charged to"
+              />
+            </Box>
+          ) : useWalkIn ? (
             <Box mb="5" maxW="360px">
               <Text fontSize="sm" fontWeight="700" mb="2">Walk-in Customer Name</Text>
               <Input placeholder="Customer name" value={walkInName} onChange={(e) => setWalkInName(e.target.value)} />
@@ -479,7 +520,7 @@ export default function SellMedicinePage() {
             </Box>
           )}
 
-          {!inPatient && !useWalkIn && selectedPatient && (
+          {!inPatientMode && !useWalkIn && selectedPatient && (
             <Box mb="5" bg="#fafcfb" border="1px solid #e1e9e6" borderRadius="10px" p="4" maxW="720px">
               <Text fontSize="xs" fontWeight="700" color="#607d76" textTransform="uppercase" letterSpacing="0.06em" mb="2">
                 {selectedPatient.name}&apos;s previous purchases
@@ -641,7 +682,7 @@ export default function SellMedicinePage() {
             &nbsp; Add Line
           </Button>
 
-          {inPatient ? (
+          {inPatientMode ? (
             <Box mb="5" maxW="320px">
               <Text fontSize="sm" fontWeight="700" mb="2">Medicine is for</Text>
               <NativeSelect.Root>
@@ -675,10 +716,10 @@ export default function SellMedicinePage() {
           )}
 
           <Flex justify="space-between" align="center" bg="#f5f7f8" p="4" borderRadius="8px">
-            <Text fontWeight="800" fontSize="lg" color="#123d3b">Total: PKR {(inPatient ? subtotal : total).toFixed(2)}</Text>
-            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={saving} onClick={submitSale} disabled={Boolean(inPatient && !inPatient.canIssue)}>
+            <Text fontWeight="800" fontSize="lg" color="#123d3b">Total: PKR {(inPatientMode ? subtotal : total).toFixed(2)}</Text>
+            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={saving} onClick={submitSale} disabled={inPatientMode && (!inPatient || !inPatient.canIssue)}>
               <FontAwesomeIcon icon={faCashRegister} />
-              &nbsp; {inPatient ? "Issue on patient's bill" : "Complete Sale"}
+              &nbsp; {inPatientMode ? "Issue on patient's bill" : "Complete Sale"}
             </Button>
           </Flex>
         </Box>
