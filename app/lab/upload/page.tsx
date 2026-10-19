@@ -213,18 +213,18 @@ export default function LabUploadPage() {
 
   return (
     <Box minH="100vh" bg="#f5f7f8" color="#17252b">
-      <Flex as="header" h="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" justify="space-between" px={{ base: "20px", md: "42px" }}>
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <Box>
-          <Heading size="lg" letterSpacing="-0.04em">
+          <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em">
             Enter Laboratory Results
           </Heading>
         </Box>
         <RefreshButton onRefresh={() => load()} />
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
 
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <Box p="5" borderBottom="1px solid #edf2f0">
             <Flex justify="space-between" align="center" direction={{ base: "column", lg: "row" }} gap="4">
               <HStack gap="3">
@@ -371,7 +371,7 @@ value={rangeEnd}
                       </Table.Cell>
                       <Table.Cell fontSize="xs">{new Date(r.createdAt).toLocaleString("en-GB", { hour12: true })}</Table.Cell>
                       <Table.Cell textAlign="right">
-                        <Button size="xs" bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={openingId === r.id} onClick={() => void openEntryModal(r)}>
+                        <Button size="xs" bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={openingId === r.id} onClick={() => void openEntryModal(r)}>
                           <FontAwesomeIcon icon={faPenToSquare} />
                           &nbsp; Enter Results
                         </Button>
@@ -558,7 +558,7 @@ value={rangeEnd}
               <Button variant="outline" borderColor="#c8dad5" onClick={() => setEntryReceipt(null)}>
                 Cancel
               </Button>
-              <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={saving} onClick={submitResults}>
+              <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={saving} onClick={submitResults}>
                 <FontAwesomeIcon icon={faClipboardCheck} />
                 &nbsp; Save Results
               </Button>

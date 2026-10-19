@@ -211,29 +211,15 @@ export default function AdmissionsPage() {
 
   return (
     <Box minH="100vh" bg="#eef2f0" color="#0e2420">
-      <Flex
-        as="header"
-        position="sticky"
-        top="0"
-        zIndex="40"
-        h="72px"
-        bg="rgba(255,255,255,0.90)"
-        style={{ backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
-        borderBottom="1px solid rgba(14,36,32,0.07)"
-        align="center"
-        justify="space-between"
-        px={{ base: "20px", md: "42px" }}
-      >
-        <Heading size="lg" letterSpacing="-0.04em">Admissions</Heading>
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+        <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em">Admissions</Heading>
         <HStack gap="3">
         <RefreshButton onRefresh={() => load(tab)} />
         <Button
-          bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
+          bg="#11695e"
           color="white"
-          borderRadius="9px"
           fontWeight="700"
-          boxShadow="0 3px 12px rgba(26,128,112,0.28)"
-          _hover={{ boxShadow: "0 5px 20px rgba(26,128,112,0.42)", transform: "translateY(-1px)" }}
+          _hover={{ bg: "#0d5850" }}
           onClick={openAdmit}
           disabled={!lookups}
         >
@@ -243,7 +229,7 @@ export default function AdmissionsPage() {
         </HStack>
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
         <HStack gap="2" mb="5" flexWrap="wrap">
           {tabs.map((t) => (
             <Button
@@ -510,7 +496,7 @@ export default function AdmissionsPage() {
                   </NativeSelect.Root>
                 </Grid>
 
-                <Button onClick={admit} loading={saving} bg="#123d3b" color="white" _hover={{ bg: "#255d58" }}>
+                <Button onClick={admit} loading={saving} bg="#11695e" color="white" _hover={{ bg: "#0d5850" }}>
                   <FontAwesomeIcon icon={faCheck} />
                   &nbsp; Admit
                 </Button>

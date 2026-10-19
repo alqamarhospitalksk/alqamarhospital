@@ -88,20 +88,13 @@ export default function ProfilePage() {
   return (
     <Box minH="100vh" bg="#eef2f0" color="#0e2420">
       {/* Header */}
-      <Flex
-        as="header" h="72px"
-        bg="rgba(255,255,255,0.90)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}
-        borderBottom="1px solid rgba(14,36,32,0.07)"
-        boxShadow="0 1px 0 rgba(14,36,32,0.05)"
-        align="center" justify="space-between"
-        px={{ base: "20px", md: "42px" }}
-      >
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <Box>
-          <Heading size="lg" letterSpacing="-0.04em" color="#0e2420">My Profile</Heading>
+          <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em" color="#0e2420">My Profile</Heading>
         </Box>
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }} maxW="600px">
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} maxW="600px">
         {/* Profile Details Card */}
         <Box
           bg="white" border="1px solid rgba(14,36,32,0.07)"
@@ -145,12 +138,9 @@ export default function ProfilePage() {
             </Box>
             <Button
               size="sm"
-              bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
-              color="white" borderRadius="9px" fontWeight="700"
-              boxShadow="0 3px 12px rgba(26,128,112,0.28)"
-              _hover={{ boxShadow: "0 5px 18px rgba(26,128,112,0.42)", transform: "translateY(-1px)" }}
-              _active={{ transform: "translateY(0)" }}
-              transition="all 0.18s ease"
+              bg="#11695e"
+              color="white" fontWeight="700"
+              _hover={{ bg: "#0d5850" }}
               loading={savingProfile} onClick={saveProfile}
             >
               Save Profile
@@ -209,12 +199,9 @@ export default function ProfilePage() {
             </Box>
             <Button
               size="sm"
-              bg="linear-gradient(135deg, #c05070 0%, #8a2442 100%)"
-              color="white" borderRadius="9px" fontWeight="700"
-              boxShadow="0 3px 12px rgba(163,66,88,0.28)"
-              _hover={{ boxShadow: "0 5px 18px rgba(163,66,88,0.42)", transform: "translateY(-1px)" }}
-              _active={{ transform: "translateY(0)" }}
-              transition="all 0.18s ease"
+              bg="#a34258"
+              color="white" fontWeight="700"
+              _hover={{ bg: "#8a3549" }}
               loading={savingPassword} onClick={savePassword}
             >
               Change Password

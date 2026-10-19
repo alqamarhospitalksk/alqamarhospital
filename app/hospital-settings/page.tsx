@@ -97,33 +97,20 @@ export default function HospitalSettingsPage() {
 
   return (
     <Box minH="100vh" bg="#eef2f0" color="#0e2420">
-      <Flex
-        as="header"
-        position="sticky"
-        top="0"
-        zIndex="40"
-        h="72px"
-        bg="rgba(255,255,255,0.90)"
-        style={{ backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
-        borderBottom="1px solid rgba(14,36,32,0.07)"
-        boxShadow="0 1px 0 rgba(14,36,32,0.04), 0 4px 20px rgba(14,36,32,0.04)"
-        align="center"
-        justify="space-between"
-        px={{ base: "20px", md: "42px" }}
-      >
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <HStack gap="4">
           <Link href="/" color="#2da08b" _hover={{ color: "#1a8070" }} transition="color 0.15s ease">
             <FontAwesomeIcon icon={faArrowLeft} />
           </Link>
           <Box>
-            <Heading size="lg" letterSpacing="-0.04em" color="#0e2420">
+            <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em" color="#0e2420">
               Hospital Settings
             </Heading>
           </Box>
         </HStack>
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
         {loading ? (
           <Text color="#77908b" py="8" textAlign="center">
             Loading hospital settings…
@@ -132,7 +119,7 @@ export default function HospitalSettingsPage() {
           <form onSubmit={submit}>
             <VStack align="stretch" gap="6">
               {/* Logo */}
-              <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" p={{ base: "20px", md: "28px" }}>
+              <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p={{ base: "20px", md: "28px" }} boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
                 <HStack mb="4">
                   <Flex w="36px" h="36px" bg="#e9f1ef" color="#126b68" borderRadius="9px" align="center" justify="center">
                     <FontAwesomeIcon icon={faHospital} />
@@ -194,7 +181,7 @@ export default function HospitalSettingsPage() {
               </Box>
 
               {/* Hospital identity */}
-              <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" p={{ base: "20px", md: "28px" }}>
+              <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p={{ base: "20px", md: "28px" }} boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
                 <Heading size="sm" mb="5">
                   Hospital Identity
                 </Heading>
@@ -242,7 +229,7 @@ export default function HospitalSettingsPage() {
               </Box>
 
               {/* Contact info */}
-              <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" p={{ base: "20px", md: "28px" }}>
+              <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p={{ base: "20px", md: "28px" }} boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
                 <Heading size="sm" mb="5">
                   Contact Information
                 </Heading>
@@ -272,16 +259,12 @@ export default function HospitalSettingsPage() {
                 <Button
                   type="submit"
                   loading={saving}
-                  bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
+                  bg="#11695e"
                   color="white"
                   h="46px"
                   px="28px"
-                  borderRadius="9px"
                   fontWeight="700"
-                  boxShadow="0 3px 12px rgba(26,128,112,0.28)"
-                  _hover={{ boxShadow: "0 5px 20px rgba(26,128,112,0.42)", transform: "translateY(-1px)" }}
-                  _active={{ transform: "translateY(0)" }}
-                  transition="all 0.18s ease"
+                  _hover={{ bg: "#0d5850" }}
                 >
                   <FontAwesomeIcon icon={faFloppyDisk} />
                   &nbsp; Save Hospital Details
