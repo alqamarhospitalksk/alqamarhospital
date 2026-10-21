@@ -25,8 +25,9 @@ put shared helpers in `lib/`.
 ## Commands
 
 ```bash
-npm run dev        # predev: ensure-deps + apply-db-updates, then Turbopack (webpack on Linux)
-npm run build      # wipes .next, prisma generate, next build --webpack
+npm run dev        # predev: ensure-deps, then Turbopack (webpack on Linux)
+npm run build      # wipes .next, prisma generate, next build --webpack; postbuild: apply-db-updates
+npm run db:update  # apply-db-updates on its own (e.g. after uploading a .next built on a PC)
 npm run lint       # eslint 9 + eslint-config-next. Baseline: 31 errors / 12 warnings already exist (mostly react-hooks/set-state-in-effect)
 npx tsc --noEmit   # type-check; must stay clean
 npm run db:seed    # tsx prisma/seed.ts: starter logins (only missing ones) + sample catalog/beds
@@ -149,7 +150,7 @@ and **`prisma migrate` is not used**. A schema change therefore has to go into a
 
 1. `prisma/schema.prisma`
 2. a new folder in `prisma/migrations/` (developer PCs)
-3. `scripts/apply-db-updates.cjs`, as an idempotent, check-first step. It runs before `dev`/`start` on Linux, or anywhere when `AUTO_DB_UPDATES=true`, and never touches existing data.
+3. `scripts/apply-db-updates.cjs`, as an idempotent, check-first step. It runs after `npm run build` (postbuild) and with `npm run db:update`, on Linux or anywhere when `AUTO_DB_UPDATES=true`, and never touches existing data. It no longer runs on every start.
 4. `deploy/schema.sql` (for fresh installs)
 
 Run `npx prisma generate` after editing the schema. `scripts/ensure-deps.cjs` repairs a broken

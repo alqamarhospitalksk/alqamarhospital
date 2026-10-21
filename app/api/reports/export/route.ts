@@ -99,7 +99,7 @@ export async function GET(request: Request) {
     db.payment.findMany({ where: { createdAt: { gte: start, lt: end }, status: "PAID" }, orderBy: { createdAt: "asc" }, include: paymentInclude }),
     db.expense.findMany({ where: { expenseDate: { gte: dateColStart, lt: dateColEnd } }, orderBy: { expenseDate: "asc" }, include: { doctor: true, employee: true } }),
     db.hospitalSettings.findUnique({ where: { id: 1 } }),
-    doctorShareForPeriod(start, end, dateColStart, dateColEnd),
+    doctorShareForPeriod(start, end),
     storeRefundsForPeriod(start, end),
   ]);
 

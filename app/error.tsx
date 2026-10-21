@@ -10,7 +10,7 @@ export default function ErrorPage({ reset }: { error: Error & { digest?: string 
       <Text color="#556e68" maxW="420px">
         This page could not be shown. Nothing you saved has been lost. Try again, and if it keeps happening, tell the person who manages this system.
       </Text>
-      <Button onClick={reset} bg="#123d3b" color="white" _hover={{ bg: "#255d58" }}>Try again</Button>
+      <Button onClick={reset} bg="#11695e" color="white" _hover={{ bg: "#0d5850" }}>Try again</Button>
     </Box>
   );
 }

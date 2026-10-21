@@ -139,12 +139,9 @@ export default function ChangePasswordPage() {
             )}
             <Button
               type="submit" loading={isSubmitting}
-              bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
-              color="white" h="48px" borderRadius="10px" fontWeight="700"
-              boxShadow="0 4px 16px rgba(26,128,112,0.32)"
-              _hover={{ boxShadow: "0 6px 24px rgba(26,128,112,0.48)", transform: "translateY(-1px)" }}
-              _active={{ transform: "translateY(0)" }}
-              transition="all 0.2s ease"
+              bg="#11695e"
+              color="white" h="48px" fontWeight="700"
+              _hover={{ bg: "#0d5850" }}
             >
               Save &amp; Continue <FontAwesomeIcon icon={faArrowRight} />
             </Button>

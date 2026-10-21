@@ -28,6 +28,7 @@ const adapter = new PrismaMariaDb({
 
 export const db = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
-}
+// One client (one connection pool) per server process, in production too. If a bundle ever
+// evaluated this module twice, a second pool would compete for the hosting's small MySQL
+// connection allowance and requests would queue waiting for a free connection.
+globalForPrisma.prisma = db;

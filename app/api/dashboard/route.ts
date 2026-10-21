@@ -18,6 +18,19 @@ function serializeAmount(value: { toString(): string }) {
   return Number(value.toString());
 }
 
+// The trend chart only needs one figure per day. Sending every payment of the past year made the
+// dashboard response grow with every patient, so the payments are added up per clinic day here.
+function dailyTotals(rows: { createdAt: Date; amount: { toString(): string } }[]) {
+  const byDay = new Map<string, number>();
+  for (const row of rows) {
+    const d = row.createdAt;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    byDay.set(key, (byDay.get(key) ?? 0) + serializeAmount(row.amount));
+  }
+  // Local midnight (no "Z"), so the browser files each total under the same calendar day.
+  return [...byDay.entries()].map(([key, amount]) => ({ createdAt: `${key}T00:00:00`, amount }));
+}
+
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
@@ -38,10 +51,10 @@ export async function GET(request: Request) {
   const dateColStart = toDateColumnBoundary(start);
   const dateColEnd = toDateColumnBoundary(end);
 
-  const [doctorBalances, storeRefunds, doctorShares, payments, allExpenses, patientsSeen, patientCount, doctorCount, labTestCount, otCaseCount, recentPayments, revenueHistory, admittedNow] = await Promise.all([
+  const [doctorBalances, storeRefunds, doctorShares, payments, allExpenses, patientsSeen, patientCount, doctorCount, labTestCount, otCaseCount, revenueHistory, admittedNow] = await Promise.all([
     doctorBalancesLifetime(),
     storeRefundsForPeriod(start, end),
-    doctorShareForPeriod(start, end, dateColStart, dateColEnd),
+    doctorShareForPeriod(start, end),
     db.payment.findMany({ where: { createdAt: { gte: start, lt: end }, status: "PAID" }, orderBy: { createdAt: "asc" }, include: paymentInclude }),
     db.expense.findMany({ where: { expenseDate: { gte: dateColStart, lt: dateColEnd } }, orderBy: { expenseDate: "asc" }, include: { doctor: true, employee: true } }),
     db.opdVisit.findMany({ where: { visitDate: { gte: dateColStart, lt: dateColEnd } }, select: { patientId: true } }),
@@ -50,7 +63,6 @@ export async function GET(request: Request) {
     // Lifetime totals (not date-range scoped), like patientCount/doctorCount above.
     db.diagnosticReceipt.count({ where: { module: "LABORATORY" } }),
     db.otCase.count(),
-    db.payment.findMany({ where: { createdAt: { gte: start, lt: end }, status: "PAID" }, orderBy: { createdAt: "desc" }, take: 8, include: paymentInclude }),
     db.payment.findMany({ where: { createdAt: { gte: yearAgo }, status: "PAID" }, select: { createdAt: true, amount: true } }),
     // Patients in a bed right now (admitted, or invoiced but not yet discharged).
     db.admission.count({ where: { status: { in: ["ADMITTED", "INVOICED"] } } }),
@@ -97,7 +109,8 @@ export async function GET(request: Request) {
       createdAt: payment.createdAt,
     };
   }
-  const activity = recentPayments.map(describePayment);
+  // The 8 most recent, from the payments already loaded for the totals (sorted oldest first).
+  const activity = payments.slice(-8).reverse().map(describePayment);
   // Unlike `activity` (capped to 8, for the on-screen chart), this covers every paid
   // transaction in the selected range — what the PDF/Excel exports need for a complete report.
   const transactions = [
@@ -165,6 +178,6 @@ export async function GET(request: Request) {
     expenseDetail,
     doctorShareDetail,
     doctorPayoutDetail,
-    revenueHistory: revenueHistory.map((p) => ({ createdAt: p.createdAt, amount: serializeAmount(p.amount) })),
+    revenueHistory: dailyTotals(revenueHistory),
   });
 }

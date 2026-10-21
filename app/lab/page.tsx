@@ -2,7 +2,7 @@
 import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
-import { usePolling } from "../use-polling";
+import { useResultsPolling } from "../use-results-polling";
 import { Box, Button, Flex, Grid, HStack, Heading, NativeSelect, Text, VStack } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -164,8 +164,8 @@ export default function LabDashboardPage() {
     void load();
   }, []);
 
-  // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
-  usePolling(() => load(true), 15000, { runNow: false });
+  // Checks every 15s whether any result changed and only then reloads the list; pauses while the tab is hidden.
+  useResultsPolling(() => load(true));
 
   // Pending backlog is a "right now" snapshot, not tied to any date range — it stays as-is
   // regardless of which period is selected below.
@@ -220,28 +220,16 @@ export default function LabDashboardPage() {
 
   return (
     <Box minH="100vh" bg="#eef2f0" color="#0e2420">
-      <Flex
-        as="header"
-        position="sticky"
-        top="0"
-        zIndex="40"
-        h="72px"
-        bg="rgba(255,255,255,0.90)"
-        style={{ backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
-        borderBottom="1px solid rgba(14,36,32,0.07)"
-        boxShadow="0 1px 0 rgba(14,36,32,0.04), 0 4px 20px rgba(14,36,32,0.04)"
-        align="center"
-        px={{ base: "20px", md: "42px" }}
-      >
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <Box>
-          <Heading size="lg" letterSpacing="-0.04em" color="#0e2420">
+          <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em" color="#0e2420">
             Laboratory Dashboard
           </Heading>
         </Box>
         <Box ml="auto"><RefreshButton onRefresh={() => load()} /></Box>
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
         <VStack align="flex-end" gap="3" mb="5">
           <HStack gap="2">
             {(["today", "weekly", "monthly"] as const).map((p) => (
@@ -291,7 +279,7 @@ export default function LabDashboardPage() {
         </Grid>
 
         <Grid templateColumns={{ base: "1fr", lg: "1.1fr 0.9fr" }} gap="6">
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <Box p="5" borderBottom="1px solid #edf2f0">
               <Flex align="center" justify="space-between" gap="3" flexWrap="wrap">
                 <Flex align="center" gap="3">
@@ -342,7 +330,7 @@ export default function LabDashboardPage() {
             </Box>
           </Box>
 
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <Box p="5" borderBottom="1px solid #edf2f0">
               <Flex align="center" gap="3">
                 <Flex w="32px" h="32px" bg="#f8e8d8" color="#b26732" borderRadius="8px" align="center" justify="center">
@@ -387,7 +375,7 @@ export default function LabDashboardPage() {
           </Box>
         </Grid>
 
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden" mt="6">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" mt="6" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <Box p="5" borderBottom="1px solid #edf2f0">
             <Flex align="center" gap="3">
               <Flex w="32px" h="32px" bg="#e9f1ef" color="#126b68" borderRadius="8px" align="center" justify="center">

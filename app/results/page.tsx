@@ -2,7 +2,7 @@
 import { DateInput } from "../date-input";
 
 import { useEffect, useState } from "react";
-import { usePolling } from "../use-polling";
+import { useResultsPolling } from "../use-results-polling";
 import {
   Badge,
   Box,
@@ -145,8 +145,8 @@ export default function ResultsPage() {
     void loadHospitalSettings();
   }, []);
 
-  // Refreshes quietly in the background; pauses while the tab is hidden and never overlaps requests.
-  usePolling(() => load(true), 15000, { runNow: false });
+  // Checks every 15s whether any result changed and only then reloads the list; pauses while the tab is hidden.
+  useResultsPolling(() => load(true));
 
   // Prints the filled-in template(s) laid out like the clinic's old result form: patient block,
   // then Test | Result | Units | Reference Range per test, section headings, and the remarks line.
@@ -283,26 +283,13 @@ export default function ResultsPage() {
 
   return (
     <Box minH="100vh" bg="#eef2f0" color="#0e2420">
-      <Flex
-        as="header"
-        position="sticky"
-        top="0"
-        zIndex="40"
-        h="72px"
-        bg="rgba(255,255,255,0.90)"
-        style={{ backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
-        borderBottom="1px solid rgba(14,36,32,0.07)"
-        boxShadow="0 1px 0 rgba(14,36,32,0.04), 0 4px 20px rgba(14,36,32,0.04)"
-        align="center"
-        justify="space-between"
-        px={{ base: "20px", md: "42px" }}
-      >
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <HStack gap="4">
           <Link href="/diagnostics" color="#2da08b" _hover={{ color: "#1a8070" }} transition="color 0.15s ease">
             <FontAwesomeIcon icon={faArrowLeft} />
           </Link>
           <Box>
-            <Heading size="lg" letterSpacing="-0.04em" color="#0e2420">
+            <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em" color="#0e2420">
               Laboratory Results
             </Heading>
           </Box>
@@ -310,7 +297,7 @@ export default function ResultsPage() {
         <RefreshButton onRefresh={() => load()} />
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
 
         <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" boxShadow="0 2px 12px rgba(14,36,32,0.04)" overflow="hidden">
           <Box p="5" borderBottom="1px solid #edf2f0">
@@ -654,9 +641,9 @@ value={customEnd}
                 Close
               </Button>
               <Button
-                bg="#123d3b"
+                bg="#11695e"
                 color="white"
-                _hover={{ bg: "#255d58" }}
+                _hover={{ bg: "#0d5850" }}
                 disabled={viewReceipt.resultStatus !== "DONE"}
                 onClick={() => void handlePrint(viewReceipt)}
               >

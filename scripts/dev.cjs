@@ -15,6 +15,8 @@ const useWebpack = forced === "webpack" || (forced !== "turbopack" && process.pl
 const args = ["next", "dev", ...(useWebpack ? ["--webpack"] : []), ...process.argv.slice(2)];
 console.log(`[dev] starting with ${useWebpack ? "webpack" : "Turbopack"}`);
 
-const child = spawn("npx", args, { stdio: "inherit", shell: true });
+// One command string: passing an argument list together with `shell: true` is deprecated in
+// Node (DEP0190), because the arguments would not be escaped anyway.
+const child = spawn(["npx", ...args].join(" "), { stdio: "inherit", shell: true });
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
 child.on("exit", (code) => process.exit(code ?? 0));

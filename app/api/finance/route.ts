@@ -4,7 +4,7 @@ import { roleError } from "../../../lib/roles";
 import { db } from "../../../lib/db";
 import { getLastSalaryPayoutMap, type LastSalaryPayout } from "../../../lib/employee-salary";
 import { getPaymentCycleInfo } from "../../../lib/payment-cycle";
-import { admissionShareDays, computeDoctorShare } from "../../../lib/doctor-share";
+import { doctorPayoutTotals, doctorTotals, shareFromTotals } from "../../../lib/doctor-share";
 import { toDateColumnBoundary } from "../../../lib/date-range";
 
 const methods = ["CASH", "CARD", "BANK_TRANSFER", "ONLINE"] as const;
@@ -88,37 +88,28 @@ export async function GET(request: Request) {
       }
     : undefined;
 
-  // Fetched unfiltered (lifetime) once, then filtered in memory below for both the
-  // period-scoped display columns and the always-lifetime balance calculation —
-  // avoids running each query twice against the database.
-  const [employees, rawDoctors, expenses, opdVisitsAll, otCasesAll, doctorPayouts, diagnosticReceiptsAll, admissionDaysAll] = await Promise.all([
+  // The doctor figures are added up by the database (lib/doctor-share.ts): once for the selected
+  // period and once for all time, which Balance Due needs. The Expenses page only wants its ledger,
+  // so it skips them.
+  const bounded = since !== null || until !== null;
+  const needDoctors = ledger !== "expenses";
+  const [employees, rawDoctors, expenses, lifetimeTotals, periodTotals, paidTo] = await Promise.all([
     db.employee.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     db.doctor.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     db.expense.findMany({ where: ledgerWhere, orderBy: [{ expenseDate: "desc" }, { id: "desc" }], take: ledger ? 1000 : 50, include: { doctor: true, employee: true } }),
-    db.opdVisit.findMany({ select: { doctorId: true, consultationFee: true, visitDate: true } }),
-    db.otCase.findMany({ where: { status: "DISCHARGED" }, select: { doctorId: true, doctorFee: true, dischargeDate: true } }),
-    db.expense.findMany({ where: { category: "DOCTOR_PAYOUT" }, select: { doctorId: true, amount: true } }),
-    db.diagnosticReceipt.findMany({ where: { status: "PAID" }, select: { doctorId: true, module: true, total: true, createdAt: true } }),
-    admissionShareDays(),
+    needDoctors ? doctorTotals() : null,
+    needDoctors && bounded ? doctorTotals({ since, until }) : null,
+    needDoctors ? doctorPayoutTotals() : null,
   ]);
 
-  const inRange = (d: Date) => (!since || d >= since) && (!until || d < until);
-  const bounded = since !== null || until !== null;
-  const opdVisits = bounded ? opdVisitsAll.filter((v) => inRange(v.visitDate)) : opdVisitsAll;
-  const otCases = bounded ? otCasesAll.filter((c) => c.dischargeDate && inRange(c.dischargeDate)) : otCasesAll;
-  const diagnosticReceipts = bounded ? diagnosticReceiptsAll.filter((r) => inRange(r.createdAt)) : diagnosticReceiptsAll;
-  const admissionDays = bounded ? admissionDaysAll.filter((d) => d.dischargedAt && inRange(d.dischargedAt)) : admissionDaysAll;
+  const doctorPayoutSummaries = !lifetimeTotals || !paidTo ? [] : rawDoctors.map((doc) => {
+    const { totalCollected, hospitalShare, diagnosticShare, admissionShare, doctorShare } = shareFromTotals(doc, (periodTotals ?? lifetimeTotals)(doc.id));
 
-  const doctorPayoutSummaries = rawDoctors.map((doc) => {
-    const { totalCollected, hospitalShare, diagnosticShare, admissionShare, doctorShare } = computeDoctorShare(doc, opdVisits, otCases, diagnosticReceipts, admissionDays);
-
-    const paidToDate = doctorPayouts
-      .filter((p) => p.doctorId === doc.id)
-      .reduce((sum, p) => sum + Number(p.amount), 0);
+    const paidToDate = paidTo(doc.id);
     // Balance Due is a running accounts-payable figure — always the doctor's LIFETIME
     // earned share minus lifetime payouts, never the period-filtered share above, so
     // switching Today/Weekly/Monthly/Custom never changes what's actually owed.
-    const lifetimeShare = bounded ? computeDoctorShare(doc, opdVisitsAll, otCasesAll, diagnosticReceiptsAll, admissionDaysAll).doctorShare : doctorShare;
+    const lifetimeShare = periodTotals ? shareFromTotals(doc, lifetimeTotals(doc.id)).doctorShare : doctorShare;
     const balanceDue = lifetimeShare - paidToDate;
 
     return {
