@@ -990,14 +990,15 @@ export default function OpdPage() {
 
                 {/* Patient details in two columns */}
                 <Grid templateColumns="1fr 1fr" columnGap="6" rowGap="3" py="4" px="2" fontSize="15px" className="slip-patient-grid">
+                  <Text gridColumn="1 / -1">Token No: <Box as="span" fontWeight="900" fontSize="18px">{visit.dailyToken}</Box></Text>
                   <Text>Name: <Box as="span" fontWeight="800">{visit.patient.name}</Box></Text>
                   <Text>MR No: <Box as="span" fontWeight="800">{visit.patient.mrNumber}</Box></Text>
                   <Text>Age: <Box as="span" fontWeight="800">{computeAge(visit.patient.dateOfBirth) || "—"}</Box></Text>
                   <Text>Gender: <Box as="span" fontWeight="800">{visit.patient.gender || "—"}</Box></Text>
                   <Text>OPD No: <Box as="span" fontWeight="800">{visit.opdSerial ?? visit.opdNumber}</Box></Text>
                   <Text>CNIC No: <Box as="span" fontWeight="800">{visit.patient.cnic || "—"}</Box></Text>
-                  <Text>Date/Time: <Box as="span" fontWeight="800">{formatSlipDateTime(visit.createdAt)}</Box></Text>
                   <Text>City: <Box as="span" fontWeight="800">{visit.patient.city || "—"}</Box></Text>
+                  <Text>Date/Time: <Box as="span" fontWeight="800">{formatSlipDateTime(visit.createdAt)}</Box></Text>
                   <Text gridColumn="1 / -1">Address: <Box as="span" fontWeight="800">{visit.patient.address || "—"}</Box></Text>
                 </Grid>
 
