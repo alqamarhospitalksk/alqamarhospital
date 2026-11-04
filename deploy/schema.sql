@@ -25,6 +25,7 @@ CREATE TABLE `patients` (
     `date_of_birth` DATE NULL,
     `gender` VARCHAR(30) NOT NULL,
     `address` VARCHAR(500) NULL,
+    `city` VARCHAR(100) NULL,
     `created_by_id` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,

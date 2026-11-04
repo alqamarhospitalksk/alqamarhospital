@@ -225,6 +225,14 @@ const updates = [
       if (!(await indexExists(conn, "opd_visits", "opd_visits_doctor_id_opd_serial_key"))) await conn.query("CREATE UNIQUE INDEX `opd_visits_doctor_id_opd_serial_key` ON `opd_visits`(`doctor_id`, `opd_serial`)");
     },
   },
+  // Same statement as prisma/migrations/20261105120000_patient_city/migration.sql. Old patients keep city NULL.
+  {
+    name: "patient city",
+    needed: async (conn) => !(await columnExists(conn, "patients", "city")),
+    run: async (conn) => {
+      await conn.query("ALTER TABLE `patients` ADD COLUMN `city` VARCHAR(100) NULL");
+    },
+  },
 ];
 
 async function connect(ssl) {

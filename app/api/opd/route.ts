@@ -43,6 +43,7 @@ export async function GET() {
         dateOfBirth: v.patient.dateOfBirth,
         mobile: v.patient.mobile,
         address: v.patient.address,
+        city: v.patient.city,
       },
       doctor: {
         id: v.doctor.id,
@@ -177,6 +178,7 @@ export async function POST(request: Request) {
           cnic: visit.patient.cnic,
           dateOfBirth: visit.patient.dateOfBirth,
           address: visit.patient.address,
+          city: visit.patient.city,
         },
         doctor: {
           name: visit.doctor.name,

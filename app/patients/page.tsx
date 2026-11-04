@@ -45,6 +45,7 @@ type Patient = {
   dateOfBirth: string | null;
   gender: string;
   address: string | null;
+  city: string | null;
 };
 
 type OpdVisitHistory = {
@@ -76,6 +77,7 @@ const emptyForm = {
   dateOfBirth: "",
   gender: "",
   address: "",
+  city: "",
 };
 
 function formatCnicInput(value: string) {
@@ -167,6 +169,7 @@ export default function PatientsPage() {
       dateOfBirth: patient.dateOfBirth ? patient.dateOfBirth.slice(0, 10) : "",
       gender: patient.gender,
       address: patient.address ?? "",
+      city: patient.city ?? "",
     });
     setEditingPatientId(patient.id);
     setCnicDuplicate(null);
@@ -573,6 +576,16 @@ value={form.dateOfBirth}
                         <option value="Other">Other</option>
                       </NativeSelect.Field>
                     </NativeSelect.Root>
+                  </Field.Root>
+
+                  <Field.Root required>
+                    <Field.Label fontWeight="700">City</Field.Label>
+                    <Input
+                      placeholder="e.g. Swabi"
+                      maxLength={100}
+                      value={form.city}
+                      onChange={(event) => setForm({ ...form, city: event.target.value })}
+                    />
                   </Field.Root>
 
                   <Field.Root gridColumn={{ md: "span 2" }}>

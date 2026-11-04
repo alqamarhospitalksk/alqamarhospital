@@ -104,6 +104,8 @@ model Patient {
   dateOfBirth     DateTime?           @map("date_of_birth") @db.Date
   gender          String              @db.VarChar(30)
   address         String?             @db.VarChar(500)
+  // Asked at registration and printed on the OPD slip. NULL for patients registered before it existed.
+  city            String?             @db.VarChar(100)
   createdById     Int                 @map("created_by_id")
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")

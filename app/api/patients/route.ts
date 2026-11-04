@@ -68,6 +68,7 @@ export async function GET(request: Request) {
       dateOfBirth: true,
       gender: true,
       address: true,
+      city: true,
       createdAt: true,
     },
   });
@@ -89,10 +90,17 @@ export async function POST(request: Request) {
   const mobile = rawMobile ? normalizeMobile(rawMobile) : "";
   const gender = clean(body?.gender);
   const address = clean(body?.address) || null;
+  const city = clean(body?.city);
   const dateOfBirth = clean(body?.dateOfBirth);
 
   if (!name || !fatherName || !gender) {
     return NextResponse.json({ error: "Name, father name, and gender are required." }, { status: 400 });
+  }
+  if (!city) {
+    return NextResponse.json({ error: "Enter the patient's city." }, { status: 400 });
+  }
+  if (city.length > 100) {
+    return NextResponse.json({ error: "City is too long (100 characters at most)." }, { status: 400 });
   }
 
   if (cnic && !/^\d{5}-\d{7}-\d{1}$/.test(cnic)) {
@@ -148,6 +156,7 @@ export async function POST(request: Request) {
           mobile: mobile || "",
           gender,
           address,
+          city,
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
           createdById: user.id,
         },

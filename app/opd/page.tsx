@@ -87,6 +87,7 @@ type Visit = {
     cnic?: string | null;
     dateOfBirth?: string | null;
     address?: string | null;
+    city?: string | null;
   };
   doctor: VisitDoctor;
 };
@@ -996,7 +997,8 @@ export default function OpdPage() {
                   <Text>OPD No: <Box as="span" fontWeight="800">{visit.opdSerial ?? visit.opdNumber}</Box></Text>
                   <Text>CNIC No: <Box as="span" fontWeight="800">{visit.patient.cnic || "—"}</Box></Text>
                   <Text>Date/Time: <Box as="span" fontWeight="800">{formatSlipDateTime(visit.createdAt)}</Box></Text>
-                  <Text>Address: <Box as="span" fontWeight="800">{visit.patient.address || "—"}</Box></Text>
+                  <Text>City: <Box as="span" fontWeight="800">{visit.patient.city || "—"}</Box></Text>
+                  <Text gridColumn="1 / -1">Address: <Box as="span" fontWeight="800">{visit.patient.address || "—"}</Box></Text>
                 </Grid>
 
                 {/* Writing area: narrow clinical records column + wide prescription area */}

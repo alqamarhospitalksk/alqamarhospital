@@ -100,6 +100,7 @@ export async function PUT(
   const mobile = rawMobile ? normalizeMobile(rawMobile) : "";
   const gender = clean(body?.gender);
   const address = clean(body?.address) || null;
+  const city = clean(body?.city);
   const dateOfBirth = clean(body?.dateOfBirth);
 
   if (!name || !fatherName || !gender) {
@@ -107,6 +108,13 @@ export async function PUT(
       { error: "Name, father name, and gender are required." },
       { status: 400 }
     );
+  }
+
+  if (!city) {
+    return NextResponse.json({ error: "Enter the patient's city." }, { status: 400 });
+  }
+  if (city.length > 100) {
+    return NextResponse.json({ error: "City is too long (100 characters at most)." }, { status: 400 });
   }
 
   if (cnic && !/^\d{5}-\d{7}-\d{1}$/.test(cnic)) {
@@ -164,6 +172,7 @@ export async function PUT(
       mobile: mobile || "",
       gender,
       address,
+      city,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
     },
   });
@@ -182,6 +191,7 @@ export async function PUT(
         mobile: existing.mobile,
         gender: existing.gender,
         address: existing.address,
+        city: existing.city,
         dateOfBirth: existing.dateOfBirth,
       }),
       afterJson: JSON.stringify({
@@ -191,6 +201,7 @@ export async function PUT(
         mobile: updatedPatient.mobile,
         gender: updatedPatient.gender,
         address: updatedPatient.address,
+        city: updatedPatient.city,
         dateOfBirth: updatedPatient.dateOfBirth,
       }),
     },
