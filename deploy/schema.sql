@@ -72,6 +72,7 @@ CREATE TABLE `opd_visits` (
     `opd_number` VARCHAR(40) NOT NULL,
     `visit_date` DATE NOT NULL,
     `daily_token` INTEGER NOT NULL,
+    `opd_serial` INTEGER NULL,
     `patient_id` INTEGER NOT NULL,
     `doctor_id` INTEGER NOT NULL,
     `consultation_fee` DECIMAL(12, 2) NOT NULL,
@@ -81,6 +82,7 @@ CREATE TABLE `opd_visits` (
     UNIQUE INDEX `opd_visits_opd_number_key`(`opd_number`),
     INDEX `opd_visits_patient_id_visit_date_idx`(`patient_id`, `visit_date`),
     UNIQUE INDEX `opd_visits_doctor_id_visit_date_daily_token_key`(`doctor_id`, `visit_date`, `daily_token`),
+    UNIQUE INDEX `opd_visits_doctor_id_opd_serial_key`(`doctor_id`, `opd_serial`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

@@ -343,6 +343,28 @@ button[style*="background-color: rgb(163, 66, 88)"] {
     margin-bottom: 4px !important;
   }
 
+  /* OPD letterhead slip (app/opd/page.tsx) only. The blanket `* { color: black }` above would turn the
+     white text on the blue/red bars black and the hospital name black; these are more specific. The bars
+     are <p>/<span> elements on purpose: the `div { background: transparent }` rule above cannot reach them. */
+  .printable-slip.opd-letterhead .slip-blue-bar,
+  .printable-slip.opd-letterhead .slip-red-tag {
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .printable-slip.opd-letterhead .slip-blue-bar {
+    background: #1f3a8a !important;
+  }
+
+  .printable-slip.opd-letterhead .slip-red-tag {
+    background: #b3262d !important;
+  }
+
+  .printable-slip.opd-letterhead .slip-hospital-name {
+    color: #1f3a8a !important;
+  }
+
   body.diagnostic-thermal-print .diagnostic-printable-slip {
     width: 72mm !important;
     min-height: 0 !important;

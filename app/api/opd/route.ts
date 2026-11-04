@@ -27,6 +27,8 @@ export async function GET() {
       id: v.id,
       opdNumber: v.opdNumber,
       dailyToken: v.dailyToken,
+      opdSerial: v.opdSerial,
+      createdAt: v.createdAt,
       consultationFee: v.consultationFee.toString(),
       paymentMethod: v.payments[0]?.method ?? "CASH",
       freeReason: v.payments[0]?.method === "FREE" ? v.payments[0]?.note ?? null : null,
@@ -40,6 +42,7 @@ export async function GET() {
         cnic: v.patient.cnic,
         dateOfBirth: v.patient.dateOfBirth,
         mobile: v.patient.mobile,
+        address: v.patient.address,
       },
       doctor: {
         id: v.doctor.id,
@@ -118,10 +121,30 @@ export async function POST(request: Request) {
         });
       }
 
+      // The doctor's running "OPD No": the key has no date in it, so the count carries on from day to day.
+      // The first time a doctor is counted it starts from the visits already on record, so doctors who
+      // were using the system before this existed do not go back to 1. The row lock taken by the
+      // increment makes two desks serve different numbers.
+      const serialKey = `OPDSERIAL:${doctorId}`;
+      const serialRow = await transaction.dailySequence.findUnique({ where: { sequenceKey: serialKey } });
+      const serialStart = serialRow ? 0 : await transaction.opdVisit.count({ where: { doctorId } });
+      const serialSequence = await transaction.dailySequence.upsert({
+        where: { sequenceKey: serialKey },
+        create: { sequenceKey: serialKey, nextValue: serialStart + 2 },
+        update: { nextValue: { increment: 1 } },
+      });
+      let opdSerial = serialSequence.nextValue - 1;
+      // Same stale-counter guard as the daily token above: never reuse a number that is already printed.
+      const lastSerial = await transaction.opdVisit.aggregate({ where: { doctorId }, _max: { opdSerial: true } });
+      if (lastSerial._max.opdSerial != null && lastSerial._max.opdSerial >= opdSerial) {
+        opdSerial = lastSerial._max.opdSerial + 1;
+        await transaction.dailySequence.update({ where: { sequenceKey: serialKey }, data: { nextValue: opdSerial + 1 } });
+      }
+
       const opdNumber = `OPD-${dateKey.replaceAll("-", "")}-${String(doctorId).padStart(3, "0")}-${String(dailyToken).padStart(4, "0")}`;
       const chargedFee = paymentMethod === "FREE" ? 0 : doctor.consultationFee;
 
-      const createdVisit = await transaction.opdVisit.create({ data: { opdNumber, visitDate, dailyToken, patientId, doctorId, consultationFee: chargedFee, createdById: user.id } });
+      const createdVisit = await transaction.opdVisit.create({ data: { opdNumber, visitDate, dailyToken, opdSerial, patientId, doctorId, consultationFee: chargedFee, createdById: user.id } });
       await transaction.payment.create({
         data: {
           amount: chargedFee,
@@ -134,13 +157,15 @@ export async function POST(request: Request) {
       return { ...createdVisit, patient, doctor };
     });
 
-    await db.auditLog.create({ data: { action: "CREATE", entity: "OpdVisit", entityId: String(visit.id), userId: user.id, reason: paymentMethod === "FREE" ? freeReason : null, afterJson: JSON.stringify({ opdNumber: visit.opdNumber, dailyToken: visit.dailyToken, patientId, doctorId, paymentMethod }) } });
+    await db.auditLog.create({ data: { action: "CREATE", entity: "OpdVisit", entityId: String(visit.id), userId: user.id, reason: paymentMethod === "FREE" ? freeReason : null, afterJson: JSON.stringify({ opdNumber: visit.opdNumber, dailyToken: visit.dailyToken, opdSerial: visit.opdSerial, patientId, doctorId, paymentMethod }) } });
 
     return NextResponse.json(
       {
       visit: {
         opdNumber: visit.opdNumber,
         dailyToken: visit.dailyToken,
+        opdSerial: visit.opdSerial,
+        createdAt: visit.createdAt,
         consultationFee: visit.consultationFee.toString(),
         paymentMethod,
         freeReason: paymentMethod === "FREE" ? freeReason : null,
@@ -151,6 +176,7 @@ export async function POST(request: Request) {
           gender: visit.patient.gender,
           cnic: visit.patient.cnic,
           dateOfBirth: visit.patient.dateOfBirth,
+          address: visit.patient.address,
         },
         doctor: {
           name: visit.doctor.name,

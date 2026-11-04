@@ -162,6 +162,9 @@ model OpdVisit {
   opdNumber       String              @unique @map("opd_number") @db.VarChar(40)
   visitDate       DateTime            @map("visit_date") @db.Date
   dailyToken      Int                 @map("daily_token")
+  // The doctor's running visit count, printed as "OPD No" on the slip. Unlike dailyToken it never
+  // restarts: yesterday ended at 100, today starts at 101. NULL on visits made before it existed.
+  opdSerial       Int?                @map("opd_serial")
   patientId       Int                 @map("patient_id")
   doctorId        Int                 @map("doctor_id")
   consultationFee Decimal             @map("consultation_fee") @db.Decimal(12, 2)
@@ -174,6 +177,7 @@ model OpdVisit {
   receipts        DiagnosticReceipt[]
 
   @@unique([doctorId, visitDate, dailyToken])
+  @@unique([doctorId, opdSerial])
   @@index([patientId, visitDate])
   @@map("opd_visits")
 }

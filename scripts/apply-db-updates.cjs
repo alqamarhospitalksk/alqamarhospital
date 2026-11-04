@@ -215,6 +215,16 @@ const updates = [
       ]);
     },
   },
+  // Same statements as prisma/migrations/20261104120000_opd_serial/migration.sql.
+  // Existing visits keep opd_serial NULL; the app starts each doctor's count from their visit total.
+  {
+    name: "OPD running number",
+    needed: async (conn) => !(await columnExists(conn, "opd_visits", "opd_serial")) || !(await indexExists(conn, "opd_visits", "opd_visits_doctor_id_opd_serial_key")),
+    run: async (conn) => {
+      if (!(await columnExists(conn, "opd_visits", "opd_serial"))) await conn.query("ALTER TABLE `opd_visits` ADD COLUMN `opd_serial` INTEGER NULL");
+      if (!(await indexExists(conn, "opd_visits", "opd_visits_doctor_id_opd_serial_key"))) await conn.query("CREATE UNIQUE INDEX `opd_visits_doctor_id_opd_serial_key` ON `opd_visits`(`doctor_id`, `opd_serial`)");
+    },
+  },
 ];
 
 async function connect(ssl) {

@@ -73,6 +73,8 @@ type Visit = {
   id?: number;
   opdNumber: string;
   dailyToken: number;
+  opdSerial?: number | null;
+  createdAt?: string;
   consultationFee: string;
   paymentMethod?: string;
   freeReason?: string | null;
@@ -84,6 +86,7 @@ type Visit = {
     gender?: string;
     cnic?: string | null;
     dateOfBirth?: string | null;
+    address?: string | null;
   };
   doctor: VisitDoctor;
 };
@@ -115,6 +118,13 @@ function computeAge(dob?: string | null) {
   // Under 1 month: compute days
   const days = Math.floor((now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
   return `${days} Days`;
+}
+
+// Date and time the visit was registered, as printed on the slip (dd/mm/yyyy, hh:mm am/pm).
+function formatSlipDateTime(value?: string) {
+  const when = value ? new Date(value) : new Date();
+  const at = isNaN(when.getTime()) ? new Date() : when;
+  return `${at.toLocaleDateString("en-GB")}  ${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
 }
 
 const DAY_LABELS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -338,7 +348,7 @@ export default function OpdPage() {
       <div class="center clinic">${escapeHtml(clinicName.toUpperCase())}</div>
       <div class="center subtitle">OPD CONSULTATION SLIP</div>
       <div class="center copy-label">${escapeHtml(copyLabel.toUpperCase())}</div>
-      <div class="meta">OPD #: ${escapeHtml(visit.opdNumber)}<br>Date: ${escapeHtml(date)}</div>
+      <div class="meta">OPD No: ${escapeHtml(String(visit.opdSerial ?? visit.opdNumber))}<br>Ref: ${escapeHtml(visit.opdNumber)}<br>Date: ${escapeHtml(date)}</div>
       <div class="rule"></div>
       <div class="token">TOKEN #${escapeHtml(String(visit.dailyToken))}</div>
       <div class="patient"><strong>Patient:</strong> ${escapeHtml(visit.patient.name)}<br><strong>MR #:</strong> ${escapeHtml(visit.patient.mrNumber)}<br><strong>Father Name:</strong> ${escapeHtml(visit.patient.fatherName || "-")}<br><strong>Age:</strong> ${escapeHtml(age || "-")} &nbsp; <strong>Gender:</strong> ${escapeHtml(visit.patient.gender || "-")}</div>
@@ -416,6 +426,7 @@ export default function OpdPage() {
     const q = searchFilter.toLowerCase();
     return (
       v.opdNumber.toLowerCase().includes(q) ||
+      String(v.opdSerial ?? "") === q ||
       v.patient.name.toLowerCase().includes(q) ||
       v.patient.mrNumber.toLowerCase().includes(q) ||
       v.doctor.name.toLowerCase().includes(q)
@@ -930,165 +941,101 @@ export default function OpdPage() {
                 printing its own title/date header and footer. */}
             <style>{`@media print { @page { margin: 0; } }`}</style>
 
-            {/* Modal Body: Bilingual Doctor Slip Layout */}
+            {/* Modal Body: letterhead-style doctor slip (doctor left, logo centre, hospital right) */}
             <Box className="print-modal-body" p={{ base: "20px", md: "28px" }} maxH="80vh" overflowY="auto">
               <Box
-                className="printable-slip opd-doctor-slip"
+                className="printable-slip opd-doctor-slip opd-letterhead"
                 p="4"
                 bg="white"
                 display="flex"
                 flexDirection="column"
                 minH={{ base: "auto", md: "760px" }}
+                color="#111"
               >
-                {/* Bordered content area — header, token, patient info, blank space */}
-                <Box
-                  position="relative"
-                  border="2px solid #123d3b"
-                  borderRadius="12px"
-                  bg="white"
-                  p="4"
-                  flex="1"
-                  display="flex"
-                  flexDirection="column"
-                  overflow="hidden"
-                >
-                  {/* Watermark — a pre-faded, fully-opaque image (public/images/watermark-print.png),
-                      not a CSS opacity/background-image trick. Chrome's print/PDF pipeline unreliably
-                      drops both of those under "Background graphics" and opacity-compositing print
-                      quirks; a plain foreground <img> at full opacity always prints, same as the
-                      hospital logo above, so the faintness is baked into the pixels themselves. */}
-                  <Flex className="slip-watermark" position="absolute" inset="0" align="center" justify="center" pointerEvents="none" zIndex="0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/images/watermark-print.png"
-                      alt=""
-                      style={{ width: "300px", height: "300px", objectFit: "contain" }}
-                    />
-                  </Flex>
-
-                  <Box position="relative" zIndex="1" display="flex" flexDirection="column" flex="1">
-                    {/* Header: English doctor (left) · Logo + hospital name (center) · Urdu doctor (right) */}
-                    <Grid templateColumns="minmax(0, 1fr) auto minmax(0, 1fr)" gap="3" alignItems="start" pb="0" mb="1" position="relative" minH="94px" className="slip-header-grid">
-                      {/* Doctor details — English */}
-                      <Box textAlign="left" ml="3" mt="2" className="slip-inset-block slip-doctor-en">
-                        <Text fontSize="md" fontWeight="900" color="#123d3b" lineHeight="1.25">
-                          {visit.doctor.name}
-                        </Text>
-                        <Text fontSize="xs" fontWeight="700" color="#126b68">
-                          {visit.doctor.specialization}
-                        </Text>
-                        {visit.doctor.qualifications && (
-                          <Text fontSize="10px" color="#556e68" whiteSpace="pre-line" mt="1" lineHeight="1.4">
-                            {visit.doctor.qualifications}
-                          </Text>
-                        )}
-                        {formatAvailability(visit.doctor, "en") && (
-                          <Text fontSize="9px" color="#77908b" mt="1">
-                            Available: {formatAvailability(visit.doctor, "en")}
-                          </Text>
-                        )}
-                      </Box>
-
-                      {/* Hospital logo, with the hospital name in front of it — center, nudged up */}
-                      <Flex
-                        align="center"
-                        justify="center"
-                        gap="2"
-                        position="absolute"
-                        top="6px"
-                        left="50%"
-                        transform="translateX(-50%)"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={hospitalSettings?.logoDataUrl || "/images/logo.png"}
-                          alt="Hospital logo"
-                          style={{ width: 72, height: 72, objectFit: "contain" }}
-                        />
-                        <Text fontSize="20px" fontWeight="900" color="#123d3b" lineHeight="1.2" whiteSpace="nowrap">
-                          {hospitalSettings?.name || "Al Qamar Hospital"}
-                        </Text>
-                      </Flex>
-                      <Box />
-
-                      {/* Doctor details — Urdu */}
-                      <Box textAlign="right" dir="rtl" fontFamily="var(--font-urdu)" ml="3" mt="2" mr="3" pb="2" className="slip-inset-block slip-doctor-ur">
-                        <Text fontSize="md" fontWeight="900" color="#123d3b" lineHeight="1.6">
-                          {visit.doctor.nameUrdu || "—"}
-                        </Text>
-                        {visit.doctor.specializationUrdu && (
-                          <Text fontSize="xs" fontWeight="700" color="#126b68">
-                            {visit.doctor.specializationUrdu}
-                          </Text>
-                        )}
-                        {visit.doctor.qualificationsUrdu && (
-                          <Text fontSize="10px" color="#556e68" whiteSpace="pre-line" mt="1" lineHeight="1.6">
-                            {visit.doctor.qualificationsUrdu}
-                          </Text>
-                        )}
-                        {formatAvailability(visit.doctor, "ur") && (
-                          <Text fontSize="11px" color="#556e68" mt="1.5" lineHeight="1.1">
-                            دستیابی: {formatAvailability(visit.doctor, "ur")}
-                          </Text>
-                        )}
-                      </Box>
-                    </Grid>
-
-                    {/* Heading sits above the line, outside the patient details */}
-                    <Text fontSize="9px" color="#77908b" textTransform="uppercase" letterSpacing="0.06em" mb="1" ml="3" className="slip-inset-block">
-                      Patient Information
+                {/* Header: doctor details (left) · logo (centre) · hospital details (right) */}
+                <Grid templateColumns="minmax(0, 1fr) auto minmax(0, 1fr)" gap="5" alignItems="center" pb="2" className="slip-letterhead-header">
+                  <Box textAlign="left">
+                    <Text fontSize="22px" fontWeight="900" lineHeight="1.15" color="#111">
+                      {visit.doctor.name}
                     </Text>
-                    <Box borderTop="1px solid #dbe5e1" mb="2" />
-
-                    {/* Patient Details — two rows */}
-                    <Box mb="3" ml="3" className="slip-inset-block">
-                      <HStack columnGap="4" mb="1" fontSize="xs" color="#123d3b">
-                        <Text>
-                          MR #: <Box as="span" fontWeight="800">{visit.patient.mrNumber}</Box>
-                        </Text>
-                        <Text>
-                          OPD #: <Box as="span" fontWeight="800">{visit.opdNumber}</Box>
-                        </Text>
-                        <Text>
-                          Name: <Box as="span" fontWeight="800">{visit.patient.name}</Box>
-                        </Text>
-                        <Text>
-                          Father Name: <Box as="span" fontWeight="800">{visit.patient.fatherName || "—"}</Box>
-                        </Text>
-                      </HStack>
-                      <HStack columnGap="4" fontSize="xs" color="#123d3b">
-                        <Text>
-                          Age: <Box as="span" fontWeight="800">{computeAge(visit.patient.dateOfBirth)}</Box>
-                        </Text>
-                        <Text>
-                          Gender: <Box as="span" fontWeight="800">{visit.patient.gender || "—"}</Box>
-                        </Text>
-                        <Text>
-                          Date: <Box as="span" fontWeight="800">{new Date().toLocaleDateString("en-GB")}</Box>
-                        </Text>
-                      </HStack>
-                    </Box>
-
-                    {/* Divider line below Patient Information */}
-                    <Box borderTop="1px solid #dbe5e1" mb="3" />
-
-                    {/* Big blank space for the doctor's notes / prescription */}
-                    <Box flex="1" />
+                    {visit.doctor.qualifications && (
+                      <Text fontSize="11px" fontWeight="700" whiteSpace="pre-line" mt="1" lineHeight="1.25">
+                        {visit.doctor.qualifications}
+                      </Text>
+                    )}
+                    <Text fontSize="11px" fontWeight="800" mt="0.5" lineHeight="1.25">
+                      {visit.doctor.specialization}
+                    </Text>
+                    {formatAvailability(visit.doctor, "en") && (
+                      <Text fontSize="11px" fontWeight="700" mt="0.5" lineHeight="1.25">
+                        Duty Timing: {formatAvailability(visit.doctor, "en")}
+                      </Text>
+                    )}
                   </Box>
-                </Box>
 
-                {/* Footer: Hospital name + address — below the bordered box */}
-                <Box pt="3" textAlign="center">
-                  <Text fontSize="9px" color="#556e68">
-                    <Box as="span" fontWeight="800" color="#123d3b">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={hospitalSettings?.logoDataUrl || "/images/logo.jpeg"}
+                    alt="Hospital logo"
+                    style={{ width: 112, height: 112, objectFit: "contain" }}
+                  />
+
+                  {/* Pushed to the right edge so the logo has equal space on both sides and reads as centred. */}
+                  <Box textAlign="left" justifySelf="end" maxW="100%">
+                    <Text fontSize="20px" fontWeight="900" lineHeight="1.15" color="#1f3a8a" className="slip-hospital-name">
                       {hospitalSettings?.name || "Al Qamar Hospital"}
+                    </Text>
+                    {hospitalSettings?.address && (
+                      <Text fontSize="11px" fontWeight="600" mt="1.5" lineHeight="1.3">
+                        {hospitalSettings.address}
+                      </Text>
+                    )}
+                    {hospitalSettings?.email && (
+                      <Text fontSize="11px" fontWeight="600" mt="1" lineHeight="1.3">
+                        Email: {hospitalSettings.email}
+                      </Text>
+                    )}
+                    {hospitalSettings?.phone && (
+                      <Text fontSize="11px" fontWeight="600" lineHeight="1.3">
+                        Phone: {hospitalSettings.phone}
+                      </Text>
+                    )}
+                  </Box>
+                </Grid>
+                <Box borderTop="1px solid #444" />
+
+                {/* Patient details in two columns */}
+                <Grid templateColumns="1fr 1fr" columnGap="6" rowGap="3" py="4" px="2" fontSize="15px" className="slip-patient-grid">
+                  <Text>Name: <Box as="span" fontWeight="800">{visit.patient.name}</Box></Text>
+                  <Text>MR No: <Box as="span" fontWeight="800">{visit.patient.mrNumber}</Box></Text>
+                  <Text>Age: <Box as="span" fontWeight="800">{computeAge(visit.patient.dateOfBirth) || "—"}</Box></Text>
+                  <Text>Gender: <Box as="span" fontWeight="800">{visit.patient.gender || "—"}</Box></Text>
+                  <Text>OPD No: <Box as="span" fontWeight="800">{visit.opdSerial ?? visit.opdNumber}</Box></Text>
+                  <Text>CNIC No: <Box as="span" fontWeight="800">{visit.patient.cnic || "—"}</Box></Text>
+                  <Text>Date/Time: <Box as="span" fontWeight="800">{formatSlipDateTime(visit.createdAt)}</Box></Text>
+                  <Text>Address: <Box as="span" fontWeight="800">{visit.patient.address || "—"}</Box></Text>
+                </Grid>
+
+                {/* Writing area: narrow clinical records column + wide prescription area */}
+                <Grid templateColumns="27% 1fr" flex="1" borderTop="1px solid #444" borderBottom="1px solid #444" className="slip-writing-area">
+                  <Flex direction="column">
+                    <Text className="slip-blue-bar" bg="#1f3a8a" color="white" fontSize="10px" fontWeight="700" letterSpacing="0.06em" textAlign="center" py="1.5">
+                      CLINICAL RECORDS
+                    </Text>
+                    <Box flex="1" />
+                    <Box p="2">
+                      <Text as="span" className="slip-red-tag" display="inline-block" bg="#b3262d" color="white" fontSize="10px" fontWeight="800" px="2.5" py="1" borderRadius="3px">
+                        NOT VALID FOR COURT
+                      </Text>
                     </Box>
-                    {[hospitalSettings?.address, hospitalSettings?.phone, hospitalSettings?.email]
-                      .filter(Boolean)
-                      .map((part) => `  •  ${part}`)
-                      .join("")}
-                  </Text>
-                </Box>
+                  </Flex>
+                  <Flex direction="column" borderLeft="1px solid #444">
+                    <Text fontSize="10px" fontWeight="700" px="2" py="1.5">
+                      Rx / PRESCRIPTION
+                    </Text>
+                    <Box flex="1" />
+                  </Flex>
+                </Grid>
               </Box>
             </Box>
 
