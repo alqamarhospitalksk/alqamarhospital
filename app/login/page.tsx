@@ -253,16 +253,12 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 loading={isSubmitting}
-                bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
+                bg="#11695e"
                 color="white"
                 h="48px"
-                borderRadius="10px"
                 fontWeight="700"
                 letterSpacing="0.02em"
-                boxShadow="0 4px 16px rgba(26,128,112,0.35)"
-                _hover={{ boxShadow: "0 6px 24px rgba(26,128,112,0.50)", transform: "translateY(-1px)" }}
-                _active={{ transform: "translateY(0)", boxShadow: "0 2px 8px rgba(26,128,112,0.30)" }}
-                transition="all 0.2s ease"
+                _hover={{ bg: "#0d5850" }}
               >
                 Sign in <FontAwesomeIcon icon={faArrowRight} />
               </Button>

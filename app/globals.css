@@ -78,105 +78,36 @@ header > div:first-child > a:first-child {
   pointer-events: none;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   UNIVERSAL PAGE ENHANCEMENTS
-   These CSS rules upgrade every inner page (patients, doctors, OPD,
-   lab, employees, expenses, etc.) at once without touching TSX files.
-   ══════════════════════════════════════════════════════════════════════ */
+/* ── Page layout helpers ────────────────────────────────────────────────
+   Buttons, tables, badges and form fields are styled by the Chakra theme in
+   app/providers.tsx; these rules only cover layout that a theme cannot reach. */
 
-/* ── Sticky page header → glass ─────────────────────────────────────── */
-header {
-  background: rgba(255, 255, 255, 0.90) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-  border-bottom-color: rgba(14, 36, 32, 0.07) !important;
-  box-shadow: 0 1px 0 rgba(14, 36, 32, 0.04), 0 4px 20px rgba(14, 36, 32, 0.04) !important;
+/* Page headers (className="page-header") wrap instead of overflowing: on a phone the
+   action buttons drop under the title rather than running off the screen. */
+.page-header > * {
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
-/* ── Table header row ────────────────────────────────────────────────── */
-thead tr th,
-thead tr td {
-  background: #f2f7f5 !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.07em !important;
-  color: #5a8078 !important;
-  padding-top: 11px !important;
-  padding-bottom: 11px !important;
-  border-bottom: 2px solid rgba(14, 36, 32, 0.07) !important;
+/* Chart text: recharts sets font-size as an SVG attribute, which the page's base font size
+   overrides (labels came out at 16px). One small size for every chart in the app. */
+.recharts-cartesian-axis-tick-value,
+.recharts-legend-item-text,
+.recharts-label-list text {
+  font-size: 11px;
 }
 
-/* ── Table body rows ─────────────────────────────────────────────────── */
-tbody tr {
-  border-bottom: 1px solid rgba(14, 36, 32, 0.04) !important;
-  transition: background 0.12s ease !important;
-}
-tbody tr:hover {
-  background: rgba(45, 160, 139, 0.04) !important;
+/* Smooth momentum scrolling for the sideways-scrolling tables inside cards. */
+div:has(> table) {
+  -webkit-overflow-scrolling: touch;
 }
 
-/* ── Search input wrapper focus ring ─────────────────────────────────── */
-/* HStack used as input group: border="1px solid #dbe5e1" */
-[style*="border: 1px solid rgb(219, 229, 225)"],
-[style*="border: 1px solid rgb(225, 233, 230)"] {
-  border-radius: 10px !important;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
-}
-[style*="border: 1px solid rgb(219, 229, 225)"]:focus-within,
-[style*="border: 1px solid rgb(225, 233, 230)"]:focus-within {
-  border-color: #2da08b !important;
-  box-shadow: 0 0 0 3px rgba(45, 160, 139, 0.12) !important;
-}
-
-/* ── Card section headers (px/py inside white box) ───────────────────── */
-[style*="border-bottom: 1px solid rgb(237, 242, 240)"],
-[style*="border-bottom: 1px solid rgb(241, 245, 243)"] {
-  border-bottom-color: rgba(14, 36, 32, 0.06) !important;
-  background: #fafcfb !important;
-}
-
-/* ── White cards (common bg="white" border="1px solid #e1e9e6") ──────── */
-div[style*="border: 1px solid rgb(225, 233, 230)"],
-div[style*="border: 1px solid rgb(226, 233, 230)"] {
-  border-color: rgba(14, 36, 32, 0.07) !important;
-  box-shadow: 0 2px 12px rgba(14, 36, 32, 0.05) !important;
-}
-
-/* ── CTA button gradient (bg="#123d3b") ──────────────────────────────── */
-button[style*="background: rgb(18, 61, 59)"],
-button[style*="background-color: rgb(18, 61, 59)"],
-a[style*="background: rgb(18, 61, 59)"],
-a[style*="background-color: rgb(18, 61, 59)"] {
-  background: linear-gradient(135deg, #1a8070 0%, #0f5a52 100%) !important;
-  box-shadow: 0 3px 12px rgba(26, 128, 112, 0.28) !important;
-  border-radius: 9px !important;
-  transition: all 0.18s ease !important;
-}
-button[style*="background: rgb(18, 61, 59)"]:hover,
-button[style*="background-color: rgb(18, 61, 59)"]:hover {
-  box-shadow: 0 5px 20px rgba(26, 128, 112, 0.42) !important;
-  transform: translateY(-1px) !important;
-}
-
-/* ── Outline action buttons → rounded ───────────────────────────────── */
-button[data-variant="outline"] {
-  border-radius: 7px !important;
-  transition: all 0.15s ease !important;
-}
-
-/* ── Small / XS icon+action buttons ─────────────────────────────────── */
-button[data-size="xs"] {
-  border-radius: 6px !important;
-  font-weight: 600 !important;
-}
-
-/* ── Red action buttons (delete / danger) ────────────────────────────── */
-button[style*="background: rgb(163, 66, 88)"],
-button[style*="background-color: rgb(163, 66, 88)"] {
-  background: linear-gradient(135deg, #c05070 0%, #8a2442 100%) !important;
-  box-shadow: 0 3px 12px rgba(163, 66, 88, 0.28) !important;
-  border-radius: 9px !important;
+/* Respect people who turn animations off in their system settings. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Print CSS setup */

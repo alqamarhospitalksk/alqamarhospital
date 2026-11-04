@@ -210,40 +210,23 @@ export default function PayoutsPage() {
   return (
     <Box minH="100vh" bg="#eef2f0" color="#0e2420">
       {/* Header */}
-      <Flex
-        as="header"
-        position="sticky"
-        top="0"
-        zIndex="40"
-        h="72px"
-        bg="rgba(255,255,255,0.90)"
-        style={{ backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
-        borderBottom="1px solid rgba(14,36,32,0.07)"
-        boxShadow="0 1px 0 rgba(14,36,32,0.04), 0 4px 20px rgba(14,36,32,0.04)"
-        align="center"
-        justify="space-between"
-        px={{ base: "20px", md: "42px" }}
-      >
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <HStack gap="4">
           <Link href="/" color="#2da08b" _hover={{ color: "#1a8070" }} transition="color 0.15s ease">
             <FontAwesomeIcon icon={faArrowLeft} />
           </Link>
           <Box>
-            <Heading size="lg" letterSpacing="-0.04em" color="#0e2420">
+            <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em" color="#0e2420">
               Payouts
             </Heading>
           </Box>
         </HStack>
         <HStack gap="3">
           <Button
-            bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
+            bg="#11695e"
             color="white"
-            borderRadius="9px"
             fontWeight="700"
-            boxShadow="0 3px 12px rgba(26,128,112,0.28)"
-            _hover={{ boxShadow: "0 5px 20px rgba(26,128,112,0.42)", transform: "translateY(-1px)" }}
-            _active={{ transform: "translateY(0)" }}
-            transition="all 0.18s ease"
+            _hover={{ bg: "#0d5850" }}
             onClick={() => openPayoutModal("DOCTOR_PAYOUT")}
           >
             <FontAwesomeIcon icon={faCoins} />
@@ -253,7 +236,7 @@ export default function PayoutsPage() {
       </Flex>
 
       {/* Main Content */}
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
 
         {/* Doctor Split Fee Overview Table */}
         {doctorSummaries.length > 0 && (
@@ -308,14 +291,11 @@ value={customEnd}
                     />
                     <Button
                       size="sm"
-                      bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
+                      bg="#11695e"
                       color="white"
-                      borderRadius="8px"
                       fontWeight="700"
-                      boxShadow="0 2px 8px rgba(26,128,112,0.25)"
                       loading={loadingSummaries}
-                      onClick={() => void load("custom", customStart, customEnd)}
-                    >
+                      onClick={() => void load("custom", customStart, customEnd)} _hover={{ bg: "#0d5850" }}>
                       Apply
                     </Button>
                   </HStack>
@@ -358,9 +338,9 @@ value={customEnd}
                       <Table.Cell textAlign="right">
                         <Button
                           size="xs"
-                          bg="#123d3b"
+                          bg="#11695e"
                           color="white"
-                          _hover={{ bg: "#255d58" }}
+                          _hover={{ bg: "#0d5850" }}
                           onClick={() => openPayoutModal("DOCTOR_PAYOUT", String(doc.id), "", doc.balanceDue > 0 ? String(doc.balanceDue) : "")}
                         >
                           Payout
@@ -376,7 +356,7 @@ value={customEnd}
 
         {/* Employee Salary Due */}
         {dueEmployees.length > 0 && (
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden" mb="6">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" mb="6" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <Box p="5" borderBottom="1px solid #edf2f0">
               <HStack gap="3">
                 <Flex w="34px" h="34px" bg="#f8e8d8" color="#b26732" borderRadius="9px" align="center" justify="center">
@@ -427,9 +407,9 @@ value={customEnd}
                         <Table.Cell textAlign="right">
                           <Button
                             size="xs"
-                            bg="#123d3b"
+                            bg="#11695e"
                             color="white"
-                            _hover={{ bg: "#255d58" }}
+                            _hover={{ bg: "#0d5850" }}
                             disabled={cycle.status === "upcoming"}
                             title={cycle.status === "upcoming" ? "Salary can only be paid on or after the due date" : undefined}
                             onClick={() => openPayoutModal("SALARY", "", String(employee.id), String(amountDue))}
@@ -452,7 +432,7 @@ value={customEnd}
         )}
 
         {/* Payout Ledger Table */}
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <Box p="5" borderBottom="1px solid #edf2f0">
             <HStack justify="space-between">
               <HStack gap="3">
@@ -804,7 +784,7 @@ value={customEnd}
                 <Button variant="outline" borderColor="#c8dad5" onClick={() => setShowPayoutModal(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" loading={saving} bg="#123d3b" color="white" _hover={{ bg: "#255d58" }}>
+                <Button type="submit" loading={saving} bg="#11695e" color="white" _hover={{ bg: "#0d5850" }}>
                   Record Payout
                 </Button>
               </Flex>

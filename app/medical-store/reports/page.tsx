@@ -327,9 +327,9 @@ export default function MedicalStoreReportsPage() {
 
   return (
     <Box minH="100vh" bg="#f5f7f8" color="#17252b">
-      <Flex as="header" minH="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" justify="space-between" gap="3" flexWrap="wrap" py="3" px={{ base: "20px", md: "42px" }}>
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <Box>
-          <Heading size="lg" letterSpacing="-0.04em">
+          <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em">
             Reports
           </Heading>
         </Box>
@@ -339,14 +339,10 @@ export default function MedicalStoreReportsPage() {
             &nbsp; Print PDF
           </Button>
           <Button
-            bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
+            bg="#11695e"
             color="white"
-            borderRadius="9px"
             fontWeight="700"
-            boxShadow="0 3px 12px rgba(26,128,112,0.28)"
-            _hover={{ boxShadow: "0 5px 20px rgba(26,128,112,0.42)", transform: "translateY(-1px)" }}
-            _active={{ transform: "translateY(0)" }}
-            transition="all 0.18s ease"
+            _hover={{ bg: "#0d5850" }}
             onClick={() => void downloadExcel()}
             loading={downloading}
           >
@@ -356,7 +352,7 @@ export default function MedicalStoreReportsPage() {
         </HStack>
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
         <Flex justify="flex-end" mb="6">
           <VStack gap="3" align="flex-end">
             <HStack gap="2">
@@ -398,14 +394,11 @@ export default function MedicalStoreReportsPage() {
                 <DateInput size="sm" value={end} onChange={(e) => setEnd(e.target.value)} w="150px" borderRadius="8px" bg="white" />
                 <Button
                   size="sm"
-                  bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
+                  bg="#11695e"
                   color="white"
-                  borderRadius="8px"
                   fontWeight="700"
-                  boxShadow="0 2px 8px rgba(26,128,112,0.25)"
                   loading={loading}
-                  onClick={() => void load()}
-                >
+                  onClick={() => void load()} _hover={{ bg: "#0d5850" }}>
                   Apply
                 </Button>
               </HStack>
@@ -440,7 +433,7 @@ export default function MedicalStoreReportsPage() {
             {t.linesWithoutCost} sold item{t.linesWithoutCost === 1 ? "" : "s"} (PKR {t.revenueWithoutCost.toLocaleString("en-PK")}) were sold before cost price was being saved, so they are not included in profit.
           </Text>
         )}
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden" mb="8">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" mb="8" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <Box p="5" borderBottom="1px solid #edf2f0">
             <Heading size="sm">Profit by Medicine</Heading>
           </Box>
@@ -481,7 +474,7 @@ export default function MedicalStoreReportsPage() {
         </Box>
 
         <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap="6" mb="6">
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <Box p="5" borderBottom="1px solid #edf2f0">
               <Heading size="sm">Top-Selling Medicines</Heading>
             </Box>
@@ -522,7 +515,7 @@ export default function MedicalStoreReportsPage() {
             </Box>
           </Box>
 
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <Box p="5" borderBottom="1px solid #edf2f0">
               <Heading size="sm">Sales by Category</Heading>
             </Box>
@@ -552,7 +545,7 @@ export default function MedicalStoreReportsPage() {
           </Box>
         </Grid>
 
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <Box p="5" borderBottom="1px solid #edf2f0">
             <Heading size="sm">Purchases by Supplier</Heading>
           </Box>

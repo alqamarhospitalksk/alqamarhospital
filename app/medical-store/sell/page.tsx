@@ -406,9 +406,9 @@ export default function SellMedicinePage({ searchParams }: { searchParams: Searc
 
   return (
     <Box minH="100vh" bg="#f5f7f8" color="#17252b">
-      <Flex as="header" h="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" justify="space-between" px={{ base: "20px", md: "42px" }}>
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <Box>
-          <Heading size="lg" letterSpacing="-0.04em">
+          <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em">
             {inPatientMode ? "Issue Medicine — In-patient" : "Sell Medicine"}
           </Heading>
         </Box>
@@ -417,7 +417,7 @@ export default function SellMedicinePage({ searchParams }: { searchParams: Searc
         )}
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
         {inPatientMode && !inPatient && (
           <Flex bg={inPatientError ? "#fdf1e7" : "#eef6f4"} border="1px solid" borderColor={inPatientError ? "#f0d6b8" : "#c8dad5"} borderRadius="12px" p="5" mb="6" justify="space-between" align="center" gap="4" flexWrap="wrap">
             <Text fontSize="sm" fontWeight="700" color={inPatientError ? "#b26732" : "#506c65"}>
@@ -451,7 +451,7 @@ export default function SellMedicinePage({ searchParams }: { searchParams: Searc
             )}
           </Box>
         )}
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" p={{ base: "20px", md: "28px" }} mb="8">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p={{ base: "20px", md: "28px" }} mb="8" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <HStack mb="5" justify="space-between">
             <HStack>
               <Flex w="36px" h="36px" bg="#e9f1ef" color="#126b68" borderRadius="9px" align="center" justify="center">
@@ -717,14 +717,14 @@ export default function SellMedicinePage({ searchParams }: { searchParams: Searc
 
           <Flex justify="space-between" align="center" bg="#f5f7f8" p="4" borderRadius="8px">
             <Text fontWeight="800" fontSize="lg" color="#123d3b">Total: PKR {(inPatientMode ? subtotal : total).toFixed(2)}</Text>
-            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={saving} onClick={submitSale} disabled={inPatientMode && (!inPatient || !inPatient.canIssue)}>
+            <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={saving} onClick={submitSale} disabled={inPatientMode && (!inPatient || !inPatient.canIssue)}>
               <FontAwesomeIcon icon={faCashRegister} />
               &nbsp; {inPatientMode ? "Issue on patient's bill" : "Complete Sale"}
             </Button>
           </Flex>
         </Box>
 
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <Flex p="5" borderBottom="1px solid #edf2f0" justify="space-between" align="center" flexWrap="wrap" gap="3">
             <Heading size="sm">Recent Sales</Heading>
             <NativeSelect.Root width="140px" size="sm">
@@ -860,7 +860,7 @@ export default function SellMedicinePage({ searchParams }: { searchParams: Searc
             </Box>
             <Flex justify="flex-end" gap="3" px="24px" py="14px" bg="#f7faf9" borderTop="1px solid #e2e9e6">
               <Button variant="outline" borderColor="#c8dad5" onClick={() => setShowSlipModal(false)}>Close</Button>
-              <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} onClick={() => printReceipt(sale)}>
+              <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} onClick={() => printReceipt(sale)}>
                 <FontAwesomeIcon icon={faPrint} />
                 &nbsp; Print Receipt
               </Button>

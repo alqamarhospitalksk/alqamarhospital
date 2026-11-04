@@ -85,11 +85,11 @@ export default function StockCountPage() {
 
   return (
     <Box minH="100vh" bg="#f5f7f8" color="#17252b">
-      <Flex as="header" h="78px" bg="white" borderBottom="1px solid #e2e9e6" align="center" px={{ base: "20px", md: "42px" }}>
-        <Heading size="lg" letterSpacing="-0.04em">Stock Count</Heading>
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+        <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em">Stock Count</Heading>
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
 
         <HStack mb="4" gap="3" flexWrap="wrap">
           <Input maxW="320px" bg="white" placeholder="Search medicine…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
@@ -98,7 +98,7 @@ export default function StockCountPage() {
           </Button>
         </HStack>
 
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden" mb="5">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" mb="5" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <Box overflowX="auto">
             <Table.Root size="sm">
               <Table.Header>
@@ -149,14 +149,14 @@ export default function StockCountPage() {
           <TablePagination total={shown.length} page={currentPage} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </Box>
 
-        <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" p="5">
+        <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
           <Text fontSize="sm" fontWeight="700" mb="2">Note (optional)</Text>
           <Input mb="4" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Monthly count, September" />
           <HStack justify="space-between" flexWrap="wrap" gap="3">
             <Text fontSize="sm" color="#607d76">
               {differences.length === 0 ? "No differences entered yet." : `${differences.length} line${differences.length === 1 ? "" : "s"} will be corrected.`}
             </Text>
-            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={saving} onClick={save} disabled={differences.length === 0}>
+            <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={saving} onClick={save} disabled={differences.length === 0}>
               Save Count
             </Button>
           </HStack>

@@ -11,46 +11,54 @@ import "react-toastify/dist/ReactToastify.css";
 
 type Role = "OPERATOR" | "MANAGEMENT" | "LAB" | "MEDICAL_STORE";
 
-const navigation: { label: string; icon: typeof faGaugeHigh; href: string; roles: Role[] }[] = [
-  { label: "Dashboard", icon: faGaugeHigh, href: "/", roles: ["MANAGEMENT", "OPERATOR"] },
-  { label: "Patients", icon: faPeopleGroup, href: "/patients", roles: ["OPERATOR"] },
-  { label: "OPD desk", icon: faNotesMedical, href: "/opd", roles: ["OPERATOR"] },
-  { label: "Doctors", icon: faUserDoctor, href: "/doctors", roles: ["MANAGEMENT"] },
-  { label: "Tests", icon: faFlask, href: "/diagnostics", roles: ["OPERATOR"] },
-  { label: "Lab results", icon: faVial, href: "/results", roles: ["OPERATOR"] },
-  { label: "Admissions", icon: faHospitalUser, href: "/admissions", roles: ["OPERATOR"] },
-  { label: "Operation theater", icon: faBed, href: "/ot", roles: ["OPERATOR"] },
-  { label: "Minor emergency", icon: faKitMedical, href: "/emergency", roles: ["OPERATOR"] },
-  { label: "Billing & reports", icon: faFileInvoiceDollar, href: "/reports", roles: ["MANAGEMENT"] },
-  { label: "Payouts", icon: faFileInvoiceDollar, href: "/payouts", roles: ["MANAGEMENT"] },
-  { label: "Employees", icon: faUserTie, href: "/employees", roles: ["MANAGEMENT"] },
-  { label: "Expenses", icon: faCoins, href: "/expenses", roles: ["MANAGEMENT"] },
-  { label: "Hospital settings", icon: faBuilding, href: "/hospital-settings", roles: ["MANAGEMENT"] },
-  { label: "Inventory", icon: faBed, href: "/inventory", roles: ["MANAGEMENT"] },
-  { label: "Rooms & beds", icon: faBed, href: "/rooms", roles: ["MANAGEMENT"] },
-  { label: "User access", icon: faShieldHalved, href: "/users", roles: ["MANAGEMENT"] },
-  { label: "Lab dashboard", icon: faGaugeHigh, href: "/lab", roles: ["LAB"] },
-  { label: "Upload tests", icon: faVial, href: "/lab/upload", roles: ["LAB"] },
-  { label: "Test & Price Catalog", icon: faFlask, href: "/configuration", roles: ["LAB"] },
-  { label: "Store dashboard", icon: faGaugeHigh, href: "/medical-store", roles: ["MEDICAL_STORE"] },
-  { label: "Medicine catalog", icon: faPrescriptionBottleMedical, href: "/medical-store/catalog", roles: ["MEDICAL_STORE"] },
-  { label: "Suppliers", icon: faTruckMedical, href: "/medical-store/suppliers", roles: ["MEDICAL_STORE"] },
-  { label: "Supplier payments", icon: faHandHoldingDollar, href: "/medical-store/supplier-payments", roles: ["MEDICAL_STORE"] },
-  { label: "Purchase (stock in)", icon: faBoxesStacked, href: "/medical-store/purchase", roles: ["MEDICAL_STORE"] },
-  { label: "Reorder list", icon: faCartShopping, href: "/medical-store/reorder", roles: ["MEDICAL_STORE"] },
-  { label: "Sell medicine", icon: faCashRegister, href: "/medical-store/sell", roles: ["MEDICAL_STORE"] },
-  { label: "In-patients", icon: faBedPulse, href: "/medical-store/inpatients", roles: ["MEDICAL_STORE"] },
-  { label: "Day closing", icon: faVault, href: "/medical-store/day-closing", roles: ["MEDICAL_STORE"] },
-  { label: "Stock adjustments", icon: faTriangleExclamation, href: "/medical-store/adjustments", roles: ["MEDICAL_STORE"] },
-  { label: "Stock count", icon: faClipboardCheck, href: "/medical-store/stock-count", roles: ["MEDICAL_STORE"] },
-  { label: "Stock history", icon: faClockRotateLeft, href: "/medical-store/stock-history", roles: ["MEDICAL_STORE"] },
-  { label: "Expiry tracker", icon: faHourglassHalf, href: "/medical-store/expiry", roles: ["MEDICAL_STORE"] },
-  { label: "Sale returns", icon: faRotateLeft, href: "/medical-store/returns/sale", roles: ["MEDICAL_STORE"] },
-  { label: "Purchase returns", icon: faRotateLeft, href: "/medical-store/returns/purchase", roles: ["MEDICAL_STORE"] },
-  { label: "Reports", icon: faChartLine, href: "/medical-store/reports", roles: ["MEDICAL_STORE"] },
+// Grouped by task, in the order staff move through their day. `group` becomes the small section
+// title in the sidebar; a role sees only its own links and only the groups that hold them.
+const navigation: { label: string; icon: typeof faGaugeHigh; href: string; roles: Role[]; group: string }[] = [
+  { label: "Dashboard", icon: faGaugeHigh, href: "/", roles: ["MANAGEMENT", "OPERATOR"], group: "Overview" },
+  // Front desk
+  { label: "Patients", icon: faPeopleGroup, href: "/patients", roles: ["OPERATOR"], group: "Front desk" },
+  { label: "OPD desk", icon: faNotesMedical, href: "/opd", roles: ["OPERATOR"], group: "Front desk" },
+  { label: "Minor emergency", icon: faKitMedical, href: "/emergency", roles: ["OPERATOR"], group: "Front desk" },
+  { label: "Tests", icon: faFlask, href: "/diagnostics", roles: ["OPERATOR"], group: "Diagnostics" },
+  { label: "Lab results", icon: faVial, href: "/results", roles: ["OPERATOR"], group: "Diagnostics" },
+  { label: "Admissions", icon: faHospitalUser, href: "/admissions", roles: ["OPERATOR"], group: "In-patients" },
+  { label: "Operation theater", icon: faBed, href: "/ot", roles: ["OPERATOR"], group: "In-patients" },
+  // Management
+  { label: "Billing & reports", icon: faFileInvoiceDollar, href: "/reports", roles: ["MANAGEMENT"], group: "Finance" },
+  { label: "Payouts", icon: faFileInvoiceDollar, href: "/payouts", roles: ["MANAGEMENT"], group: "Finance" },
+  { label: "Expenses", icon: faCoins, href: "/expenses", roles: ["MANAGEMENT"], group: "Finance" },
+  { label: "Doctors", icon: faUserDoctor, href: "/doctors", roles: ["MANAGEMENT"], group: "People" },
+  { label: "Employees", icon: faUserTie, href: "/employees", roles: ["MANAGEMENT"], group: "People" },
+  { label: "User access", icon: faShieldHalved, href: "/users", roles: ["MANAGEMENT"], group: "People" },
+  { label: "Rooms & beds", icon: faBed, href: "/rooms", roles: ["MANAGEMENT"], group: "Hospital" },
+  { label: "Inventory", icon: faBed, href: "/inventory", roles: ["MANAGEMENT"], group: "Hospital" },
+  { label: "Hospital settings", icon: faBuilding, href: "/hospital-settings", roles: ["MANAGEMENT"], group: "Hospital" },
+  // Lab
+  { label: "Lab dashboard", icon: faGaugeHigh, href: "/lab", roles: ["LAB"], group: "Laboratory" },
+  { label: "Upload tests", icon: faVial, href: "/lab/upload", roles: ["LAB"], group: "Laboratory" },
+  { label: "Test & Price Catalog", icon: faFlask, href: "/configuration", roles: ["LAB"], group: "Laboratory" },
+  // Medical store
+  { label: "Store dashboard", icon: faGaugeHigh, href: "/medical-store", roles: ["MEDICAL_STORE"], group: "Overview" },
+  { label: "Sell medicine", icon: faCashRegister, href: "/medical-store/sell", roles: ["MEDICAL_STORE"], group: "Sales" },
+  { label: "In-patients", icon: faBedPulse, href: "/medical-store/inpatients", roles: ["MEDICAL_STORE"], group: "Sales" },
+  { label: "Sale returns", icon: faRotateLeft, href: "/medical-store/returns/sale", roles: ["MEDICAL_STORE"], group: "Sales" },
+  { label: "Day closing", icon: faVault, href: "/medical-store/day-closing", roles: ["MEDICAL_STORE"], group: "Sales" },
+  { label: "Medicine catalog", icon: faPrescriptionBottleMedical, href: "/medical-store/catalog", roles: ["MEDICAL_STORE"], group: "Stock" },
+  { label: "Stock adjustments", icon: faTriangleExclamation, href: "/medical-store/adjustments", roles: ["MEDICAL_STORE"], group: "Stock" },
+  { label: "Stock count", icon: faClipboardCheck, href: "/medical-store/stock-count", roles: ["MEDICAL_STORE"], group: "Stock" },
+  { label: "Stock history", icon: faClockRotateLeft, href: "/medical-store/stock-history", roles: ["MEDICAL_STORE"], group: "Stock" },
+  { label: "Expiry tracker", icon: faHourglassHalf, href: "/medical-store/expiry", roles: ["MEDICAL_STORE"], group: "Stock" },
+  { label: "Reorder list", icon: faCartShopping, href: "/medical-store/reorder", roles: ["MEDICAL_STORE"], group: "Stock" },
+  { label: "Purchase (stock in)", icon: faBoxesStacked, href: "/medical-store/purchase", roles: ["MEDICAL_STORE"], group: "Purchasing" },
+  { label: "Suppliers", icon: faTruckMedical, href: "/medical-store/suppliers", roles: ["MEDICAL_STORE"], group: "Purchasing" },
+  { label: "Supplier payments", icon: faHandHoldingDollar, href: "/medical-store/supplier-payments", roles: ["MEDICAL_STORE"], group: "Purchasing" },
+  { label: "Purchase returns", icon: faRotateLeft, href: "/medical-store/returns/purchase", roles: ["MEDICAL_STORE"], group: "Purchasing" },
+  { label: "Reports", icon: faChartLine, href: "/medical-store/reports", roles: ["MEDICAL_STORE"], group: "Reports" },
 ];
 
 const roleLabels: Record<Role, string> = { OPERATOR: "Operator", MANAGEMENT: "Management", LAB: "Lab", MEDICAL_STORE: "Medical Store" };
+// Shown under the hospital name, so each role sees which workspace it is in.
+const roleWorkspace: Record<Role, string> = { OPERATOR: "Front desk", MANAGEMENT: "Management suite", LAB: "Laboratory", MEDICAL_STORE: "Medical store" };
 
 type User = { id?: number; username: string; name?: string | null; role: Role; mustChangePassword?: boolean };
 type HospitalSettings = { name: string; logoDataUrl?: string | null };
@@ -72,6 +80,16 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Escape closes the small-screen menu, like any other overlay.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   useEffect(() => {
     fetch("/api/hospital-settings")
@@ -177,6 +195,19 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   }
 
   const visibleNavigation = navigation.filter((item) => Boolean(user?.role) && item.roles.includes(user!.role));
+  // The link for the current page is the longest one the path starts with, so detail pages
+  // (/admissions/12) light up their section and "/medical-store" never outshines a store sub-page.
+  const activeHref = visibleNavigation
+    .map((item) => item.href)
+    .filter((href) => pathname === href || (href !== "/" && Boolean(pathname?.startsWith(`${href}/`))))
+    .sort((a, b) => b.length - a.length)[0];
+  const activeItem = visibleNavigation.find((item) => item.href === activeHref);
+  const navGroups = visibleNavigation.reduce<{ title: string; items: typeof visibleNavigation }[]>((groups, item) => {
+    const group = groups.find((g) => g.title === item.group);
+    if (group) group.items.push(item);
+    else groups.push({ title: item.group, items: [item] });
+    return groups;
+  }, []);
 
   async function logout() {
     setLoggingOut(true);
@@ -222,8 +253,8 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         color="white"
         px="20px"
         py="24px"
-        overflowY="auto"
-        overscrollBehavior="contain"
+        // Only the menu scrolls (below); the hospital name and the profile / sign-out card stay in view.
+        overflow="hidden"
         zIndex={{ base: "60", lg: "50" }}
         borderRight="1px solid rgba(255,255,255,0.06)"
         boxShadow="4px 0 24px rgba(0,0,0,0.22)"
@@ -266,60 +297,58 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <Text fontSize="sm" fontWeight="800" whiteSpace="normal" lineHeight="1.2" color="#f0faf8" letterSpacing="-0.02em">
               {hospitalSettings?.name || "Al Qamar Hospital"}
             </Text>
-            <Text fontSize="9px" color="#4a7a72" letterSpacing="0.08em" textTransform="uppercase" mt="0.5">
-              Management Suite
+            <Text fontSize="10px" color="#6fa79c" letterSpacing="0.1em" textTransform="uppercase" mt="0.5" fontWeight="600">
+              {user?.role ? roleWorkspace[user.role] : "Management suite"}
             </Text>
           </Box>
         </HStack>
-        <Stack gap="1" pb="4">
-          {visibleNavigation.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Button
-                key={item.label}
-                onClick={() => { setMenuOpen(false); router.push(item.href); }}
-                justifyContent="flex-start"
-                gap="3"
-                h="40px"
-                px="14px"
-                bg={isActive ? "linear-gradient(135deg, rgba(45,160,139,0.30) 0%, rgba(30,100,90,0.20) 100%)" : "transparent"}
-                color={isActive ? "#e8faf6" : "rgba(194,216,212,0.8)"}
-                fontWeight={isActive ? "700" : "400"}
-                fontSize="sm"
-                borderRadius="10px"
-                border="1px solid"
-                borderColor={isActive ? "rgba(74,222,128,0.22)" : "transparent"}
-                boxShadow={isActive ? "0 2px 12px rgba(30,120,105,0.22)" : "none"}
-                _hover={{ bg: "rgba(255,255,255,0.07)", color: "#e8faf6", borderColor: "rgba(255,255,255,0.08)" }}
-                transition="all 0.15s ease"
-                position="relative"
-                overflow="hidden"
-              >
-                {isActive && (
-                  <Box
-                    position="absolute"
-                    left="0"
-                    top="50%"
-                    transform="translateY(-50%)"
-                    w="3px"
-                    h="55%"
-                    bgGradient="to-b"
-                    gradientFrom="#4ade80"
-                    gradientTo="#2dd4bf"
-                    borderRadius="0 3px 3px 0"
-                    boxShadow="0 0 8px rgba(74,222,128,0.5)"
-                  />
-                )}
-                <Box w="18px" textAlign="center" opacity={isActive ? 1 : 0.7}>
-                  <FontAwesomeIcon icon={item.icon} />
-                </Box>
-                {item.label}
-              </Button>
-            );
-          })}
-        </Stack>
+        <Box as="nav" aria-label="Main menu" pb="4" flex="1" minH="0" overflowY="auto" overscrollBehavior="contain" mx="-2" px="2" css={{ scrollbarColor: "#2a5550 transparent", scrollbarWidth: "thin" }}>
+          {navGroups.map((group) => (
+            <Box key={group.title} mb="3">
+              {/* A one-group menu (Lab) needs no section title. */}
+              {navGroups.length > 1 && (
+                <Text px="3" mb="1" fontSize="10px" fontWeight="700" letterSpacing="0.12em" textTransform="uppercase" color="rgba(170,205,198,0.45)">
+                  {group.title}
+                </Text>
+              )}
+              <Stack gap="0.5">
+                {group.items.map((item) => {
+                  const isActive = item.href === activeHref;
+                  return (
+                    <Button
+                      key={item.label}
+                      aria-current={isActive ? "page" : undefined}
+                      onClick={() => { setMenuOpen(false); router.push(item.href); }}
+                      justifyContent="flex-start"
+                      gap="3"
+                      h="38px"
+                      px="3"
+                      bg={isActive ? "rgba(95,212,191,0.14)" : "transparent"}
+                      color={isActive ? "#ffffff" : "rgba(204,224,220,0.78)"}
+                      fontWeight={isActive ? "600" : "500"}
+                      fontSize="sm"
+                      borderRadius="9px"
+                      boxShadow="none"
+                      _hover={{ bg: isActive ? "rgba(95,212,191,0.18)" : "rgba(255,255,255,0.06)", color: "#ffffff" }}
+                      position="relative"
+                      overflow="hidden"
+                    >
+                      {isActive && <Box position="absolute" left="0" top="8px" bottom="8px" w="3px" bg="#5fd4bf" borderRadius="0 3px 3px 0" />}
+                      <Box w="18px" textAlign="center" color={isActive ? "#5fd4bf" : "inherit"} opacity={isActive ? 1 : 0.75}>
+                        <FontAwesomeIcon icon={item.icon} />
+                      </Box>
+                      <Text as="span" lineClamp={1} textAlign="left">
+                        {item.label}
+                      </Text>
+                    </Button>
+                  );
+                })}
+              </Stack>
+            </Box>
+          ))}
+        </Box>
 
-        <Box mt="auto" pt="14px" borderTop="1px solid rgba(255,255,255,0.06)">
+        <Box mt="auto" pt="14px" flexShrink="0" borderTop="1px solid rgba(255,255,255,0.06)">
           <HStack
             px="10px" gap="3" bg="rgba(255,255,255,0.05)" p="10px" borderRadius="12px"
             border="1px solid rgba(255,255,255,0.08)"
@@ -375,9 +404,17 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           >
             <FontAwesomeIcon icon={faBars} size="lg" />
           </Button>
-          <Text fontSize="sm" fontWeight="800" color="#f0faf8" lineClamp={1}>
-            {hospitalSettings?.name || "Al Qamar Hospital"}
-          </Text>
+          <Box minW="0" lineHeight="1.2">
+            <Text fontSize="sm" fontWeight="800" color="#f0faf8" lineClamp={1}>
+              {hospitalSettings?.name || "Al Qamar Hospital"}
+            </Text>
+            {/* Which page this is, since the sidebar is hidden on small screens. */}
+            {activeItem && (
+              <Text fontSize="11px" color="#8fc4b9" lineClamp={1}>
+                {activeItem.label}
+              </Text>
+            )}
+          </Box>
         </Flex>
         {/* Only the page area scrolls — the sidebar and small-screen top bar stay put. */}
         <Box flex="1" minW="0" overflowY="auto" bg="#eef2f0">

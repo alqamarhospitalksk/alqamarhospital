@@ -80,13 +80,10 @@ export default function NotFound() {
         </Text>
 
         <Button
-          h="46px" px="28px" borderRadius="10px"
-          bg="linear-gradient(135deg, #1a8070 0%, #0f5a52 100%)"
+          h="46px" px="28px"
+          bg="#11695e"
           color="white" fontWeight="700"
-          boxShadow="0 4px 16px rgba(26,128,112,0.30)"
-          _hover={{ boxShadow: "0 6px 24px rgba(26,128,112,0.45)", transform: "translateY(-1px)" }}
-          _active={{ transform: "translateY(0)" }}
-          transition="all 0.2s ease"
+          _hover={{ bg: "#0d5850" }}
           onClick={() => router.push("/")}
         >
           <FontAwesomeIcon icon={faArrowLeft} />

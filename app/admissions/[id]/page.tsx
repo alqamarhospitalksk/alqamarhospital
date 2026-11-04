@@ -333,29 +333,14 @@ export default function AdmissionProfilePage() {
 
   return (
     <Box minH="100vh" bg="#eef2f0" color="#0e2420">
-      <Flex
-        as="header"
-        position="sticky"
-        top="0"
-        zIndex="40"
-        minH="72px"
-        py="3"
-        bg="rgba(255,255,255,0.90)"
-        style={{ backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
-        borderBottom="1px solid rgba(14,36,32,0.07)"
-        align="center"
-        justify="space-between"
-        gap="3"
-        flexWrap="wrap"
-        px={{ base: "20px", md: "42px" }}
-      >
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <HStack gap="4">
           <Link href="/admissions" color="#2da08b" _hover={{ color: "#1a8070" }}>
             <FontAwesomeIcon icon={faArrowLeft} />
           </Link>
           <Box>
             <HStack gap="3">
-              <Heading size="lg" letterSpacing="-0.04em">{a.admissionNumber}</Heading>
+              <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em">{a.admissionNumber}</Heading>
               <Badge colorPalette={statusColors[a.status] ?? "gray"} borderRadius="full">{statusLabels[a.status] ?? a.status}</Badge>
             </HStack>
             <Text fontSize="sm" color="#506c65">{a.patient.name} · {a.patient.mrNumber} · {a.categoryLabel}</Text>
@@ -364,7 +349,7 @@ export default function AdmissionProfilePage() {
         <HStack gap="2" flexWrap="wrap">
           <RefreshButton onRefresh={() => load(id)} />
           {(isAdmitted || isInvoiced) && (
-            <Button size="sm" bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} onClick={openCollect}>
+            <Button size="sm" bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} onClick={openCollect}>
               <FontAwesomeIcon icon={faMoneyBillWave} />&nbsp; {isAdmitted ? "Collect advance" : "Collect payment"}
             </Button>
           )}
@@ -426,9 +411,9 @@ export default function AdmissionProfilePage() {
         </HStack>
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "24px", md: "32px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
         <Grid templateColumns={{ base: "1fr", lg: "repeat(4, 1fr)" }} gap="4" mb="6">
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <VStack align="stretch" gap="3">
               <Fact label="Patient" value={`${a.patient.name} (${a.patient.gender})`} />
               <Fact label="MR # · Father" value={`${a.patient.mrNumber} · ${a.patient.fatherName}`} />
@@ -436,7 +421,7 @@ export default function AdmissionProfilePage() {
               {(a.attendantName || a.attendantMobile) && <Fact label="Attendant" value={[a.attendantName, a.attendantMobile].filter(Boolean).join(" · ")} />}
             </VStack>
           </Box>
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <VStack align="stretch" gap="3">
               <Fact label="Room / bed" value={a.roomLabel} />
               <Fact label="Attending doctor" value={a.doctor.name} />
@@ -445,7 +430,7 @@ export default function AdmissionProfilePage() {
               {a.dischargedAt && <Fact label="Discharged" value={formatDateTime(a.dischargedAt)} />}
             </VStack>
           </Box>
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <VStack align="stretch" gap="3">
               <Fact label={`Hospital bill (${bill.days} day${bill.days === 1 ? "" : "s"})`} value={pkr(bill.hospitalTotal)} />
               <Fact label="Paid" value={pkr(bill.hospitalPaid)} />
@@ -455,7 +440,7 @@ export default function AdmissionProfilePage() {
               </Box>
             </VStack>
           </Box>
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <VStack align="stretch" gap="3">
               <Fact label="Store medicines" value={pkr(bill.storeTotal)} />
               <Box>
@@ -480,7 +465,7 @@ export default function AdmissionProfilePage() {
         )}
 
         {a.diagnosis && (
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5" mb="6">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" p="5" mb="6" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <Fact label="Diagnosis" value={a.diagnosis} />
             {a.notes && <Text fontSize="sm" color="#506c65" mt="2">{a.notes}</Text>}
           </Box>
@@ -709,7 +694,7 @@ export default function AdmissionProfilePage() {
           onClose={() => setModal(null)}
           footer={<>
             <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
-            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={busy} onClick={() => void act("COLLECT", { amount: payAmount, method: payMethod })}>Record payment</Button>
+            <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={busy} onClick={() => void act("COLLECT", { amount: payAmount, method: payMethod })}>Record payment</Button>
           </>}
         >
           <Grid templateColumns="1fr 1fr" gap="3">
@@ -750,7 +735,7 @@ export default function AdmissionProfilePage() {
           onClose={() => setModal(null)}
           footer={<>
             <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
-            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={busy} onClick={() => void act("ADD_CHARGE", chargeForm)}>Add to bill</Button>
+            <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={busy} onClick={() => void act("ADD_CHARGE", chargeForm)}>Add to bill</Button>
           </>}
         >
           <Grid templateColumns="2fr 1fr" gap="3">
@@ -773,7 +758,7 @@ export default function AdmissionProfilePage() {
             footer={<>
               <Text fontWeight="800" mr="auto" color="#123d3b">{chosen.length} test{chosen.length === 1 ? "" : "s"} · {pkr(chosenTotal)}</Text>
               <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
-              <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={busy} disabled={chosen.length === 0}
+              <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={busy} disabled={chosen.length === 0}
                 onClick={() => void act("ORDER_TESTS", { module: testModule, itemIds: selectedTests })}>
                 Send to lab
               </Button>
@@ -816,7 +801,7 @@ export default function AdmissionProfilePage() {
           onClose={() => setModal(null)}
           footer={<>
             <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
-            <Button bg="#a34258" color="white" loading={busy} onClick={() => void act("CANCEL_TEST", { receiptId: cancelTest.id, reason: cancelReason })}>Cancel test</Button>
+            <Button bg="#a34258" color="white" loading={busy} onClick={() => void act("CANCEL_TEST", { receiptId: cancelTest.id, reason: cancelReason })} _hover={{ bg: "#8a3549" }}>Cancel test</Button>
           </>}
         >
           <Textarea placeholder="Reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
@@ -830,7 +815,7 @@ export default function AdmissionProfilePage() {
           onClose={() => setModal(null)}
           footer={<>
             <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
-            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={busy} onClick={() => void act("ADD_OPERATION", { ...operationForm, doctorId: Number(operationForm.doctorId) })}>Add operation</Button>
+            <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={busy} onClick={() => void act("ADD_OPERATION", { ...operationForm, doctorId: Number(operationForm.doctorId) })}>Add operation</Button>
           </>}
         >
           <VStack align="stretch" gap="3">
@@ -872,7 +857,7 @@ export default function AdmissionProfilePage() {
           onClose={() => setModal(null)}
           footer={<>
             <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
-            <Button bg="#123d3b" color="white" _hover={{ bg: "#255d58" }} loading={busy}
+            <Button bg="#11695e" color="white" _hover={{ bg: "#0d5850" }} loading={busy}
               onClick={() => void act("UPDATE_STAY", { ...stayForm, roomBedId: stayForm.roomMode === "BED" ? Number(stayForm.roomBedId) || null : null, roomLabel: stayForm.roomMode === "MANUAL" ? stayForm.roomLabel : "", doctorId: Number(stayForm.doctorId) })}>
               Save
             </Button>
@@ -928,7 +913,7 @@ export default function AdmissionProfilePage() {
           onClose={() => setModal(null)}
           footer={<>
             <Button variant="outline" borderColor="#c8dad5" onClick={() => setModal(null)}>Close</Button>
-            <Button bg="#a34258" color="white" loading={busy} onClick={() => void act("CANCEL", { reason: cancelReason })}>Cancel admission</Button>
+            <Button bg="#a34258" color="white" loading={busy} onClick={() => void act("CANCEL", { reason: cancelReason })} _hover={{ bg: "#8a3549" }}>Cancel admission</Button>
           </>}
         >
           <Textarea placeholder="Reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />

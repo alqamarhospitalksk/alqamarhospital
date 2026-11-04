@@ -218,7 +218,7 @@ export default function MedicalStoreDashboardPage() {
     const shown = rows.slice(0, 8);
     const chartRows = shown.map((r) => ({ name: r.name, value: metric(r), unit: metricUnit(r), expiry: r.nearestExpiry }));
     return (
-      <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+      <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
         <Box p="5" borderBottom="1px solid #edf2f0">
           <Heading size="sm">{title}</Heading>
         </Box>
@@ -263,7 +263,7 @@ export default function MedicalStoreDashboardPage() {
     const shown = rows.slice(0, 8);
     const chartRows = shown.map((r) => ({ name: r.name, current: r.totalQuantity, reorder: r.reorderLevel, unit: r.unit.toLowerCase() }));
     return (
-      <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+      <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
         <Box p="5" borderBottom="1px solid #edf2f0">
           <Heading size="sm">Low Stock</Heading>
         </Box>
@@ -317,7 +317,7 @@ export default function MedicalStoreDashboardPage() {
       quantity: r.totalQuantity,
     }));
     return (
-      <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+      <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
         <Box p="5" borderBottom="1px solid #edf2f0">
           <Heading size="sm">Expiring Soon (1 month)</Heading>
         </Box>
@@ -364,28 +364,16 @@ export default function MedicalStoreDashboardPage() {
 
   return (
     <Box minH="100vh" bg="#eef2f0" color="#0e2420">
-      <Flex
-        as="header"
-        position="sticky"
-        top="0"
-        zIndex="40"
-        h="72px"
-        bg="rgba(255,255,255,0.90)"
-        style={{ backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
-        borderBottom="1px solid rgba(14,36,32,0.07)"
-        boxShadow="0 1px 0 rgba(14,36,32,0.04), 0 4px 20px rgba(14,36,32,0.04)"
-        align="center"
-        px={{ base: "20px", md: "42px" }}
-      >
+      <Flex as="header" className="page-header" position="sticky" top="0" zIndex="40" minH={{ base: "60px", md: "72px" }} py="3" gap="3" flexWrap="wrap" align="center" justify="space-between" px={{ base: "16px", md: "24px", xl: "32px" }} bg="rgba(255,255,255,0.92)" borderBottom="1px solid rgba(14,36,32,0.08)" boxShadow="0 1px 2px rgba(14,36,32,0.04)" style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
         <Box>
-          <Heading size="lg" letterSpacing="-0.04em" color="#0e2420">
+          <Heading size={{ base: "md", md: "lg" }} letterSpacing="-0.04em" color="#0e2420">
             Store Dashboard
           </Heading>
         </Box>
         <Box ml="auto"><RefreshButton onRefresh={() => load()} /></Box>
       </Flex>
 
-      <Box as="main" px={{ base: "20px", md: "42px" }} py={{ base: "28px", md: "38px" }}>
+      <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
         <VStack align="flex-end" gap="3" mb="5">
           <HStack gap="2">
             {(["today", "weekly", "monthly"] as const).map((p) => (
@@ -435,7 +423,7 @@ export default function MedicalStoreDashboardPage() {
         </Grid>
 
         <Grid templateColumns={{ base: "1fr", lg: "1.1fr 0.9fr" }} gap="6" mb="6">
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <Box p="5" borderBottom="1px solid #edf2f0">
               <Flex align="center" justify="space-between" gap="3" flexWrap="wrap">
                 <Flex align="center" gap="3">
@@ -492,7 +480,7 @@ export default function MedicalStoreDashboardPage() {
             </Box>
           </Box>
 
-          <Box bg="white" border="1px solid #e1e9e6" borderRadius="12px" overflow="hidden">
+          <Box bg="white" border="1px solid #e1e9e6" borderRadius="14px" overflow="hidden" boxShadow="0 1px 2px rgba(14,36,32,0.04), 0 2px 12px rgba(14,36,32,0.035)">
             <Box p="5" borderBottom="1px solid #edf2f0">
               <Flex align="center" gap="3">
                 <Flex w="32px" h="32px" bg="#f8e8d8" color="#b26732" borderRadius="8px" align="center" justify="center">
