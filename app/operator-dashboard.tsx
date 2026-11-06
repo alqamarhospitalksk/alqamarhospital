@@ -42,7 +42,6 @@ import {
   chartTooltipStyle,
   formatNumber,
   ink,
-  money,
   series,
   status,
 } from "./dashboard-ui";
@@ -138,8 +137,6 @@ export default function OperatorDashboard() {
 
   const tests = data?.tests ?? [];
   const testReceipts = tests.reduce((sum, t) => sum + t.receipts, 0);
-  const testsReady = tests.reduce((sum, t) => sum + t.ready, 0);
-  const testsPending = tests.reduce((sum, t) => sum + t.pending, 0);
   const readyToPrint = tests.reduce((sum, t) => sum + t.readyToPrint, 0);
   const otOpen = data ? data.ot.booked + data.ot.inProgress + data.ot.readyForDischarge : 0;
   const maxPatients = Math.max(1, ...(data?.doctors ?? []).map((d) => d.patients));
@@ -193,18 +190,18 @@ export default function OperatorDashboard() {
         </Grid>
 
         <Grid templateColumns={{ base: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))", xl: "repeat(6, minmax(0, 1fr))" }} gap={{ base: "3", md: "4" }} opacity={data ? 1 : 0.6}>
-          <KpiTile label="OPD patients" value={formatNumber(data?.opd.visits ?? 0)} icon={faNotesMedical} color={series.teal} hint={`${data?.opd.newPatients ?? 0} new registrations`} />
-          <KpiTile label="Test receipts" value={formatNumber(testReceipts)} icon={faFlask} color={series.violet} hint={`${testsReady} ready · ${testsPending} waiting`} />
-          <KpiTile label="Emergency visits" value={formatNumber(data?.emergency.visits ?? 0)} icon={faKitMedical} color={series.orange} hint="Minor emergency today" />
-          <KpiTile label="In-patients now" value={formatNumber(data?.admissions.inHouse ?? 0)} icon={faBedPulse} color="#0e7490" hint={`+${data?.admissions.admittedToday ?? 0} in · ${data?.admissions.dischargedToday ?? 0} out today`} />
-          <KpiTile label="Open OT cases" value={formatNumber(otOpen)} icon={faBed} color={status.critical} hint={`${data?.ot.newToday ?? 0} booked today`} />
-          <KpiTile label="Collected at desk" value={<Money value={data?.collection.total ?? 0} size="inherit" />} icon={faCashRegister} color={status.good} hint={`By you: ${money(data?.collection.mine ?? 0)}`} />
+          <KpiTile label="OPD patients" value={formatNumber(data?.opd.visits ?? 0)} icon={faNotesMedical} color={series.teal} />
+          <KpiTile label="Test receipts" value={formatNumber(testReceipts)} icon={faFlask} color={series.violet} />
+          <KpiTile label="Emergency visits" value={formatNumber(data?.emergency.visits ?? 0)} icon={faKitMedical} color={series.orange} />
+          <KpiTile label="In-patients now" value={formatNumber(data?.admissions.inHouse ?? 0)} icon={faBedPulse} color="#0e7490" />
+          <KpiTile label="Open OT cases" value={formatNumber(otOpen)} icon={faBed} color={status.critical} />
+          <KpiTile label="Collected at desk" value={<Money value={data?.collection.total ?? 0} size="inherit" />} icon={faCashRegister} color={status.good} />
         </Grid>
 
         <Grid templateColumns={{ base: "minmax(0, 1fr)", xl: "minmax(0, 1.75fr) minmax(0, 1fr)" }} gap={{ base: "4", md: "5" }}>
           <Panel
             title="Patient flow by hour"
-            subtitle={flowTotal > 0 && busiest ? `${flowTotal} registrations today · busiest at ${busiest.label}` : "Registrations at the desk, hour by hour"}
+            subtitle={flowTotal > 0 && busiest ? `${flowTotal} registrations today · busiest at ${busiest.label}` : undefined}
             icon={faChartColumn}
             action={
               <Flex gap="3" flexWrap="wrap">
@@ -234,7 +231,7 @@ export default function OperatorDashboard() {
             )}
           </Panel>
 
-          <Panel title="Doctors today" subtitle="OPD patients and the last token issued" icon={faUserDoctor} iconColor={series.violet} bodyPadding={false}>
+          <Panel title="Doctors today" icon={faUserDoctor} iconColor={series.violet} bodyPadding={false}>
             {!data || data.doctors.length === 0 ? (
               <Box px={{ base: "4", md: "5" }} pb="4">
                 <EmptyState text={data ? "No doctors scheduled or seen today." : "Loading…"} />
@@ -278,7 +275,6 @@ export default function OperatorDashboard() {
         <Grid templateColumns={{ base: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }} gap={{ base: "4", md: "5" }}>
           <Panel
             title="Test results"
-            subtitle="Today's receipts and what the lab has returned"
             icon={faVial}
             iconColor={series.violet}
             action={
@@ -324,7 +320,7 @@ export default function OperatorDashboard() {
             )}
           </Panel>
 
-          <Panel title="In-patients & OT" subtitle="Beds and operations right now" icon={faHospitalUser} iconColor="#0e7490">
+          <Panel title="In-patients & OT" icon={faHospitalUser} iconColor="#0e7490">
             <StatLine icon={faBedPulse} color="#0e7490" label="Admitted (in a bed)" value={data?.admissions.inHouse ?? 0} />
             <StatLine icon={faHourglassHalf} color={status.warning} label="Invoiced, awaiting discharge" value={data?.admissions.awaitingDischarge ?? 0} />
             <StatLine icon={faUserPlus} color={series.teal} label="Admitted today" value={data?.admissions.admittedToday ?? 0} />
@@ -337,7 +333,7 @@ export default function OperatorDashboard() {
             <StatLine label="Ready for discharge" value={data?.ot.readyForDischarge ?? 0} />
           </Panel>
 
-          <Panel title="Today's collection" subtitle={`${data?.collection.payments ?? 0} payments at the desk`} icon={faCashRegister} iconColor={status.good} gridColumn={{ md: "span 2", xl: "auto" }}>
+          <Panel title="Today's collection" icon={faCashRegister} iconColor={status.good} gridColumn={{ md: "span 2", xl: "auto" }}>
             <Flex align="end" justify="space-between" gap="3" mb="3" flexWrap="wrap">
               <Money value={data?.collection.total ?? 0} size="2xl" />
               <Flex gap="1.5" flexWrap="wrap">
@@ -360,7 +356,7 @@ export default function OperatorDashboard() {
           </Panel>
         </Grid>
 
-        <Panel title="Today's activity" subtitle="Latest registrations at the desk" icon={faClockRotateLeft} bodyPadding={false}>
+        <Panel title="Today's activity" icon={faClockRotateLeft} bodyPadding={false}>
           {!data || data.activity.length === 0 ? (
             <Box px={{ base: "4", md: "5" }} pb="4">
               <EmptyState text={data ? "Nothing registered yet today." : "Loading…"} />
