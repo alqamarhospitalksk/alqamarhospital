@@ -45,7 +45,6 @@ import {
   money,
   series,
   status,
-  type Delta,
 } from "./dashboard-ui";
 
 const serviceLabels: Record<string, string> = {
@@ -114,7 +113,6 @@ const methodLabels: Record<string, string> = { CASH: "Cash", CARD: "Card", BANK_
 function toDateStr(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
-const parseDay = (value: string) => new Date(`${value}T00:00:00`);
 const addDays = (date: Date, days: number) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 
 type Period = "daily" | "weekly" | "monthly" | "custom";
@@ -129,43 +127,6 @@ function periodRange(period: "daily" | "weekly" | "monthly") {
     return { start: toDateStr(addDays(now, -diffToMonday)), end };
   }
   return { start: toDateStr(new Date(now.getFullYear(), now.getMonth(), 1)), end };
-}
-
-// The window the selected range is compared with: yesterday for today, the same days of last
-// week / last month for week- and month-to-date, and the equally long stretch just before a custom range.
-function comparisonRange(period: Period, start: Date, end: Date) {
-  if (period === "daily") return { start: addDays(start, -1), end: addDays(end, -1), label: "vs yesterday" };
-  if (period === "weekly") return { start: addDays(start, -7), end: addDays(end, -7), label: "vs last week" };
-  if (period === "monthly") {
-    const prevStart = new Date(start.getFullYear(), start.getMonth() - 1, 1);
-    const lastDayPrev = new Date(start.getFullYear(), start.getMonth(), 0).getDate();
-    const prevEnd = new Date(prevStart.getFullYear(), prevStart.getMonth(), Math.min(end.getDate(), lastDayPrev));
-    return { start: prevStart, end: prevEnd, label: "vs last month" };
-  }
-  const days = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
-  return { start: addDays(start, -days), end: addDays(start, -1), label: "vs previous period" };
-}
-
-// Both sides come from the same payment history, so the percentage compares like with like.
-function grossDelta(history: RevenueHistoryEntry[], period: Period, startStr: string, endStr: string): Delta {
-  const start = parseDay(startStr);
-  const end = parseDay(endStr);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null;
-  const prev = comparisonRange(period, start, end);
-  // The API sends one year of history; anything older can't be compared fairly.
-  const oldest = addDays(new Date(), -364);
-  if (prev.start < oldest) return null;
-  const sumBetween = (from: Date, to: Date) => {
-    const upper = addDays(to, 1).getTime();
-    return history.reduce((sum, p) => {
-      const t = new Date(p.createdAt).getTime();
-      return t >= from.getTime() && t < upper ? sum + p.amount : sum;
-    }, 0);
-  };
-  const current = sumBetween(start, end);
-  const previous = sumBetween(prev.start, prev.end);
-  if (previous <= 0) return null;
-  return { percent: ((current - previous) / previous) * 100, label: prev.label };
 }
 
 type TrendRange = "7d" | "30d" | "12m";
@@ -270,7 +231,6 @@ export default function Dashboard() {
   const trend = buildRevenueTrend(summary.revenueHistory, trendRange);
   const trendTotal = trend.reduce((sum, row) => sum + row.total, 0);
   const trendAverage = trend.length ? trendTotal / trend.length : 0;
-  const delta = grossDelta(summary.revenueHistory, period, start, end);
 
   const storeNet = summary.supplierRefunds - summary.medicineWastage;
   const topDoctors = summary.doctorShareDetail.slice(0, 6);
@@ -355,9 +315,6 @@ export default function Dashboard() {
                 </Text>
                 {formatNumber(summary.netRevenue)}
               </Text>
-              <Text fontSize="xs" color="#a9cfc8" mt="1.5">
-                Gross collected, less doctor share and expenses
-              </Text>
             </Box>
             {showSplit ? (
               <Box flex="1" minW="0" maxW={{ md: "520px", "2xl": "none" }} alignSelf={{ md: "center", "2xl": "stretch" }}>
@@ -386,10 +343,10 @@ export default function Dashboard() {
               </Box>
             ) : null}
           </Box>
-          <KpiTile label="Gross collected" value={<Money value={summary.collected} size="inherit" />} icon={faArrowTrendUp} color={series.teal} delta={delta} />
-          <KpiTile label="Doctor share" value={<Money value={summary.doctorShare} size="inherit" />} icon={faUserDoctor} color={series.violet} hint="Earned by doctors this period" />
-          <KpiTile label="Expenses" value={<Money value={summary.totalExpenses} size="inherit" />} icon={faCoins} color={series.orange} hint="Excludes doctor payouts" />
-          <KpiTile label="Patients seen" value={formatNumber(summary.patientsSeen)} icon={faUserGroup} color={series.teal} hint="Unique OPD patients" />
+          <KpiTile label="Gross collected" value={<Money value={summary.collected} size="inherit" />} icon={faArrowTrendUp} color={series.teal} />
+          <KpiTile label="Doctor share" value={<Money value={summary.doctorShare} size="inherit" />} icon={faUserDoctor} color={series.violet} />
+          <KpiTile label="Expenses" value={<Money value={summary.totalExpenses} size="inherit" />} icon={faCoins} color={series.orange} />
+          <KpiTile label="Patients seen" value={formatNumber(summary.patientsSeen)} icon={faUserGroup} color={series.teal} />
         </Grid>
 
         <Grid templateColumns={{ base: "minmax(0, 1fr)", xl: "minmax(0, 1.75fr) minmax(0, 1fr)" }} gap={{ base: "4", md: "5" }}>
@@ -448,7 +405,7 @@ export default function Dashboard() {
         </Grid>
 
         <Grid templateColumns={{ base: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }} gap={{ base: "4", md: "5" }}>
-          <Panel title="Doctor accounts" subtitle="Balance is all-time; payouts follow the period" icon={faHandHoldingDollar} iconColor={series.violet}>
+          <Panel title="Doctor accounts" icon={faHandHoldingDollar} iconColor={series.violet}>
             <Box bg={summary.doctorRemaining > 0 ? `${status.critical}0d` : `${status.good}0d`} border="1px solid" borderColor={summary.doctorRemaining > 0 ? `${status.critical}26` : `${status.good}26`} borderRadius="10px" px="3.5" py="3" mb="3">
               <Text fontSize="11px" fontWeight="700" textTransform="uppercase" letterSpacing="0.06em" color={summary.doctorRemaining > 0 ? status.critical : status.good}>
                 {summary.doctorRemaining > 0 ? "Still owed to doctors" : "Doctors fully paid"}
@@ -460,7 +417,7 @@ export default function Dashboard() {
             <StatLine label="Paid, all time" value={money(summary.doctorPaidTotal)} />
           </Panel>
 
-          <Panel title="Medical store adjustments" subtitle={`${periodName} · already inside expenses`} icon={faBoxOpen} iconColor={series.orange}>
+          <Panel title="Medical store adjustments" icon={faBoxOpen} iconColor={series.orange}>
             <StatLine label="Wastage written off" value={<Text as="span" color={summary.medicineWastage > 0 ? status.critical : ink.primary}>{summary.medicineWastage > 0 ? "− " : ""}{money(summary.medicineWastage)}</Text>} />
             <StatLine label="Supplier refunds received" value={<Text as="span" color={summary.supplierRefunds > 0 ? status.good : ink.primary}>{summary.supplierRefunds > 0 ? "+ " : ""}{money(summary.supplierRefunds)}</Text>} />
             <StatLine strong label="Net effect" value={<Text as="span" color={storeNet < 0 ? status.critical : storeNet > 0 ? status.good : ink.primary}>{money(storeNet)}</Text>} />
@@ -469,7 +426,7 @@ export default function Dashboard() {
             </Text>
           </Panel>
 
-          <Panel title="Hospital at a glance" subtitle="Live and all-time counts" icon={faHospital} gridColumn={{ md: "span 2", xl: "auto" }}>
+          <Panel title="Hospital at a glance" icon={faHospital} gridColumn={{ md: "span 2", xl: "auto" }}>
             <StatLine icon={faHospitalUser} color="#0e7490" label="Currently admitted" value={formatNumber(summary.admittedNow)} />
             <StatLine icon={faUserDoctor} color={series.violet} label="Active doctors" value={formatNumber(summary.doctorCount)} />
             <StatLine icon={faUsers} color={series.teal} label="Registered patients" value={formatNumber(summary.patientCount)} />
@@ -479,7 +436,7 @@ export default function Dashboard() {
         </Grid>
 
         <Grid templateColumns={{ base: "minmax(0, 1fr)", xl: "minmax(0, 1.75fr) minmax(0, 1fr)" }} gap={{ base: "4", md: "5" }}>
-          <Panel title="Latest payments" subtitle={`Most recent in ${periodName.toLowerCase()}`} icon={faReceipt} bodyPadding={false}>
+          <Panel title="Latest payments" icon={faReceipt} bodyPadding={false}>
             {summary.activity.length === 0 ? (
               <Box px={{ base: "4", md: "5" }} pb="4">
                 <EmptyState text="No payments in this period yet." />
@@ -513,7 +470,7 @@ export default function Dashboard() {
             )}
           </Panel>
 
-          <Panel title="Doctor share by doctor" subtitle={periodName} icon={faUserDoctor} iconColor={series.violet}>
+          <Panel title="Doctor share by doctor" icon={faUserDoctor} iconColor={series.violet}>
             <RankedBars
               color={series.violet}
               emptyText="No doctor earnings in this period."

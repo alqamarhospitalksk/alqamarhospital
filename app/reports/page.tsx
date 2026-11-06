@@ -397,7 +397,7 @@ export default function ReportsPage() {
         {/* KPI Cards */}
         <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }} gap="4" mb="6">
           <StatCard compact label="Total collected (gross)" value={money(report.collected)} icon={faArrowTrendUp} color="#22633e" />
-          <StatCard compact label="Doctor share" value={money(report.doctorShare)} icon={faUserDoctor} color="#4a3aa7" footnote={`${money(report.doctorPayouts)} paid out so far`} />
+          <StatCard compact label="Doctor share" value={money(report.doctorShare)} icon={faUserDoctor} color="#4a3aa7" />
           <StatCard compact label="Total expenses" value={money(report.totalExpenses)} icon={faCoins} color="#b26732" />
           <StatCard compact label="Net revenue (hospital)" value={money(report.netRevenue)} icon={faSackDollar} color="#22633e" />
         </Grid>
