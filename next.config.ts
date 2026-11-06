@@ -10,6 +10,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Stamped into the code when it is built, and shown by /api/health, so you can tell from outside which
+  // build a host is really running (a deployment can restart an old build without anyone noticing).
+  env: { BUILD_TIME: new Date().toISOString() },
   devIndicators: false,
   poweredByHeader: false,
   // GoDaddy's preview runs the dev server behind its own address; without this Next blocks its live-reload requests.
