@@ -1,4 +1,4 @@
-# Al Qamar Hospital Management
+# Al Qamar Hospital Management System
 
 Next.js clinic operations system using Chakra UI, Font Awesome, MySQL, and Prisma ORM.
 
