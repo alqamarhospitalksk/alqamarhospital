@@ -97,7 +97,6 @@ export default function InPatientsPage() {
             <Flex w="34px" h="34px" bg="#e9f1ef" color="#126b68" borderRadius="9px" align="center" justify="center"><FontAwesomeIcon icon={faBedPulse} /></Flex>
             <Box>
               <Heading size="sm">Admitted and OT patients</Heading>
-              <Text fontSize="xs" color="#607d76">Medicine issued here goes on the patient&apos;s bill (no payment now). It is paid to the store when the patient is discharged.</Text>
             </Box>
           </Flex>
           <Box overflowX="auto">
@@ -144,7 +143,6 @@ export default function InPatientsPage() {
             <Flex w="34px" h="34px" bg="#fdf1e7" color="#b26732" borderRadius="9px" align="center" justify="center"><FontAwesomeIcon icon={faHandHoldingDollar} /></Flex>
             <Box>
               <Heading size="sm">Waiting for payment</Heading>
-              <Text fontSize="xs" color="#607d76">At discharge the counter pays the medicine bill to the store. Mark it paid here; the operator cannot discharge the patient until then.</Text>
             </Box>
           </Flex>
           <Box overflowX="auto">
