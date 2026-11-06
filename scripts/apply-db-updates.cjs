@@ -1,6 +1,7 @@
-// Runs once after `npm run build` (npm "postbuild"), or by hand with `npm run db:update`.
-// It used to run before every `next dev` / `next start`; a database that is already up to date
-// does not need it on each start, so it now runs only when a new version is built.
+// Runs after `npm run build` (npm "postbuild"), by hand with `npm run db:update`, and when the server
+// starts (instrumentation.ts runs this file before the app answers requests). The start-up run is for
+// hosts with no terminal, e.g. GoDaddy Node.js Hosting, where an unbuilt preview never reaches "postbuild".
+// A database that is already up to date costs only a few quick checks.
 //
 // Adds database structure that a newer version of the app needs, WITHOUT touching existing data.
 // Every step first checks whether it is already there, so running it again changes nothing.

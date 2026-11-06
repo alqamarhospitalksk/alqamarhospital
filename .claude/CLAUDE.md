@@ -150,7 +150,7 @@ and **`prisma migrate` is not used**. A schema change therefore has to go into a
 
 1. `prisma/schema.prisma`
 2. a new folder in `prisma/migrations/` (developer PCs)
-3. `scripts/apply-db-updates.cjs`, as an idempotent, check-first step. It runs after `npm run build` (postbuild) and with `npm run db:update`, on Linux or anywhere when `AUTO_DB_UPDATES=true`, and never touches existing data. It no longer runs on every start.
+3. `scripts/apply-db-updates.cjs`, as an idempotent, check-first step. It runs after `npm run build` (postbuild), with `npm run db:update`, and again when the server starts (`instrumentation.ts` spawns it before the app serves requests, because GoDaddy Node.js Hosting has no terminal and an unbuilt preview never reaches postbuild). It runs on Linux or anywhere when `AUTO_DB_UPDATES=true` (`false` turns it off) and never touches existing data.
 4. `deploy/schema.sql` (for fresh installs)
 
 Run `npx prisma generate` after editing the schema. `scripts/ensure-deps.cjs` repairs a broken
