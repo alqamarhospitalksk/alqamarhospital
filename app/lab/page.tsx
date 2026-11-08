@@ -179,8 +179,10 @@ export default function LabDashboardPage() {
   const receiptsInRange = receipts.filter((r) => inRange(r.createdAt));
   const completedInRange = receipts.flatMap((r) => r.items).filter((item) => item.resultUploadedAt && inRange(item.resultUploadedAt));
   const totalTestsInRange = receiptsInRange.reduce((sum, r) => sum + r.items.length, 0);
-  const cashCollectedInRange = receiptsInRange.reduce(
-    (sum, r) => sum + r.payments.filter((p) => p.method === "CASH" && p.status === "PAID").reduce((s, p) => s + Number(p.amount), 0),
+  // Every paid method counts (cash, card, bank transfer, online), so this matches the admin and
+  // operator dashboards. Cancelled/refunded payments have a different status and stay out.
+  const collectedInRange = receiptsInRange.reduce(
+    (sum, r) => sum + r.payments.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.amount), 0),
     0
   );
   const periodSuffix = statsPeriodLabel[statsPeriod];
@@ -190,7 +192,7 @@ export default function LabDashboardPage() {
     { label: `Completed ${periodSuffix}`, value: completedInRange.length, icon: faCheckDouble, color: "#22633e" },
     { label: `New Receipts ${periodSuffix}`, value: receiptsInRange.length, icon: faClipboardList, color: "#3e5e58" },
     { label: `Tests Ordered ${periodSuffix}`, value: totalTestsInRange, icon: faListCheck, color: "#123d3b" },
-    { label: `Cash Collected ${periodSuffix}`, value: money(cashCollectedInRange), icon: faMoneyBillWave, color: "#126b68" },
+    { label: `Collected ${periodSuffix}`, value: money(collectedInRange), icon: faMoneyBillWave, color: "#126b68" },
   ];
 
   const receiptsTrend = buildReceiptsTrend(receipts, receiptsPeriod);
