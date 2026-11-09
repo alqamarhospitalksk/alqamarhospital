@@ -11,6 +11,7 @@ import {
   faCoins,
   faFileInvoiceDollar,
   faFlaskVial,
+  faXRay,
   faHandHoldingDollar,
   faHospital,
   faHospitalUser,
@@ -288,9 +289,9 @@ export default function Dashboard() {
         )}
 
         {/* Money for the selected period. Net + doctor share + expenses add up to the gross collected. */}
-        <Grid templateColumns={{ base: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))", "2xl": "repeat(6, minmax(0, 1fr))" }} gap={{ base: "3", md: "4" }} opacity={loading ? 0.65 : 1} transition="opacity 0.2s ease">
+        <Grid templateColumns={{ base: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))", "2xl": "repeat(8, minmax(0, 1fr))" }} gap={{ base: "3", md: "4" }} opacity={loading ? 0.65 : 1} transition="opacity 0.2s ease">
           <Box
-            gridColumn={{ base: "span 2", md: "span 4", "2xl": "span 2" }}
+            gridColumn={{ base: "span 2", md: "span 3", "2xl": "span 2" }}
             bg="linear-gradient(135deg, #0e2a27 0%, #12403b 100%)"
             color="white"
             borderRadius="14px"
@@ -346,6 +347,9 @@ export default function Dashboard() {
           <KpiTile label="Gross collected" value={<Money value={summary.collected} size="inherit" />} icon={faArrowTrendUp} color={series.teal} />
           <KpiTile label="Doctor share" value={<Money value={summary.doctorShare} size="inherit" />} icon={faUserDoctor} color={series.violet} />
           <KpiTile label="Expenses" value={<Money value={summary.totalExpenses} size="inherit" />} icon={faCoins} color={series.orange} />
+          {/* Paid lab and X-ray slips (counter payments) in the selected period; already inside Gross collected. */}
+          <KpiTile label="Laboratory" value={<Money value={summary.totals.LABORATORY ?? 0} size="inherit" />} icon={faFlaskVial} color={series.orange} hint={periodName} />
+          <KpiTile label="X-Ray" value={<Money value={summary.totals["X-RAY"] ?? 0} size="inherit" />} icon={faXRay} color={series.violet} hint={periodName} />
           <KpiTile label="Patients seen" value={formatNumber(summary.patientsSeen)} icon={faUserGroup} color={series.teal} />
         </Grid>
 

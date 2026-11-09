@@ -12,6 +12,7 @@ import {
   faCircleCheck,
   faClockRotateLeft,
   faFlask,
+  faXRay,
   faHospitalUser,
   faHourglassHalf,
   faKitMedical,
@@ -140,6 +141,7 @@ export default function OperatorDashboard() {
   const readyToPrint = tests.reduce((sum, t) => sum + t.readyToPrint, 0);
   const otOpen = data ? data.ot.booked + data.ot.inProgress + data.ot.readyForDischarge : 0;
   const maxPatients = Math.max(1, ...(data?.doctors ?? []).map((d) => d.patients));
+  const serviceAmount = (key: string) => data?.collection.byService.find((row) => row.key === key)?.amount ?? 0;
 
   return (
     <Box minH="100%" bg="#eef2f0" color={ink.primary}>
@@ -189,13 +191,16 @@ export default function OperatorDashboard() {
           ))}
         </Grid>
 
-        <Grid templateColumns={{ base: "repeat(2, minmax(0, 1fr))", md: "repeat(3, minmax(0, 1fr))", xl: "repeat(6, minmax(0, 1fr))" }} gap={{ base: "3", md: "4" }} opacity={data ? 1 : 0.6}>
+        <Grid templateColumns={{ base: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))", xl: "repeat(4, minmax(0, 1fr))" }} gap={{ base: "3", md: "4" }} opacity={data ? 1 : 0.6}>
           <KpiTile label="OPD patients" value={formatNumber(data?.opd.visits ?? 0)} icon={faNotesMedical} color={series.teal} />
           <KpiTile label="Test receipts" value={formatNumber(testReceipts)} icon={faFlask} color={series.violet} />
           <KpiTile label="Emergency visits" value={formatNumber(data?.emergency.visits ?? 0)} icon={faKitMedical} color={series.orange} />
           <KpiTile label="In-patients now" value={formatNumber(data?.admissions.inHouse ?? 0)} icon={faBedPulse} color="#0e7490" />
           <KpiTile label="Open OT cases" value={formatNumber(otOpen)} icon={faBed} color={status.critical} />
           <KpiTile label="Collected at desk" value={<Money value={data?.collection.total ?? 0} size="inherit" />} icon={faCashRegister} color={status.good} />
+          {/* Today's paid lab and X-ray slips, taken from the same desk collection total. */}
+          <KpiTile label="Laboratory collected" value={<Money value={serviceAmount("LABORATORY")} size="inherit" />} icon={faFlask} color={series.orange} />
+          <KpiTile label="X-Ray collected" value={<Money value={serviceAmount("X-RAY")} size="inherit" />} icon={faXRay} color={series.violet} />
         </Grid>
 
         <Grid templateColumns={{ base: "minmax(0, 1fr)", xl: "minmax(0, 1.75fr) minmax(0, 1fr)" }} gap={{ base: "4", md: "5" }}>
