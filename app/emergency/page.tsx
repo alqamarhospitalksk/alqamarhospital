@@ -192,7 +192,7 @@ export default function EmergencyPage() {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
-    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
+    const clinicName = hospitalSettings?.name || "Al Qamar General Hospital";
     const date = new Date().toLocaleDateString("en-GB");
     const age = computeAge(visit.patient.dateOfBirth);
     const copyLabel = copyType === "MINOR_OT" ? "Minor OT Copy" : "Patient Copy";
@@ -659,7 +659,7 @@ export default function EmergencyPage() {
                         />
                         <Box textAlign="left">
                           <Text fontSize="sm" fontWeight="900" color="#123d3b" whiteSpace="nowrap">
-                            {hospitalSettings?.name || "Al Qamar Hospital"}
+                            {hospitalSettings?.name || "Al Qamar General Hospital"}
                           </Text>
                           <Text fontSize="9px" color="#77908b" textTransform="uppercase" letterSpacing="0.1em">
                             Minor Emergency Slip
@@ -728,7 +728,7 @@ export default function EmergencyPage() {
                 <Box pt="3" textAlign="center">
                   <Text fontSize="9px" color="#556e68">
                     <Box as="span" fontWeight="800" color="#123d3b">
-                      {hospitalSettings?.name || "Al Qamar Hospital"}
+                      {hospitalSettings?.name || "Al Qamar General Hospital"}
                     </Box>
                     {[hospitalSettings?.address, hospitalSettings?.phone, hospitalSettings?.email]
                       .filter(Boolean)

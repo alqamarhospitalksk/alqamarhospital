@@ -108,7 +108,7 @@ export async function GET(request: Request) {
   const expenses = allExpenses.filter((expense) => expense.category !== "DOCTOR_PAYOUT");
   const doctorPayouts = allExpenses.filter((expense) => expense.category === "DOCTOR_PAYOUT").reduce((sum, expense) => sum + Number(expense.amount), 0);
 
-  const hospitalName = hospitalSettings?.name || "Al Qamar Hospital";
+  const hospitalName = hospitalSettings?.name || "Al Qamar General Hospital";
   // Medicine returns were paid back to customers, so they come off the gross (and the medical-store line).
   const collected = payments.reduce((sum, payment) => sum + Number(payment.amount), 0) - storeRefunds.total;
   const doctorShare = doctorShares.total;
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
   serviceTotals.MEDICAL_STORE = (serviceTotals.MEDICAL_STORE ?? 0) - storeRefunds.total;
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Al Qamar Hospital";
+  workbook.creator = "Al Qamar General Hospital";
   workbook.created = new Date();
 
   // ---- Summary sheet ----

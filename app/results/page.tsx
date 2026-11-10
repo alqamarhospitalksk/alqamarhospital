@@ -157,7 +157,7 @@ export default function ResultsPage() {
   function printResults(r: ResultReceipt) {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
+    const clinicName = hospitalSettings?.name || "Al Qamar General Hospital";
     const now = new Date();
     const stamp = `${now.toLocaleDateString("en-GB")} ${now.toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}`;
 

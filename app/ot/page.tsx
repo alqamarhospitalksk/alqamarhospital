@@ -1283,7 +1283,7 @@ value={rangeEnd}
                     />
                     <Box>
                       <Text fontSize="lg" fontWeight="900" color="#123d3b">
-                        {(hospitalSettings?.name || "Al Qamar Hospital").toUpperCase()}
+                        {(hospitalSettings?.name || "Al Qamar General Hospital").toUpperCase()}
                       </Text>
                       <Text fontSize="10px" color="#556e68" textTransform="uppercase">
                         OPERATION THEATER (OT) {invoiceMode === "discharge" ? "DISCHARGE BILL" : "INVOICE / RECEIPT"}

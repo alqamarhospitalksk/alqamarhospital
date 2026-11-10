@@ -39,7 +39,7 @@ const notoNastaliqUrdu = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Al Qamar Hospital",
+  title: "Al Qamar General Hospital",
   description: "Clinic operations and cash management workspace",
 };
 

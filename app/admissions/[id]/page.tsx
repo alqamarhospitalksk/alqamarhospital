@@ -143,7 +143,7 @@ export default function AdmissionProfilePage() {
   const id = useParams<{ id: string }>()?.id ?? "";
   const [admission, setAdmission] = useState<Admission | null>(null);
   const [lookups, setLookups] = useState<Lookups | null>(null);
-  const [clinicName, setClinicName] = useState("Al Qamar Hospital");
+  const [clinicName, setClinicName] = useState("Al Qamar General Hospital");
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<ModalKind>(null);
 
@@ -195,7 +195,7 @@ export default function AdmissionProfilePage() {
       await load(id);
       try {
         const res = await fetch("/api/hospital-settings");
-        if (res.ok) setClinicName((await res.json()).settings?.name || "Al Qamar Hospital");
+        if (res.ok) setClinicName((await res.json()).settings?.name || "Al Qamar General Hospital");
       } catch { /* the default name is used on the invoice */ }
     }
     if (id) void loadInitial();

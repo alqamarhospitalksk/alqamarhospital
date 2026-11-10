@@ -189,7 +189,7 @@ export default function HospitalSettingsPage() {
                   <Field.Root required>
                     <Field.Label fontWeight="700">Hospital Name (English)</Field.Label>
                     <Input
-                      placeholder="e.g. Al Qamar Hospital"
+                      placeholder="e.g. Al Qamar General Hospital"
                       value={form.name}
                       onChange={(event) => setForm({ ...form, name: event.target.value })}
                     />

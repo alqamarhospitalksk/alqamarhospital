@@ -1,6 +1,6 @@
-# Al Qamar Hospital — project context for agents
+# Al Qamar General Hospital — project context for agents
 
-Clinic operations and cash-ledger web app for **Al Qamar Hospital** (Pakistan). Money is PKR, the clinic day is
+Clinic operations and cash-ledger web app for **Al Qamar General Hospital** (Pakistan). Money is PKR, the clinic day is
 `Asia/Karachi`, and some printed material is in Urdu. Staff on one hospital network use it all day:
 the front desk (OPD, tests, OT, emergency), the lab, the in-house pharmacy ("medical store") and management.
 Internal names you will see: package `frontend`, cookie prefix `careledger_`.

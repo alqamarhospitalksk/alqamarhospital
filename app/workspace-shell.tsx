@@ -295,7 +295,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           )}
           <Box minW="0">
             <Text fontSize="sm" fontWeight="800" whiteSpace="normal" lineHeight="1.2" color="#f0faf8" letterSpacing="-0.02em">
-              {hospitalSettings?.name || "Al Qamar Hospital"}
+              {hospitalSettings?.name || "Al Qamar General Hospital"}
             </Text>
             <Text fontSize="10px" color="#6fa79c" letterSpacing="0.1em" textTransform="uppercase" mt="0.5" fontWeight="600">
               {user?.role ? roleWorkspace[user.role] : "Management suite"}
@@ -406,7 +406,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           </Button>
           <Box minW="0" lineHeight="1.2">
             <Text fontSize="sm" fontWeight="800" color="#f0faf8" lineClamp={1}>
-              {hospitalSettings?.name || "Al Qamar Hospital"}
+              {hospitalSettings?.name || "Al Qamar General Hospital"}
             </Text>
             {/* Which page this is, since the sidebar is hidden on small screens. */}
             {activeItem && (

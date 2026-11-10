@@ -300,7 +300,7 @@ export default function OpdPage() {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
-    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
+    const clinicName = hospitalSettings?.name || "Al Qamar General Hospital";
     const date = new Date().toLocaleDateString("en-GB");
     const age = computeAge(visit.patient.dateOfBirth);
     const copyLabel = copyType === "DOCTOR" ? "Doctor Copy" : "Patient Copy";
@@ -967,7 +967,7 @@ export default function OpdPage() {
                   {/* Pushed to the right edge so the logo has equal space on both sides and reads as centred. */}
                   <Box textAlign="left" justifySelf="end" maxW="100%">
                     <Text fontSize="20px" fontWeight="900" lineHeight="1.15" color="#1f3a8a" className="slip-hospital-name">
-                      {hospitalSettings?.name || "Al Qamar Hospital"}
+                      {hospitalSettings?.name || "Al Qamar General Hospital"}
                     </Text>
                     {hospitalSettings?.address && (
                       <Text fontSize="11px" fontWeight="600" mt="1.5" lineHeight="1.3">

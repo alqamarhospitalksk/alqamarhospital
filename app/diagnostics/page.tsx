@@ -108,7 +108,7 @@ export default function DiagnosticsPage() {
     const escapeHtml = (value: string) =>
       value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 
-    const clinicName = hospitalSettings?.name || "Al Qamar Hospital";
+    const clinicName = hospitalSettings?.name || "Al Qamar General Hospital";
     const date = receipt.createdAt ? formatDate(receipt.createdAt) : new Date().toLocaleDateString("en-GB");
     const moduleLabel = moduleCopyLabels[receipt.module] ?? receipt.module;
     const copyLabel = copyType === "DEPARTMENT" ? `${moduleLabel} Copy` : "Patient Copy";
@@ -846,7 +846,7 @@ export default function DiagnosticsPage() {
                     />
                     <Box>
                       <Text fontSize="lg" fontWeight="900" color="#123d3b">
-                        {(hospitalSettings?.name || "Al Qamar Hospital").toUpperCase()}
+                        {(hospitalSettings?.name || "Al Qamar General Hospital").toUpperCase()}
                       </Text>
                       <Text fontSize="10px" color="#556e68" textTransform="uppercase" letterSpacing="0.1em">
                         {receipt.module} DEPARTMENT RECEIPT
