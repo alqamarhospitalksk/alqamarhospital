@@ -46,16 +46,20 @@ const compactMoney = (value: number) => {
   return String(value);
 };
 
-type Period = "daily" | "weekly" | "monthly" | "custom";
+type Period = "daily" | "yesterday" | "weekly" | "monthly" | "custom";
 
 function toDateStr(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function periodRange(period: "daily" | "weekly" | "monthly") {
+function periodRange(period: "daily" | "yesterday" | "weekly" | "monthly") {
   const now = new Date();
   const end = toDateStr(now);
   if (period === "daily") return { start: end, end };
+  if (period === "yesterday") {
+    const yesterday = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+    return { start: yesterday, end: yesterday };
+  }
   if (period === "weekly") {
     const day = now.getDay(); // 0 = Sunday
     const diffToMonday = day === 0 ? 6 : day - 1;
@@ -272,7 +276,7 @@ export default function MedicalStoreReportsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function changePeriod(next: "daily" | "weekly" | "monthly") {
+  function changePeriod(next: "daily" | "yesterday" | "weekly" | "monthly") {
     const range = periodRange(next);
     setPeriod(next);
     setStart(range.start);
@@ -356,7 +360,7 @@ export default function MedicalStoreReportsPage() {
         <Flex justify="flex-end" mb="6">
           <VStack gap="3" align="flex-end">
             <HStack gap="2">
-              {(["daily", "weekly", "monthly"] as const).map((p) => (
+              {(["daily", "yesterday", "weekly", "monthly"] as const).map((p) => (
                 <Button
                   key={p}
                   size="sm"

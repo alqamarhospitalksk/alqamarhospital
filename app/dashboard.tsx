@@ -116,12 +116,16 @@ function toDateStr(date: Date) {
 }
 const addDays = (date: Date, days: number) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 
-type Period = "daily" | "weekly" | "monthly" | "custom";
+type Period = "daily" | "yesterday" | "weekly" | "monthly" | "custom";
 
-function periodRange(period: "daily" | "weekly" | "monthly") {
+function periodRange(period: "daily" | "yesterday" | "weekly" | "monthly") {
   const now = new Date();
   const end = toDateStr(now);
   if (period === "daily") return { start: end, end };
+  if (period === "yesterday") {
+    const yesterday = toDateStr(addDays(now, -1));
+    return { start: yesterday, end: yesterday };
+  }
   if (period === "weekly") {
     const day = now.getDay(); // 0 = Sunday
     const diffToMonday = day === 0 ? 6 : day - 1;
@@ -221,7 +225,7 @@ export default function Dashboard() {
   }
 
   const rangeText = start === end ? formatDate(start) : `${formatDate(start)} – ${formatDate(end)}`;
-  const periodName = { daily: "Today", weekly: "This week", monthly: "This month", custom: "Selected range" }[period];
+  const periodName = { daily: "Today", yesterday: "Yesterday", weekly: "This week", monthly: "This month", custom: "Selected range" }[period];
 
   const serviceRows = Object.entries(serviceLabels)
     .map(([key, label]) => ({ key, label, value: summary.totals[key] ?? 0 }))
@@ -262,6 +266,7 @@ export default function Dashboard() {
               onChange={changePeriod}
               options={[
                 { value: "daily", label: "Today" },
+                { value: "yesterday", label: "Yesterday" },
                 { value: "weekly", label: "This week" },
                 { value: "monthly", label: "This month" },
                 { value: "custom", label: "Custom" },

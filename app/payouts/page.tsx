@@ -91,7 +91,7 @@ const emptyPayout = {
 
 const money = (val: number) => `PKR ${val.toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
 
-type SummaryPeriod = "daily" | "weekly" | "monthly" | "custom";
+type SummaryPeriod = "daily" | "yesterday" | "weekly" | "monthly" | "custom";
 
 function toDateStr(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -252,7 +252,7 @@ export default function PayoutsPage() {
               </HStack>
               <VStack gap="2" align="flex-end">
                 <HStack gap="2" flexWrap="wrap">
-                  {(["daily", "weekly", "monthly", "custom"] as const).map((p) => (
+                  {(["daily", "yesterday", "weekly", "monthly", "custom"] as const).map((p) => (
                     <Button
                       key={p}
                       size="sm"

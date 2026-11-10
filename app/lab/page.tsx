@@ -40,12 +40,16 @@ function toDateStr(date: Date) {
 
 const money = (value: number) => `PKR ${value.toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
 
-type StatsPeriod = "today" | "weekly" | "monthly" | "custom";
+type StatsPeriod = "today" | "yesterday" | "weekly" | "monthly" | "custom";
 
-function statsPeriodRange(period: "today" | "weekly" | "monthly") {
+function statsPeriodRange(period: "today" | "yesterday" | "weekly" | "monthly") {
   const now = new Date();
   const end = toDateStr(now);
   if (period === "today") return { start: end, end };
+  if (period === "yesterday") {
+    const yesterday = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+    return { start: yesterday, end: yesterday };
+  }
   if (period === "weekly") {
     const day = now.getDay(); // 0 = Sunday
     const diffToMonday = day === 0 ? 6 : day - 1;
@@ -58,6 +62,7 @@ function statsPeriodRange(period: "today" | "weekly" | "monthly") {
 
 const statsPeriodLabel: Record<StatsPeriod, string> = {
   today: "Today",
+  yesterday: "Yesterday",
   weekly: "This Week",
   monthly: "This Month",
   custom: "In Range",
@@ -137,7 +142,7 @@ export default function LabDashboardPage() {
   const [customStart, setCustomStart] = useState(() => toDateStr(new Date()));
   const [customEnd, setCustomEnd] = useState(() => toDateStr(new Date()));
 
-  function changeStatsPeriod(next: "today" | "weekly" | "monthly") {
+  function changeStatsPeriod(next: "today" | "yesterday" | "weekly" | "monthly") {
     const range = statsPeriodRange(next);
     setStatsPeriod(next);
     setCustomStart(range.start);
@@ -234,7 +239,7 @@ export default function LabDashboardPage() {
       <Box as="main" px={{ base: "16px", md: "24px", xl: "32px" }} py={{ base: "20px", md: "28px" }} w="100%" maxW="1680px" mx="auto">
         <VStack align="flex-end" gap="3" mb="5">
           <HStack gap="2">
-            {(["today", "weekly", "monthly"] as const).map((p) => (
+            {(["today", "yesterday", "weekly", "monthly"] as const).map((p) => (
               <Button
                 key={p}
                 size="sm"

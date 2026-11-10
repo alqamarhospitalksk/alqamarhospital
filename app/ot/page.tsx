@@ -77,16 +77,20 @@ const paymentMethodLabels: Record<string, string> = {
 };
 type HospitalSettings = { name: string; logoDataUrl?: string | null };
 
-type Period = "today" | "weekly" | "monthly" | "custom";
+type Period = "today" | "yesterday" | "weekly" | "monthly" | "custom";
 
 function toDateStr(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function periodRange(period: "today" | "weekly" | "monthly") {
+function periodRange(period: "today" | "yesterday" | "weekly" | "monthly") {
   const now = new Date();
   const end = toDateStr(now);
   if (period === "today") return { start: end, end };
+  if (period === "yesterday") {
+    const yesterday = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+    return { start: yesterday, end: yesterday };
+  }
   if (period === "weekly") {
     const day = now.getDay(); // 0 = Sunday
     const diffToMonday = day === 0 ? 6 : day - 1;
@@ -108,7 +112,7 @@ export default function OtPage() {
   const [rangeStart, setRangeStart] = useState(toDateStr(new Date()));
   const [rangeEnd, setRangeEnd] = useState(toDateStr(new Date()));
 
-  function changePeriod(next: "today" | "weekly" | "monthly") {
+  function changePeriod(next: "today" | "yesterday" | "weekly" | "monthly") {
     const range = periodRange(next);
     setPeriod(next);
     setRangeStart(range.start);
@@ -884,7 +888,7 @@ export default function OtPage() {
 
               <VStack gap="2" align="flex-end">
                 <HStack gap="2">
-                  {(["today", "weekly", "monthly"] as const).map((p) => (
+                  {(["today", "yesterday", "weekly", "monthly"] as const).map((p) => (
                     <Button
                       key={p}
                       size="sm"

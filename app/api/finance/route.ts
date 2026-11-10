@@ -31,6 +31,9 @@ function serializeEmployee(
 // produce a nonsense balance.
 function resolveRange(period: string | null, params: URLSearchParams): { since: Date | null; until: Date | null } {
   const now = new Date();
+  if (period === "yesterday") {
+    return { since: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1), until: new Date(now.getFullYear(), now.getMonth(), now.getDate()) };
+  }
   if (period === "daily") {
     return { since: new Date(now.getFullYear(), now.getMonth(), now.getDate()), until: null };
   }
@@ -135,7 +138,7 @@ export async function GET(request: Request) {
     employees: employees.map((employee) => serializeEmployee(employee, lastSalaryPayoutByEmployee.get(employee.id) ?? null)),
     doctors: rawDoctors.map((d) => ({ id: d.id, name: d.name })),
     doctorSummaries: doctorPayoutSummaries,
-    doctorSummaryPeriod: period === "daily" || period === "weekly" || period === "monthly" || period === "custom" ? period : "all",
+    doctorSummaryPeriod: period === "daily" || period === "yesterday" || period === "weekly" || period === "monthly" || period === "custom" ? period : "all",
     expenses: expenses.map((expense) => ({
       ...expense,
       amount: expense.amount.toString(),
