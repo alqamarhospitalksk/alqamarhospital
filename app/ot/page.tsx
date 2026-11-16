@@ -1159,7 +1159,7 @@ value={rangeEnd}
           <Box bg="white" borderRadius="16px" w="full" maxW="440px" boxShadow="0 20px 40px rgba(0,0,0,0.2)" overflow="hidden">
             <Flex justify="space-between" align="center" px="24px" py="16px" bg="#123d3b" color="white">
               <Box>
-                <Heading size="sm">Record Payment</Heading>
+                <Heading size="sm" color="white">Record Payment</Heading>
                 <Text fontSize="xs" color="#a8c5bd">Case #: {recordPaymentCase.caseNumber}</Text>
               </Box>
               <Button variant="ghost" color="white" _hover={{ bg: "#255d58" }} p="2" minW="auto" onClick={() => setRecordPaymentCase(null)}>

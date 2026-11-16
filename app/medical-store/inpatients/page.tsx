@@ -191,7 +191,7 @@ export default function InPatientsPage() {
           <Box bg="white" borderRadius="16px" w="full" maxW="460px" boxShadow="0 20px 40px rgba(0,0,0,0.2)" overflow="hidden">
             <Flex justify="space-between" align="center" px="24px" py="16px" bg="#123d3b" color="white">
               <Box>
-                <Heading size="sm">Medicine payment received</Heading>
+                <Heading size="sm" color="white">Medicine payment received</Heading>
                 <Text fontSize="xs" color="#a8c5bd">{settling.number} · {settling.patient.name}</Text>
               </Box>
               <Button variant="ghost" color="white" _hover={{ bg: "#255d58" }} p="2" minW="auto" onClick={() => setSettling(null)}>

@@ -95,7 +95,9 @@ const system = createSystem(defaultConfig, {
         base: { borderRadius: "full", fontWeight: "600", letterSpacing: "0.01em", px: "2" },
       },
       heading: {
-        base: { color: "#0e2420" },
+        // Inherit, not a fixed dark colour: a fixed one made titles in dark-green modal headers unreadable.
+        // Body text is already #0e2420 (see globalCss), so headings on light backgrounds look the same.
+        base: { color: "inherit" },
       },
       input: {
         variants: {

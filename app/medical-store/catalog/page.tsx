@@ -332,7 +332,7 @@ export default function MedicineCatalogPage() {
         <Flex position="fixed" inset="0" bg="rgba(15, 30, 28, 0.55)" backdropFilter="blur(3px)" zIndex="100" align="center" justify="center" p="4">
           <Box bg="white" borderRadius="16px" w="full" maxW="640px" boxShadow="0 20px 40px rgba(0,0,0,0.2)" overflow="hidden">
             <Flex justify="space-between" align="center" px="28px" py="20px" bg="#123d3b" color="white">
-              <Heading size="sm">{editingId ? "Edit Medicine" : "Add Medicine"}</Heading>
+              <Heading size="sm" color="white">{editingId ? "Edit Medicine" : "Add Medicine"}</Heading>
               <Button variant="ghost" color="white" _hover={{ bg: "#255d58" }} p="2" minW="auto" onClick={() => setShowModal(false)}>
                 <FontAwesomeIcon icon={faXmark} size="lg" />
               </Button>

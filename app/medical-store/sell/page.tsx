@@ -840,7 +840,7 @@ export default function SellMedicinePage({ searchParams }: { searchParams: Searc
         <Flex position="fixed" inset="0" bg="rgba(15, 30, 28, 0.55)" backdropFilter="blur(3px)" zIndex="100" align="center" justify="center" p="4">
           <Box bg="white" borderRadius="16px" w="full" maxW="480px" boxShadow="0 20px 40px rgba(0,0,0,0.2)" overflow="hidden">
             <Flex justify="space-between" align="center" px="24px" py="16px" bg="#123d3b" color="white">
-              <Heading size="sm">Sale {sale.saleNumber}</Heading>
+              <Heading size="sm" color="white">Sale {sale.saleNumber}</Heading>
               <Button variant="ghost" color="white" _hover={{ bg: "#255d58" }} p="2" minW="auto" onClick={() => setShowSlipModal(false)}>
                 <FontAwesomeIcon icon={faXmark} size="lg" />
               </Button>

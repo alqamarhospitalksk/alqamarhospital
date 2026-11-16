@@ -95,7 +95,8 @@ function Modal({ title, subtitle, onClose, children, footer }: { title: string; 
       <Box bg="white" borderRadius="16px" w="full" maxW="620px" boxShadow="0 20px 40px rgba(0,0,0,0.2)" overflow="hidden" maxH="92vh" display="flex" flexDirection="column">
         <Flex justify="space-between" align="center" px="24px" py="16px" bg="#123d3b" color="white" flexShrink="0">
           <Box>
-            <Heading size="sm">{title}</Heading>
+            {/* The theme gives every Heading a dark colour, so it must be set here or it ignores the header's white. */}
+            <Heading size="sm" color="white">{title}</Heading>
             {subtitle && <Text fontSize="xs" color="#a8c5bd">{subtitle}</Text>}
           </Box>
           <Button variant="ghost" color="white" _hover={{ bg: "#255d58" }} p="2" minW="auto" onClick={onClose}>
