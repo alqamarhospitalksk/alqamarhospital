@@ -14,6 +14,7 @@ type Doctor = {
   specializationUrdu: string | null;
   qualifications: string | null;
   qualificationsUrdu: string | null;
+  remarks: string | null;
   availability: string | null;
   availabilityDays: number[];
   availabilityFrom: string | null;
@@ -38,6 +39,7 @@ type DoctorForm = {
   specializationUrdu: string;
   qualifications: string;
   qualificationsUrdu: string;
+  remarks: string;
   availabilityDays: number[];
   availabilityFrom: string;
   availabilityTo: string;
@@ -61,6 +63,7 @@ const emptyForm: DoctorForm = {
   specializationUrdu: "",
   qualifications: "",
   qualificationsUrdu: "",
+  remarks: "",
   availabilityDays: [],
   availabilityFrom: "09:00",
   availabilityTo: "17:00",
@@ -118,6 +121,7 @@ export default function DoctorsPage() {
       specializationUrdu: doc.specializationUrdu ?? "",
       qualifications: doc.qualifications ?? "",
       qualificationsUrdu: doc.qualificationsUrdu ?? "",
+      remarks: doc.remarks ?? "",
       availabilityDays: doc.availabilityDays ?? [],
       availabilityFrom: doc.availabilityFrom ?? "09:00",
       availabilityTo: doc.availabilityTo ?? "17:00",
@@ -435,6 +439,16 @@ export default function DoctorsPage() {
                       placeholder="مثلاً ایم بی بی ایس، ایف سی پی ایس (امراض قلب)"
                       value={form.qualificationsUrdu}
                       onChange={(event) => setForm({ ...form, qualificationsUrdu: event.target.value })}
+                    />
+                  </Field.Root>
+
+                  <Field.Root gridColumn={{ md: "span 2" }}>
+                    <Field.Label fontWeight="700">Remarks (optional)</Field.Label>
+                    <Textarea
+                      placeholder={"e.g. Casualty Medical Officer\nShown on the OPD slip under the qualifications; leave empty to hide"}
+                      maxLength={500}
+                      value={form.remarks}
+                      onChange={(event) => setForm({ ...form, remarks: event.target.value })}
                     />
                   </Field.Root>
 

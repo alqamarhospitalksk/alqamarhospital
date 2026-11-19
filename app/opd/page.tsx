@@ -51,6 +51,7 @@ type Doctor = {
   specializationUrdu?: string | null;
   qualifications?: string | null;
   qualificationsUrdu?: string | null;
+  remarks?: string | null;
   consultationFee: string;
   availability: string | null;
   availabilityDays: number[];
@@ -64,6 +65,7 @@ type VisitDoctor = {
   specializationUrdu?: string | null;
   qualifications?: string | null;
   qualificationsUrdu?: string | null;
+  remarks?: string | null;
   availability?: string | null;
   availabilityDays?: number[];
   availabilityFrom?: string | null;
@@ -131,12 +133,22 @@ function formatSlipDateTime(value?: string) {
 const DAY_LABELS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_LABELS_UR = ["اتوار", "پیر", "منگل", "بدھ", "جمعرات", "جمعہ", "ہفتہ"];
 
+// Doctors' duty times are stored as 24-hour "HH:mm"; the slip shows them as 12-hour ("3:00 PM").
+function to12Hour(time: string, lang: "en" | "ur") {
+  const [hourText, minute] = time.split(":");
+  const hour = Number(hourText);
+  if (!Number.isInteger(hour) || minute === undefined) return time;
+  const isPm = hour >= 12;
+  const suffix = lang === "ur" ? (isPm ? "شام" : "صبح") : isPm ? "PM" : "AM";
+  return `${hour % 12 || 12}:${minute} ${suffix}`;
+}
+
 function formatAvailability(doctor: VisitDoctor, lang: "en" | "ur") {
   const days = doctor.availabilityDays ?? [];
   if (days.length && doctor.availabilityFrom && doctor.availabilityTo) {
     const labels = lang === "ur" ? DAY_LABELS_UR : DAY_LABELS_EN;
     const dayText = [...days].sort((a, b) => a - b).map((day) => labels[day]).join(lang === "ur" ? "، " : ", ");
-    return `${dayText} · ${doctor.availabilityFrom}–${doctor.availabilityTo}`;
+    return `${dayText} · ${to12Hour(doctor.availabilityFrom, lang)}–${to12Hour(doctor.availabilityTo, lang)}`;
   }
   // Legacy free-text availability was only ever entered in English — no reliable Urdu translation exists.
   return lang === "en" ? (doctor.availability ?? "") : "";
@@ -945,6 +957,11 @@ export default function OpdPage() {
                     {visit.doctor.qualifications && (
                       <Text fontSize="11px" fontWeight="700" whiteSpace="pre-line" mt="1" lineHeight="1.25">
                         {visit.doctor.qualifications}
+                      </Text>
+                    )}
+                    {visit.doctor.remarks?.trim() && (
+                      <Text fontSize="11px" fontWeight="700" whiteSpace="pre-line" mt="0.5" lineHeight="1.25">
+                        {visit.doctor.remarks}
                       </Text>
                     )}
                     <Text fontSize="11px" fontWeight="800" mt="0.5" lineHeight="1.25">

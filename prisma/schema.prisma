@@ -130,7 +130,9 @@ model Doctor {
   specializationUrdu     String?             @map("specialization_urdu") @db.VarChar(150)
   qualifications         String?             @db.VarChar(500)
   qualificationsUrdu     String?             @map("qualifications_urdu") @db.VarChar(500)
-  availability           String?             @db.VarChar(500)
+  // Optional line printed under the qualifications on the OPD doctor slip.
+  remarks                String?             @db.VarChar(500)
+  availability          String?             @db.VarChar(500)
   availabilityDays       String              @default("[]") @map("availability_days") @db.VarChar(80)
   availabilityFrom       String?             @map("availability_from") @db.VarChar(5)
   availabilityTo         String?             @map("availability_to") @db.VarChar(5)

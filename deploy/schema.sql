@@ -45,6 +45,7 @@ CREATE TABLE `doctors` (
     `specialization_urdu` VARCHAR(150) NULL,
     `qualifications` VARCHAR(500) NULL,
     `qualifications_urdu` VARCHAR(500) NULL,
+    `remarks` VARCHAR(500) NULL,
     `availability` VARCHAR(500) NULL,
     `availability_days` VARCHAR(80) NOT NULL DEFAULT '[]',
     `availability_from` VARCHAR(5) NULL,

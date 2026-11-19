@@ -19,7 +19,7 @@ export async function GET() {
     where: { active: true },
     orderBy: { name: "asc" },
     select: {
-      id: true, name: true, specialization: true, nameUrdu: true, specializationUrdu: true, qualifications: true, qualificationsUrdu: true,
+      id: true, name: true, specialization: true, nameUrdu: true, specializationUrdu: true, qualifications: true, qualificationsUrdu: true, remarks: true,
       availability: true, availabilityDays: true, availabilityFrom: true, availabilityTo: true,
       consultationFee: true, hospitalSplitType: true, hospitalSplitValue: true,
       labSharePercent: true, xraySharePercent: true, ultrasoundSharePercent: true, ecgSharePercent: true, ecoSharePercent: true,
@@ -56,6 +56,7 @@ export async function POST(request: Request) {
   const specializationUrdu = text(body?.specializationUrdu) || null;
   const qualifications = text(body?.qualifications) || null;
   const qualificationsUrdu = text(body?.qualificationsUrdu) || null;
+  const remarks = text(body?.remarks) || null;
   const availabilityDays = parseAvailabilityDays(body?.availabilityDays);
   const availabilityFrom = text(body?.availabilityFrom);
   const availabilityTo = text(body?.availabilityTo);
@@ -86,8 +87,8 @@ export async function POST(request: Request) {
 
   const doctor = await db.doctor.create({
     data: {
-      name, specialization, nameUrdu, specializationUrdu, qualifications, qualificationsUrdu,
-      availability, availabilityDays: JSON.stringify(availabilityDays), availabilityFrom, availabilityTo,
+      name, specialization, nameUrdu, specializationUrdu, qualifications, qualificationsUrdu, remarks,
+      availability,availabilityDays: JSON.stringify(availabilityDays), availabilityFrom, availabilityTo,
       consultationFee: fee, hospitalSplitType: splitType, hospitalSplitValue: splitValue,
       labSharePercent, xraySharePercent, ultrasoundSharePercent, ecgSharePercent, ecoSharePercent,
       admissionDailyFee, admissionSplitType, admissionSplitValue,

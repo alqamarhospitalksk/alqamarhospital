@@ -234,6 +234,14 @@ const updates = [
       await conn.query("ALTER TABLE `patients` ADD COLUMN `city` VARCHAR(100) NULL");
     },
   },
+  // Same statement as prisma/migrations/20261119120000_doctor_remarks/migration.sql. Old doctors keep remarks NULL.
+  {
+    name: "doctor remarks",
+    needed: async (conn) => !(await columnExists(conn, "doctors", "remarks")),
+    run: async (conn) => {
+      await conn.query("ALTER TABLE `doctors` ADD COLUMN `remarks` VARCHAR(500) NULL");
+    },
+  },
 ];
 
 async function connect(ssl) {

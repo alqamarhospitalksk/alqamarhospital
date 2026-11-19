@@ -27,6 +27,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const specializationUrdu = text(body?.specializationUrdu) || null;
   const qualifications = text(body?.qualifications) || null;
   const qualificationsUrdu = text(body?.qualificationsUrdu) || null;
+  const remarks = text(body?.remarks) || null;
   const availabilityDays = parseAvailabilityDays(body?.availabilityDays);
   const availabilityFrom = text(body?.availabilityFrom);
   const availabilityTo = text(body?.availabilityTo);
@@ -74,6 +75,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       specializationUrdu,
       qualifications,
       qualificationsUrdu,
+      remarks,
       availability,
       availabilityDays: JSON.stringify(availabilityDays),
       availabilityFrom,
