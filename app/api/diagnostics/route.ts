@@ -4,6 +4,7 @@ import { roleError } from "../../../lib/roles";
 import { db } from "../../../lib/db";
 import { runTransaction } from "../../../lib/transaction";
 import { toDateColumnBoundary } from "../../../lib/date-range";
+import { WALK_IN_DOCTOR_LABEL } from "../../../lib/walk-in";
 
 const modules = ["LABORATORY", "ECO", "X-RAY", "ECG", "ULTRASOUND"] as const;
 const methods = ["CASH", "CARD", "BANK_TRANSFER", "ONLINE"] as const;
@@ -23,9 +24,9 @@ export async function GET(request: Request) {
   const fetchHistory = params.get("history") === "true";
 
   if (fetchHistory) {
-    // The counter's own (paid) receipts only; tests ordered for admitted patients are on their admission bill.
+    // The counter's own (paid) receipts, OPD and walk-in; tests ordered for admitted patients are on their admission bill.
     const receipts = await db.diagnosticReceipt.findMany({
-      where: { opdVisitId: { not: null } },
+      where: { admissionId: null },
       orderBy: { id: "desc" },
       take: 40,
       include: {
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({
-      receipts: receipts.filter((r) => r.patient != null && r.doctor != null && r.opdVisit != null).map((r) => ({
+      receipts: receipts.filter((r) => r.patient != null).map((r) => ({
         id: r.id,
         receiptNumber: r.receiptNumber,
         module: r.module,
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
         status: r.status,
         result: r.result,
         createdAt: r.createdAt,
-        opdNumber: r.opdVisit!.opdNumber,
+        opdNumber: r.opdVisit?.opdNumber ?? null,
         patient: {
           name: r.patient.name,
           mrNumber: r.patient.mrNumber,
@@ -59,11 +60,31 @@ export async function GET(request: Request) {
           gender: r.patient.gender,
         },
         doctor: {
-          name: r.doctor.name,
-          specialization: r.doctor.specialization,
+          name: r.doctor?.name ?? WALK_IN_DOCTOR_LABEL,
+          specialization: r.doctor?.specialization ?? "",
         },
         items: r.items.map((i) => ({ name: i.nameAtSale, price: money(i.priceAtSale) })),
       })),
+    });
+  }
+
+  // Walk-in box: any registered patient, found by name, MR number, mobile or CNIC. No OPD visit is involved.
+  const patientSearch = text(params.get("patientSearch"));
+  if (patientSearch) {
+    const matches = await db.patient.findMany({
+      where: {
+        OR: [
+          { name: { contains: patientSearch } },
+          { mrNumber: { contains: patientSearch } },
+          { mobile: { contains: patientSearch } },
+          { cnic: { contains: patientSearch } },
+        ],
+      },
+      orderBy: { id: "desc" },
+      take: 10,
+    });
+    return NextResponse.json({
+      patients: matches.map((p) => ({ id: p.id, name: p.name, mrNumber: p.mrNumber, fatherName: p.fatherName, mobile: p.mobile, gender: p.gender })),
     });
   }
 
@@ -142,22 +163,39 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const serviceModule = text(body?.module).toUpperCase();
   const opdNumber = text(body?.opdNumber);
+  // Walk-in: a registered patient who came only for tests (no OPD visit, no referring doctor).
+  const walkInPatientId = Number(body?.patientId);
+  const isWalkIn = !opdNumber && Number.isInteger(walkInPatientId) && walkInPatientId > 0;
   const itemIds = Array.isArray(body?.itemIds) ? body.itemIds.map(Number).filter(Number.isInteger) : [];
   const paymentMethod = text(body?.paymentMethod) || "CASH";
   const discount = Number(body?.discount ?? 0);
   const discountReason = text(body?.discountReason) || null;
 
-  if (!modules.includes(serviceModule as (typeof modules)[number]) || !opdNumber || itemIds.length === 0 || !methods.includes(paymentMethod as (typeof methods)[number])) {
-    return NextResponse.json({ error: "Select an OPD number, tests, and valid payment method." }, { status: 400 });
+  if (!modules.includes(serviceModule as (typeof modules)[number]) || (!opdNumber && !isWalkIn) || itemIds.length === 0 || !methods.includes(paymentMethod as (typeof methods)[number])) {
+    return NextResponse.json({ error: "Select an OPD number or a walk-in patient, tests, and a valid payment method." }, { status: 400 });
   }
   if (!Number.isFinite(discount) || discount < 0 || (!discountReason && discount > 0)) {
     return NextResponse.json({ error: "A valid discount amount and reason note are required for discounts." }, { status: 400 });
   }
 
   const receipt = await runTransaction(async (transaction) => {
-    const visit = await transaction.opdVisit.findUnique({ where: { opdNumber }, include: { patient: true, doctor: true } });
-    if (!visit) throw new Error("OPD number not found.");
-    if (!visit.patient || !visit.doctor) throw new Error("OPD visit is missing associated patient or doctor record.");
+    // Either an OPD visit (patient and doctor come from it) or a walk-in (patient picked, no doctor).
+    let visit: { id: number; opdNumber: string } | null = null;
+    let patient: { id: number; name: string; mrNumber: string };
+    let doctor: { id: number; name: string } | null;
+    if (isWalkIn) {
+      const found = await transaction.patient.findUnique({ where: { id: walkInPatientId } });
+      if (!found) throw new Error("Patient not found.");
+      patient = found;
+      doctor = null;
+    } else {
+      const found = await transaction.opdVisit.findUnique({ where: { opdNumber }, include: { patient: true, doctor: true } });
+      if (!found) throw new Error("OPD number not found.");
+      if (!found.patient || !found.doctor) throw new Error("OPD visit is missing associated patient or doctor record.");
+      visit = found;
+      patient = found.patient;
+      doctor = found.doctor;
+    }
     const items = await transaction.diagnosticCatalogItem.findMany({ where: { id: { in: itemIds }, module: serviceModule, active: true } });
     if (items.length !== itemIds.length) throw new Error("One or more selected tests are unavailable.");
 
@@ -176,9 +214,9 @@ export async function POST(request: Request) {
         receiptNumber,
         module: serviceModule,
         moduleToken,
-        opdVisitId: visit.id,
-        patientId: visit.patientId,
-        doctorId: visit.doctorId,
+        opdVisitId: visit?.id ?? null,
+        patientId: patient.id,
+        doctorId: doctor?.id ?? null,
         subtotal,
         discount,
         discountReason,
@@ -189,7 +227,7 @@ export async function POST(request: Request) {
       },
       include: { items: true, payments: true },
     });
-    return { created, visit };
+    return { created, visit, patient, doctor };
   }).catch((error: unknown) => { throw new Error(error instanceof Error ? error.message : "Unable to create receipt."); });
 
   await db.auditLog.create({
@@ -199,7 +237,7 @@ export async function POST(request: Request) {
       entityId: String(receipt.created.id),
       userId: user.id,
       reason: discountReason,
-      afterJson: JSON.stringify({ receiptNumber: receipt.created.receiptNumber, module: serviceModule, total: receipt.created.total.toString(), discount }),
+      afterJson: JSON.stringify({ receiptNumber: receipt.created.receiptNumber, module: serviceModule, total: receipt.created.total.toString(), discount, walkIn: isWalkIn }),
     },
   });
 
@@ -216,9 +254,9 @@ export async function POST(request: Request) {
         total: money(receipt.created.total),
         paymentMethod: receipt.created.payments[0]?.method ?? paymentMethod,
         status: receipt.created.status,
-        opdNumber: receipt.visit.opdNumber,
-        patient: { name: receipt.visit.patient?.name ?? "Unknown", mrNumber: receipt.visit.patient?.mrNumber ?? "" },
-        doctor: { name: receipt.visit.doctor?.name ?? "Unknown" },
+        opdNumber: receipt.visit?.opdNumber ?? null,
+        patient: { name: receipt.patient.name, mrNumber: receipt.patient.mrNumber },
+        doctor: { name: receipt.doctor?.name ?? WALK_IN_DOCTOR_LABEL },
         items: receipt.created.items.map((item) => ({ name: item.nameAtSale, price: money(item.priceAtSale) })),
       },
     },

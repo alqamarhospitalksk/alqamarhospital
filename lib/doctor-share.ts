@@ -157,6 +157,8 @@ export async function doctorTotals(range?: { since: Date | null; until: Date | n
     entry.consultationCount += row._count._all;
   }
   for (const row of receipts) {
+    // A walk-in's receipt has no referring doctor, so nobody earns a share on it.
+    if (row.doctorId === null) continue;
     const entry = entryFor(row.doctorId);
     entry.receiptsByModule[row.module] = (entry.receiptsByModule[row.module] ?? 0) + Number(row._sum.total ?? 0);
   }

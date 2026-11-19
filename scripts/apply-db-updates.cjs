@@ -242,6 +242,16 @@ const updates = [
       await conn.query("ALTER TABLE `doctors` ADD COLUMN `remarks` VARCHAR(500) NULL");
     },
   },
+  // Same statement as prisma/migrations/20261119140000_walkin_test_receipts/migration.sql.
+  // A walk-in's test receipt has no referring doctor. Existing receipts keep their doctor.
+  {
+    name: "walk-in test receipts (doctor optional)",
+    needed: async (conn) =>
+      (await conn.query("SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'diagnostic_receipts' AND column_name = 'doctor_id' AND is_nullable = 'NO'")).length > 0,
+    run: async (conn) => {
+      await conn.query("ALTER TABLE `diagnostic_receipts` MODIFY `doctor_id` INTEGER NULL");
+    },
+  },
 ];
 
 async function connect(ssl) {

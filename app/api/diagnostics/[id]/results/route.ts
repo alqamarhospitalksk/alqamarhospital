@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../../lib/auth";
 import { db } from "../../../../../lib/db";
 import { serializeResultItem } from "../../../../../lib/lab-catalog";
+import { WALK_IN_DOCTOR_LABEL } from "../../../../../lib/walk-in";
 import { QUALITATIVE_OPTIONS, alternateValue, computeFlag, referenceText } from "../../../../../lib/lab-results";
 
 const receiptInclude = {
@@ -57,7 +58,7 @@ function describe(receipt: Receipt) {
     module: receipt.module,
     moduleToken: receipt.moduleToken,
     patient: { name: receipt.patient.name, mrNumber: receipt.patient.mrNumber, gender: receipt.patient.gender },
-    doctor: { name: receipt.doctor.name },
+    doctor: { name: receipt.doctor?.name ?? WALK_IN_DOCTOR_LABEL },
     resultStatus: items.length > 0 && items.every((i) => i.done) ? "DONE" : "PENDING",
     items,
   };

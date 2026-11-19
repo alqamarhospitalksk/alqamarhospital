@@ -96,6 +96,7 @@ Domain notes:
   - A return on an unsettled credit sale has `refundMode` CREDIT. It is excluded from cash refunds (`lib/store-refunds.ts`, day closing).
   - Store revenue (store dashboard, `lib/medical-store-report.ts`): counter sales count when sold. Credit sales count only once SETTLED, dated `settledAt`, and their CREDIT returns come off on that date.
 - **Diagnostic receipts** come from the OPD tests counter (`opdVisitId`, paid on the spot) or from an admission (`admissionId`, action ORDER_TESTS: no payment, the total is on the admission's hospital bill, the referring doctor is the attending doctor). `opdVisitId` is therefore optional. The lab's result entry is the same for both.
+  - A third kind is the **walk-in** at the tests counter: a registered patient who came only for tests, paid on the spot, with no `opdVisitId` and no `admissionId`, and no OPD visit/token/consultation fee. `doctorId` is NULL for it (no referring doctor, so no referral share; the API shows `WALK_IN_DOCTOR_LABEL` from `lib/walk-in.ts`).
 - **Payments**: each `Payment` belongs to exactly one source (OPD / receipt / OT / emergency / medicine sale / admission). Use `lib/payment-source.ts` to label them; never re-derive this.
 - **Employees/payouts**: salary cycle rules live in `lib/payment-cycle.ts` and are shared by both pages.
 

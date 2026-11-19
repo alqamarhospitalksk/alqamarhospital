@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../lib/auth";
 import { roleError } from "../../../../lib/roles";
 import { db } from "../../../../lib/db";
+import { WALK_IN_DOCTOR_LABEL } from "../../../../lib/walk-in";
 import { serializeResultItem } from "../../../../lib/lab-catalog";
 
 function money(value: { toString(): string }) {
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     receipts: receipts
-      .filter((r) => r.patient != null && r.doctor != null)
+      .filter((r) => r.patient != null)
       .map((r) => {
         const items = r.items.map((item) => ({
           ...serializeResultItem(item),
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
           printedAt: r.printedAt,
           printedBy: r.printedBy?.username ?? null,
           patient: { name: r.patient!.name, mrNumber: r.patient!.mrNumber, gender: r.patient!.gender },
-          doctor: { name: r.doctor!.name },
+          doctor: { name: r.doctor?.name ?? WALK_IN_DOCTOR_LABEL },
           items,
           payments: r.payments.map((p) => ({ amount: money(p.amount), method: p.method, status: p.status })),
         };

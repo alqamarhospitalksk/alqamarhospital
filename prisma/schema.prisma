@@ -251,12 +251,14 @@ model DiagnosticReceipt {
   receiptNumber  String                  @unique @map("receipt_number") @db.VarChar(40)
   module         String                  @db.VarChar(30)
   moduleToken    Int                     @map("module_token")
-  // Tests are ordered either at the OPD tests counter (opdVisitId, paid on the spot) or for an
-  // admitted patient (admissionId, no payment: the total goes on the admission's hospital bill).
+  // Tests are ordered at the tests counter, paid on the spot, either for an OPD visit (opdVisitId) or as a
+  // walk-in (neither id set: just a registered patient who came only for tests), or for an admitted patient
+  // (admissionId, no payment: the total goes on the admission's hospital bill).
   opdVisitId     Int?                    @map("opd_visit_id")
   admissionId    Int?                    @map("admission_id")
   patientId      Int                     @map("patient_id")
-  doctorId       Int                     @map("doctor_id")
+  // NULL for a walk-in who came only for tests and was referred by no doctor (no referral share is earned).
+  doctorId       Int?                    @map("doctor_id")
   subtotal       Decimal                 @db.Decimal(12, 2)
   discount       Decimal                 @default(0) @db.Decimal(12, 2)
   discountReason String?                 @map("discount_reason") @db.VarChar(500)
@@ -270,7 +272,7 @@ model DiagnosticReceipt {
   opdVisit       OpdVisit?               @relation(fields: [opdVisitId], references: [id], onDelete: Restrict)
   admission      Admission?              @relation(fields: [admissionId], references: [id])
   patient        Patient                 @relation(fields: [patientId], references: [id])
-  doctor         Doctor                  @relation(fields: [doctorId], references: [id])
+  doctor         Doctor?                 @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   createdBy      User                    @relation(fields: [createdById], references: [id])
   printedBy      User?                   @relation("DiagnosticReceiptPrintedBy", fields: [printedById], references: [id])
   items          DiagnosticReceiptItem[]

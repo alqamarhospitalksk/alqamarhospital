@@ -148,7 +148,7 @@ CREATE TABLE `diagnostic_receipts` (
     `opd_visit_id` INTEGER NULL,
     `admission_id` INTEGER NULL,
     `patient_id` INTEGER NOT NULL,
-    `doctor_id` INTEGER NOT NULL,
+    `doctor_id` INTEGER NULL,
     `subtotal` DECIMAL(12, 2) NOT NULL,
     `discount` DECIMAL(12, 2) NOT NULL DEFAULT 0,
     `discount_reason` VARCHAR(500) NULL,

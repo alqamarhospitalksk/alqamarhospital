@@ -29,6 +29,7 @@ import {
   faCheck,
   faClockRotateLeft,
   faFlask,
+  faPersonWalking,
   faPrint,
   faUser,
   faXmark,
@@ -51,6 +52,7 @@ type Visit = {
   patient: { name: string; mrNumber: string };
   doctor: { name: string; specialization: string };
 };
+type WalkInPatient = { id: number; name: string; mrNumber: string; fatherName: string; mobile: string; gender: string };
 type TodayVisit = { opdNumber: string; patientName: string; mrNumber: string; doctorName: string };
 type Receipt = {
   id: number;
@@ -64,7 +66,7 @@ type Receipt = {
   paymentMethod: string;
   status: string;
   result?: string | null;
-  opdNumber?: string;
+  opdNumber?: string | null;
   createdAt?: string;
   patient: { name: string; mrNumber: string; fatherName?: string; gender?: string };
   doctor: { name: string; specialization?: string };
@@ -81,6 +83,14 @@ export default function DiagnosticsPage() {
   const [showOpdDropdown, setShowOpdDropdown] = useState(false);
   const [searchingOpd, setSearchingOpd] = useState(false);
   const opdSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // "OPD": bill tests for a patient who already saw a doctor today. "WALKIN": a registered patient who
+  // came only for tests; no OPD visit, token, consultation fee or referring doctor is involved.
+  const [mode, setMode] = useState<"OPD" | "WALKIN">("OPD");
+  const [walkInSearch, setWalkInSearch] = useState("");
+  const [walkInResults, setWalkInResults] = useState<WalkInPatient[] | null>(null);
+  const [walkInPatient, setWalkInPatient] = useState<WalkInPatient | null>(null);
+  const [showWalkInDropdown, setShowWalkInDropdown] = useState(false);
+  const walkInTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [catalog, setCatalog] = useState<Item[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [testSearch, setTestSearch] = useState("");
@@ -148,7 +158,7 @@ export default function DiagnosticsPage() {
       <div class="center clinic">${escapeHtml(clinicName.toUpperCase())}</div>
       <div class="center subtitle">${escapeHtml(receipt.module)} DEPARTMENT RECEIPT</div>
       <div class="center copy-label">${escapeHtml(copyLabel.toUpperCase())}</div>
-      <div class="meta">Receipt #: ${escapeHtml(receipt.receiptNumber)}<br>Date: ${escapeHtml(date)}<br>OPD #: ${escapeHtml(receipt.opdNumber ?? "-")}</div>
+      <div class="meta">Receipt #: ${escapeHtml(receipt.receiptNumber)}<br>Date: ${escapeHtml(date)}<br>OPD #: ${escapeHtml(receipt.opdNumber ?? "Walk-in")}</div>
       <div class="rule"></div>
       <div class="token">TOKEN #${escapeHtml(String(receipt.moduleToken))}</div>
       <div class="patient"><strong>Patient:</strong> ${escapeHtml(receipt.patient.name)}<br><strong>MR #:</strong> ${escapeHtml(receipt.patient.mrNumber)}<br><strong>Doctor:</strong> ${escapeHtml(receipt.doctor.name)}</div>
@@ -238,6 +248,33 @@ export default function DiagnosticsPage() {
     }, 250);
   }
 
+  // Typing clears the picked walk-in patient and searches registered patients (debounced).
+  function onWalkInSearchChange(value: string) {
+    setWalkInSearch(value);
+    setShowWalkInDropdown(true);
+    if (walkInPatient) setWalkInPatient(null);
+    if (walkInTimer.current) clearTimeout(walkInTimer.current);
+    const q = value.trim();
+    if (!q) {
+      setWalkInResults(null);
+      return;
+    }
+    walkInTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/diagnostics?patientSearch=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        if (res.ok) setWalkInResults(data.patients ?? []);
+      } catch { /* ignore */ }
+    }, 250);
+  }
+
+  function selectWalkInPatient(patient: WalkInPatient) {
+    setWalkInPatient(patient);
+    setWalkInSearch(`${patient.mrNumber} · ${patient.name}`);
+    setShowWalkInDropdown(false);
+    setReceipt(null);
+  }
+
   function selectVisit(item: TodayVisit) {
     setOpdNumber(item.opdNumber);
     setOpdSearch(`${item.opdNumber} · ${item.patientName}`);
@@ -258,7 +295,9 @@ export default function DiagnosticsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           module: serviceModule,
-          opdNumber,
+          ...(mode === "WALKIN"
+            ? { patientId: walkInPatient?.id }
+            : { opdNumber }),
           itemIds: selected,
           paymentMethod,
           discount: Number(discount || 0),
@@ -362,9 +401,11 @@ export default function DiagnosticsPage() {
       (r.opdNumber && r.opdNumber.toLowerCase().includes(q)) ||
       r.patient.name.toLowerCase().includes(q) ||
       r.patient.mrNumber.toLowerCase().includes(q) ||
-      r.doctor.name.toLowerCase().includes(q)
+      r.doctor.name.toLowerCase().includes(q) ||
+      (!r.opdNumber && "walk-in".includes(q))
     );
   });
+  const readyToBill = mode === "WALKIN" ? walkInPatient !== null : visit !== null;
   const historyPageCount = Math.max(1, Math.ceil(filteredHistory.length / historyPageSize));
   const visibleHistory = filteredHistory.slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize);
   const firstHistoryRecord = filteredHistory.length === 0 ? 0 : (historyPage - 1) * historyPageSize + 1;
@@ -425,6 +466,75 @@ export default function DiagnosticsPage() {
             </Box>
           </HStack>
 
+          <HStack mb="5" gap="2">
+            <Button
+              size="sm"
+              variant={mode === "OPD" ? "solid" : "outline"}
+              bg={mode === "OPD" ? "#11695e" : "white"}
+              color={mode === "OPD" ? "white" : "#506c65"}
+              borderColor="#c8dad5"
+              onClick={() => { setMode("OPD"); setReceipt(null); }}
+            >
+              <FontAwesomeIcon icon={faUser} />
+              &nbsp; OPD patient
+            </Button>
+            <Button
+              size="sm"
+              variant={mode === "WALKIN" ? "solid" : "outline"}
+              bg={mode === "WALKIN" ? "#11695e" : "white"}
+              color={mode === "WALKIN" ? "white" : "#506c65"}
+              borderColor="#c8dad5"
+              onClick={() => { setMode("WALKIN"); setReceipt(null); }}
+            >
+              <FontAwesomeIcon icon={faPersonWalking} />
+              &nbsp; Walk-in (tests only)
+            </Button>
+          </HStack>
+
+          {mode === "WALKIN" && (
+            <Box mb="6">
+              <Box position="relative" maxW="560px" mb="4">
+                <Text fontSize="sm" fontWeight="700" mb="2">Patient</Text>
+                <Input
+                  placeholder="Search registered patient by name, MR number, mobile or CNIC…"
+                  value={walkInSearch}
+                  autoComplete="off"
+                  bg={walkInPatient ? "#f0faf7" : undefined}
+                  borderColor={walkInPatient ? "#126b68" : undefined}
+                  onChange={(event) => onWalkInSearchChange(event.target.value)}
+                  onFocus={() => setShowWalkInDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowWalkInDropdown(false), 150)}
+                />
+                {showWalkInDropdown && !walkInPatient && walkInResults !== null && (
+                  <Box position="absolute" top="100%" left="0" right="0" mt="1" bg="white" border="1.5px solid #126b68" borderRadius="10px" boxShadow="0 8px 24px rgba(18,59,59,0.15)" zIndex="50" maxH="260px" overflowY="auto">
+                    {walkInResults.length === 0 ? (
+                      <Box px="4" py="3">
+                        <Text fontSize="sm" color="#77908b">No registered patient found.</Text>
+                      </Box>
+                    ) : (
+                      walkInResults.map((patient) => (
+                        <Box
+                          key={patient.id}
+                          px="4"
+                          py="2.5"
+                          cursor="pointer"
+                          _hover={{ bg: "#f0faf7" }}
+                          borderBottom="1px solid #f0f4f3"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectWalkInPatient(patient)}
+                        >
+                          <Text fontSize="sm" fontWeight="700" color="#123d3b">{patient.name} · {patient.mrNumber}</Text>
+                          <Text fontSize="xs" color="#506c65">S/O {patient.fatherName} · {patient.mobile}</Text>
+                        </Box>
+                      ))
+                    )}
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          )}
+
+          {mode === "OPD" && (
           <Box position="relative" mb="6" maxW="560px">
             <Text fontSize="sm" fontWeight="700" mb="2">
               OPD Number
@@ -469,8 +579,9 @@ export default function DiagnosticsPage() {
               );
             })()}
           </Box>
+          )}
 
-          {visit && (
+          {mode === "OPD" && visit && (
             <Box bg="#f5f7f8" borderRadius="8px" p="4" mb="6" border="1px solid #e1e9e6">
               <HStack justify="space-between">
                 <Box>
@@ -610,7 +721,7 @@ export default function DiagnosticsPage() {
               <Button
                 onClick={createReceipt}
                 loading={loading}
-                disabled={!visit || selected.length === 0}
+                disabled={!readyToBill || selected.length === 0}
                 bg="#11695e"
                 color="white"
                 fontWeight="700"
