@@ -1,4 +1,4 @@
-# Medical Store — Complete User Guide
+# Medical Store — Complete User Guidee
 
 Al Qamar General Hospital's in-house pharmacy. This guide explains **what the module does**, **how to set it up**,
 and **how to run it day by day**, step by step. (For the technical design see `MEDICAL-STORE.md`.)
