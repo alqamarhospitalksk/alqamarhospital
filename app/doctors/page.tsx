@@ -1,10 +1,25 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Badge, Box, Button, Field, Flex, Grid, Heading, HStack, Input, Link, NativeSelect, Table, Text, Textarea } from "@chakra-ui/react";
+import { Badge, Box, Button, Field, Flex, Grid, Heading, HStack, Input, Link, NativeSelect, Switch, Table, Text, Textarea } from "@chakra-ui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faPen, faPlus, faUserDoctor, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import { type DaySchedule, formatScheduleLines, WEEK_DAYS_MONDAY_FIRST, WEEKDAY_NAMES } from "../../lib/doctor-availability";
+
+// One row per weekday in the form. `on` = the doctor comes that day; the times are kept while a day is
+// switched off so turning it back on restores them.
+type ScheduleRow = { day: number; on: boolean; from: string; to: string };
+
+const DEFAULT_FROM = "09:00";
+const DEFAULT_TO = "17:00";
+
+function scheduleRows(schedule: DaySchedule[] = []): ScheduleRow[] {
+  return WEEK_DAYS_MONDAY_FIRST.map((day) => {
+    const entry = schedule.find((item) => item.day === day);
+    return { day, on: Boolean(entry), from: entry?.from ?? DEFAULT_FROM, to: entry?.to ?? DEFAULT_TO };
+  });
+}
 
 type Doctor = {
   id: number;
@@ -19,6 +34,7 @@ type Doctor = {
   availabilityDays: number[];
   availabilityFrom: string | null;
   availabilityTo: string | null;
+  availabilitySchedule: DaySchedule[];
   consultationFee: string;
   hospitalSplitType: string;
   hospitalSplitValue: string;
@@ -40,9 +56,7 @@ type DoctorForm = {
   qualifications: string;
   qualificationsUrdu: string;
   remarks: string;
-  availabilityDays: number[];
-  availabilityFrom: string;
-  availabilityTo: string;
+  schedule: ScheduleRow[];
   consultationFee: string;
   hospitalSplitType: string;
   hospitalSplitValue: string;
@@ -64,9 +78,7 @@ const emptyForm: DoctorForm = {
   qualifications: "",
   qualificationsUrdu: "",
   remarks: "",
-  availabilityDays: [],
-  availabilityFrom: "09:00",
-  availabilityTo: "17:00",
+  schedule: scheduleRows(),
   consultationFee: "",
   hospitalSplitType: "PERCENTAGE",
   hospitalSplitValue: "",
@@ -122,9 +134,7 @@ export default function DoctorsPage() {
       qualifications: doc.qualifications ?? "",
       qualificationsUrdu: doc.qualificationsUrdu ?? "",
       remarks: doc.remarks ?? "",
-      availabilityDays: doc.availabilityDays ?? [],
-      availabilityFrom: doc.availabilityFrom ?? "09:00",
-      availabilityTo: doc.availabilityTo ?? "17:00",
+      schedule: scheduleRows(doc.availabilitySchedule),
       consultationFee: doc.consultationFee,
       hospitalSplitType: doc.hospitalSplitType,
       hospitalSplitValue: doc.hospitalSplitValue,
@@ -140,17 +150,40 @@ export default function DoctorsPage() {
     setShowModal(true);
   }
 
+  // A day switched on for the first time starts with the hours of the nearest day already on, so a
+  // doctor with the same hours most days only needs the odd days changed.
+  function setDayOn(day: number, on: boolean) {
+    setForm((current) => {
+      const index = current.schedule.findIndex((row) => row.day === day);
+      const target = current.schedule[index];
+      const untouched = target.from === DEFAULT_FROM && target.to === DEFAULT_TO;
+      const before = current.schedule.slice(0, index).reverse().find((row) => row.on);
+      const after = current.schedule.slice(index + 1).find((row) => row.on);
+      const source = on && untouched ? before ?? after : undefined;
+      const schedule = current.schedule.map((row) =>
+        row.day === day ? { ...row, on, from: source?.from ?? row.from, to: source?.to ?? row.to } : row,
+      );
+      return { ...current, schedule };
+    });
+  }
+
+  function setDayTime(day: number, field: "from" | "to", value: string) {
+    setForm((current) => ({ ...current, schedule: current.schedule.map((row) => (row.day === day ? { ...row, [field]: value } : row)) }));
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     try {
       const url = editingId ? `/api/doctors/${editingId}` : "/api/doctors";
       const method = editingId ? "PATCH" : "POST";
+      const { schedule, ...rest } = form;
+      const availabilitySchedule = schedule.filter((row) => row.on).map(({ day, from, to }) => ({ day, from, to }));
 
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...rest, availabilitySchedule }),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -249,7 +282,9 @@ export default function DoctorsPage() {
                         </Text>
                       </Table.Cell>
                       <Table.Cell fontSize="sm">
-                        {doctor.availabilityDays?.length ? `${doctor.availabilityDays.map((day) => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day]).join(", ")} · ${doctor.availabilityFrom} - ${doctor.availabilityTo}` : doctor.availability ?? "Not configured"}
+                        {doctor.availabilitySchedule?.length
+                          ? formatScheduleLines(doctor.availabilitySchedule).map((line) => <Text key={line}>{line}</Text>)
+                          : doctor.availability ?? "Not configured"}
                       </Table.Cell>
                       <Table.Cell fontWeight="800" color="#126b68">PKR {doctor.consultationFee}</Table.Cell>
                       <Table.Cell fontSize="sm">
@@ -452,39 +487,60 @@ export default function DoctorsPage() {
                     />
                   </Field.Root>
 
-                  <Field.Root required gridColumn={{ md: "span 2" }}>
-                    <Field.Label fontWeight="700">Availability Days</Field.Label>
-                    <Grid templateColumns={{ base: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" }} gap="2">
-                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
+                  <Box gridColumn={{ md: "span 2" }}>
+                    <Text fontWeight="700" fontSize="sm" mb="1">
+                      Availability <Box as="span" color="#77908b" fontWeight="500">(switch on each day the doctor comes, then set that day&apos;s hours)</Box>
+                    </Text>
+                    <Box border="1px solid #d8e5e1" borderRadius="10px" overflow="hidden">
+                      {form.schedule.map((row, index) => (
                         <Flex
-                          as="label"
-                          key={day}
+                          key={row.day}
                           align="center"
-                          gap="2"
-                          border="1px solid #d8e5e1"
-                          borderRadius="8px"
-                          p="2"
+                          gap="3"
+                          wrap="wrap"
+                          px="3"
+                          py="2"
+                          minH="52px"
+                          bg={row.on ? "#f3faf8" : "white"}
+                          borderTop={index === 0 ? undefined : "1px solid #e6eeeb"}
                         >
-                          <input
-                            type="checkbox"
-                            checked={form.availabilityDays.includes(index)}
-                            onChange={(event) => setForm((current) => ({ ...current, availabilityDays: event.target.checked ? [...current.availabilityDays, index] : current.availabilityDays.filter((value) => value !== index) }))}
-                          />
-                          <Text fontSize="sm">{day}</Text>
+                          <Switch.Root
+                            colorPalette="teal"
+                            checked={row.on}
+                            onCheckedChange={(details) => setDayOn(row.day, details.checked)}
+                            minW="140px"
+                          >
+                            <Switch.HiddenInput />
+                            <Switch.Control>
+                              <Switch.Thumb />
+                            </Switch.Control>
+                            <Switch.Label fontWeight="700" fontSize="sm">{WEEKDAY_NAMES[row.day]}</Switch.Label>
+                          </Switch.Root>
+                          {row.on ? (
+                            <HStack gap="2" flex="1" minW="240px">
+                              <Input
+                                type="time"
+                                size="sm"
+                                aria-label={`${WEEKDAY_NAMES[row.day]} from`}
+                                value={row.from}
+                                onChange={(event) => setDayTime(row.day, "from", event.target.value)}
+                              />
+                              <Text fontSize="sm" color="#77908b">to</Text>
+                              <Input
+                                type="time"
+                                size="sm"
+                                aria-label={`${WEEKDAY_NAMES[row.day]} to`}
+                                value={row.to}
+                                onChange={(event) => setDayTime(row.day, "to", event.target.value)}
+                              />
+                            </HStack>
+                          ) : (
+                            <Text fontSize="sm" color="#9aaba7">Not available</Text>
+                          )}
                         </Flex>
                       ))}
-                    </Grid>
-                  </Field.Root>
-
-                  <Field.Root required>
-                    <Field.Label fontWeight="700">Available From</Field.Label>
-                    <Input type="time" value={form.availabilityFrom} onChange={(event) => setForm({ ...form, availabilityFrom: event.target.value })} />
-                  </Field.Root>
-
-                  <Field.Root required>
-                    <Field.Label fontWeight="700">Available To</Field.Label>
-                    <Input type="time" value={form.availabilityTo} onChange={(event) => setForm({ ...form, availabilityTo: event.target.value })} />
-                  </Field.Root>
+                    </Box>
+                  </Box>
 
                   <Field.Root required>
                     <Field.Label fontWeight="700">Consultation Fee (PKR)</Field.Label>

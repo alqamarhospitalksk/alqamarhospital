@@ -6,7 +6,7 @@ import { toDateColumnBoundary } from "../../../../lib/date-range";
 import { isItemDone } from "../../../../lib/lab-results";
 import { paymentInclude, paymentSource, serviceLabels } from "../../../../lib/payment-source";
 import { ACTIVE_STATUSES } from "../../../../lib/admission";
-import { isDoctorAvailable, parseAvailabilityDays } from "../../../../lib/doctor-availability";
+import { doctorSchedule, isDoctorAvailable } from "../../../../lib/doctor-availability";
 
 // The front desk's view of today: counts of what came through the counter, what is still
 // waiting (lab results, discharges, open OT cases) and the money the desk took. It deliberately
@@ -80,7 +80,7 @@ export async function GET() {
     db.payment.findMany({ where: { createdAt: { gte: start, lt: end }, status: "PAID" }, include: paymentInclude }),
     db.doctor.findMany({
       where: { active: true },
-      select: { id: true, name: true, specialization: true, availability: true, availabilityDays: true, availabilityFrom: true, availabilityTo: true },
+      select: { id: true, name: true, specialization: true, availability: true, availabilityDays: true, availabilityFrom: true, availabilityTo: true, availabilitySchedule: true },
     }),
   ]);
 
@@ -94,9 +94,9 @@ export async function GET() {
   const weekday = now.getDay();
   const doctorRows = new Map<number, { id: number; name: string; specialization: string; patients: number; free: number; lastToken: number; onDutyNow: boolean; scheduledToday: boolean }>();
   for (const doctor of doctors) {
-    const days = parseAvailabilityDays(doctor.availabilityDays);
-    const schedule = { availabilityDays: days, availabilityFrom: doctor.availabilityFrom, availabilityTo: doctor.availabilityTo, availability: doctor.availability };
-    const scheduledToday = days.includes(weekday);
+    const days = doctorSchedule(doctor);
+    const schedule = { availabilitySchedule: days, availability: doctor.availability };
+    const scheduledToday = days.some((entry) => entry.day === weekday);
     doctorRows.set(doctor.id, {
       id: doctor.id,
       name: doctor.name,

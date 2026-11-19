@@ -136,6 +136,9 @@ model Doctor {
   availabilityDays       String              @default("[]") @map("availability_days") @db.VarChar(80)
   availabilityFrom       String?             @map("availability_from") @db.VarChar(5)
   availabilityTo         String?             @map("availability_to") @db.VarChar(5)
+  // Per-day hours as JSON [{day, from, to}] (lib/doctor-availability.ts). "[]" on doctors saved before
+  // per-day hours existed; they fall back to availabilityDays + availabilityFrom/To.
+  availabilitySchedule   String              @default("[]") @map("availability_schedule") @db.VarChar(500)
   consultationFee        Decimal             @map("consultation_fee") @db.Decimal(12, 2)
   hospitalSplitType      String              @default("PERCENTAGE") @map("hospital_split_type") @db.VarChar(20)
   hospitalSplitValue     Decimal             @map("hospital_split_value") @db.Decimal(12, 2)

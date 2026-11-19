@@ -4,7 +4,7 @@ import { roleError } from "../../../lib/roles";
 import { db } from "../../../lib/db";
 import { runTransaction } from "../../../lib/transaction";
 import { toDateColumnBoundary } from "../../../lib/date-range";
-import { parseAvailabilityDays } from "../../../lib/doctor-availability";
+import { doctorSchedule, parseAvailabilityDays } from "../../../lib/doctor-availability";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -58,6 +58,7 @@ export async function GET() {
         availabilityDays: parseAvailabilityDays(v.doctor.availabilityDays),
         availabilityFrom: v.doctor.availabilityFrom,
         availabilityTo: v.doctor.availabilityTo,
+        availabilitySchedule: doctorSchedule(v.doctor),
       },
     })),
   });
@@ -193,6 +194,7 @@ export async function POST(request: Request) {
           availabilityDays: parseAvailabilityDays(visit.doctor.availabilityDays),
           availabilityFrom: visit.doctor.availabilityFrom,
           availabilityTo: visit.doctor.availabilityTo,
+          availabilitySchedule: doctorSchedule(visit.doctor),
         },
       },
     },

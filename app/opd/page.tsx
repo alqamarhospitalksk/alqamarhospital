@@ -32,6 +32,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 import { RefreshButton } from "../refresh-button";
+import { type DaySchedule, formatScheduleLines } from "../../lib/doctor-availability";
 
 type Patient = {
   id: number;
@@ -70,6 +71,7 @@ type VisitDoctor = {
   availabilityDays?: number[];
   availabilityFrom?: string | null;
   availabilityTo?: string | null;
+  availabilitySchedule?: DaySchedule[];
 };
 type Visit = {
   id?: number;
@@ -130,28 +132,11 @@ function formatSlipDateTime(value?: string) {
   return `${at.toLocaleDateString("en-GB")}  ${at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
 }
 
-const DAY_LABELS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const DAY_LABELS_UR = ["اتوار", "پیر", "منگل", "بدھ", "جمعرات", "جمعہ", "ہفتہ"];
-
-// Doctors' duty times are stored as 24-hour "HH:mm"; the slip shows them as 12-hour ("3:00 PM").
-function to12Hour(time: string, lang: "en" | "ur") {
-  const [hourText, minute] = time.split(":");
-  const hour = Number(hourText);
-  if (!Number.isInteger(hour) || minute === undefined) return time;
-  const isPm = hour >= 12;
-  const suffix = lang === "ur" ? (isPm ? "شام" : "صبح") : isPm ? "PM" : "AM";
-  return `${hour % 12 || 12}:${minute} ${suffix}`;
-}
-
-function formatAvailability(doctor: VisitDoctor, lang: "en" | "ur") {
-  const days = doctor.availabilityDays ?? [];
-  if (days.length && doctor.availabilityFrom && doctor.availabilityTo) {
-    const labels = lang === "ur" ? DAY_LABELS_UR : DAY_LABELS_EN;
-    const dayText = [...days].sort((a, b) => a - b).map((day) => labels[day]).join(lang === "ur" ? "، " : ", ");
-    return `${dayText} · ${to12Hour(doctor.availabilityFrom, lang)}–${to12Hour(doctor.availabilityTo, lang)}`;
-  }
-  // Legacy free-text availability was only ever entered in English — no reliable Urdu translation exists.
-  return lang === "en" ? (doctor.availability ?? "") : "";
+// Duty hours for the slip, one line per set of hours: ["Mon - Fri: 9:00 AM - 5:00 PM", "Sat & Sun: 10:00 AM - 2:00 PM"].
+// Doctors with no weekly schedule show their old free-text availability, if any.
+function availabilityLines(doctor: VisitDoctor): string[] {
+  if (doctor.availabilitySchedule?.length) return formatScheduleLines(doctor.availabilitySchedule);
+  return doctor.availability?.trim() ? [doctor.availability.trim()] : [];
 }
 
 export default function OpdPage() {
@@ -316,8 +301,8 @@ export default function OpdPage() {
     const date = new Date().toLocaleDateString("en-GB");
     const age = computeAge(visit.patient.dateOfBirth);
     const copyLabel = copyType === "DOCTOR" ? "Doctor Copy" : "Patient Copy";
-    const availability = formatAvailability(visit.doctor, "en");
-    const availabilityLine = availability ? `<br><strong>Available:</strong> ${escapeHtml(availability)}` : "";
+    const availability = availabilityLines(visit.doctor);
+    const availabilityLine = availability.length ? `<br><strong>Available:</strong> ${availability.map(escapeHtml).join("<br>")}` : "";
 
     const method = visit.paymentMethod || "CASH";
     const isFree = method === "FREE";
@@ -967,10 +952,16 @@ export default function OpdPage() {
                     <Text fontSize="11px" fontWeight="800" mt="0.5" lineHeight="1.25">
                       {visit.doctor.specialization}
                     </Text>
-                    {formatAvailability(visit.doctor, "en") && (
-                      <Text fontSize="11px" fontWeight="700" mt="0.5" lineHeight="1.25">
-                        Duty Timing: {formatAvailability(visit.doctor, "en")}
-                      </Text>
+                    {availabilityLines(visit.doctor).length > 0 && (
+                      // Each set of hours on its own line, lined up after the label.
+                      <Flex fontSize="11px" fontWeight="700" mt="0.5" lineHeight="1.25" gap="1">
+                        <Text as="span" flexShrink="0">Duty Timing:</Text>
+                        <Box>
+                          {availabilityLines(visit.doctor).map((line) => (
+                            <Text key={line}>{line}</Text>
+                          ))}
+                        </Box>
+                      </Flex>
                     )}
                   </Box>
 
@@ -1005,18 +996,28 @@ export default function OpdPage() {
                 </Grid>
                 <Box borderTop="1px solid #444" />
 
-                {/* Patient details in two columns */}
-                <Grid templateColumns="1fr 1fr" columnGap="6" rowGap="3" py="4" px="2" fontSize="15px" className="slip-patient-grid">
+                {/* Patient details: kept small and tight (same size and weight as the doctor's lines above)
+                    so the letterhead stays the focus and the writing area below gets the room. */}
+                <Grid
+                  templateColumns="minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)"
+                  columnGap="4"
+                  rowGap="0.5"
+                  py="1.5"
+                  px="1"
+                  fontSize="11px"
+                  fontWeight="600"
+                  lineHeight="1.3"
+                  color="#111"
+                  className="slip-patient-grid"
+                >
                   <Text>Name: <Box as="span" fontWeight="800">{visit.patient.name}</Box></Text>
                   <Text>MR No: <Box as="span" fontWeight="800">{visit.patient.mrNumber}</Box></Text>
-                  <Text>Age: <Box as="span" fontWeight="800">{computeAge(visit.patient.dateOfBirth) || "—"}</Box></Text>
-                  <Text>Gender: <Box as="span" fontWeight="800">{visit.patient.gender || "—"}</Box></Text>
                   <Text>OPD No: <Box as="span" fontWeight="800">{visit.opdSerial ?? visit.opdNumber}</Box></Text>
+                  <Text>Age / Gender: <Box as="span" fontWeight="800">{computeAge(visit.patient.dateOfBirth) || "—"} / {visit.patient.gender || "—"}</Box></Text>
+                  <Text>CNIC: <Box as="span" fontWeight="800">{visit.patient.cnic || "—"}</Box></Text>
                   <Text>Token No: <Box as="span" fontWeight="800">{visit.dailyToken}</Box></Text>
-                  <Text>CNIC No: <Box as="span" fontWeight="800">{visit.patient.cnic || "—"}</Box></Text>
-                  <Text>City: <Box as="span" fontWeight="800">{visit.patient.city || "—"}</Box></Text>
-                  <Text>Date/Time: <Box as="span" fontWeight="800">{formatSlipDateTime(visit.createdAt)}</Box></Text>
-                  <Text>Address: <Box as="span" fontWeight="800">{visit.patient.address || "—"}</Box></Text>
+                  <Text>Address: <Box as="span" fontWeight="800">{[visit.patient.address, visit.patient.city].filter((part) => part?.trim()).join(", ") || "—"}</Box></Text>
+                  <Text gridColumn="span 2">Date/Time: <Box as="span" fontWeight="800">{formatSlipDateTime(visit.createdAt)}</Box></Text>
                 </Grid>
 
                 {/* Writing area: narrow clinical records column + wide prescription area */}

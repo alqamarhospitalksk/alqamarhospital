@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../../lib/auth";
 import { db } from "../../../../lib/db";
-import { parseAvailabilityDays } from "../../../../lib/doctor-availability";
+import { legacyColumns, parseSchedule, scheduleProblem } from "../../../../lib/doctor-availability";
 import { admissionFeeProblem } from "../../../../lib/admission";
 
 const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
-const validTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 const sharePercent = (value: unknown) => {
   const n = Number(value ?? 0);
   return Number.isFinite(n) ? n : NaN;
@@ -28,10 +27,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const qualifications = text(body?.qualifications) || null;
   const qualificationsUrdu = text(body?.qualificationsUrdu) || null;
   const remarks = text(body?.remarks) || null;
-  const availabilityDays = parseAvailabilityDays(body?.availabilityDays);
-  const availabilityFrom = text(body?.availabilityFrom);
-  const availabilityTo = text(body?.availabilityTo);
-  const availability = availabilityDays.length && availabilityFrom && availabilityTo ? `${availabilityDays.join(",")} ${availabilityFrom}-${availabilityTo}` : null;
+  const scheduleError = scheduleProblem(body?.availabilitySchedule);
+  if (scheduleError) return NextResponse.json({ error: scheduleError }, { status: 400 });
+  const availabilitySchedule = parseSchedule(body?.availabilitySchedule);
   const consultationFee = Number(body?.consultationFee);
   const hospitalSplitType = text(body?.hospitalSplitType).toUpperCase() || "PERCENTAGE";
   const hospitalSplitValue = Number(body?.hospitalSplitValue);
@@ -45,10 +43,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (
     !name ||
     !specialization ||
-    !availabilityDays.length ||
-    !validTime(availabilityFrom) ||
-    !validTime(availabilityTo) ||
-    availabilityFrom >= availabilityTo ||
     !Number.isFinite(consultationFee) ||
     consultationFee < 0 ||
     !["PERCENTAGE", "FIXED"].includes(hospitalSplitType) ||
@@ -76,10 +70,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       qualifications,
       qualificationsUrdu,
       remarks,
-      availability,
-      availabilityDays: JSON.stringify(availabilityDays),
-      availabilityFrom,
-      availabilityTo,
+      ...legacyColumns(availabilitySchedule),
       consultationFee,
       hospitalSplitType,
       hospitalSplitValue,
@@ -107,7 +98,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   return NextResponse.json({
     doctor: {
       ...doctor,
-      availabilityDays,
+      availabilityDays: availabilitySchedule.map((entry) => entry.day),
+      availabilitySchedule,
       consultationFee: doctor.consultationFee.toString(),
       hospitalSplitValue: doctor.hospitalSplitValue.toString(),
       labSharePercent: doctor.labSharePercent.toString(),

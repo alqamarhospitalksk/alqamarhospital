@@ -252,6 +252,15 @@ const updates = [
       await conn.query("ALTER TABLE `diagnostic_receipts` MODIFY `doctor_id` INTEGER NULL");
     },
   },
+  // Same statement as prisma/migrations/20261119160000_doctor_day_schedule/migration.sql.
+  // Existing doctors get "[]" and keep using their old days + one time range until edited.
+  {
+    name: "doctor per-day schedule",
+    needed: async (conn) => !(await columnExists(conn, "doctors", "availability_schedule")),
+    run: async (conn) => {
+      await conn.query("ALTER TABLE `doctors` ADD COLUMN `availability_schedule` VARCHAR(500) NOT NULL DEFAULT '[]'");
+    },
+  },
 ];
 
 async function connect(ssl) {

@@ -50,6 +50,7 @@ CREATE TABLE `doctors` (
     `availability_days` VARCHAR(80) NOT NULL DEFAULT '[]',
     `availability_from` VARCHAR(5) NULL,
     `availability_to` VARCHAR(5) NULL,
+    `availability_schedule` VARCHAR(500) NOT NULL DEFAULT '[]',
     `consultation_fee` DECIMAL(12, 2) NOT NULL,
     `hospital_split_type` VARCHAR(20) NOT NULL DEFAULT 'PERCENTAGE',
     `hospital_split_value` DECIMAL(12, 2) NOT NULL,
