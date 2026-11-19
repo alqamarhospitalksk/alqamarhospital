@@ -403,6 +403,7 @@ CREATE TABLE `hospital_settings` (
     `address` VARCHAR(500) NULL,
     `address_urdu` VARCHAR(500) NULL,
     `phone` VARCHAR(100) NULL,
+    `whatsapp` VARCHAR(100) NULL,
     `email` VARCHAR(150) NULL,
     `logo_data_url` LONGTEXT NULL,
     `updated_at` DATETIME(3) NOT NULL,

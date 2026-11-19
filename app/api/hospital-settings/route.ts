@@ -28,6 +28,7 @@ export async function PUT(request: Request) {
   const address = text(body?.address) || null;
   const addressUrdu = text(body?.addressUrdu) || null;
   const phone = text(body?.phone) || null;
+  const whatsapp = text(body?.whatsapp) || null;
   const email = text(body?.email) || null;
   const logoDataUrl = typeof body?.logoDataUrl === "string" ? (body.logoDataUrl.trim() || null) : undefined;
 
@@ -48,6 +49,7 @@ export async function PUT(request: Request) {
       address,
       addressUrdu,
       phone,
+      whatsapp,
       email,
       ...(logoDataUrl !== undefined ? { logoDataUrl } : {}),
     },
@@ -59,7 +61,7 @@ export async function PUT(request: Request) {
       entity: "HospitalSettings",
       entityId: "1",
       userId: user.id,
-      afterJson: JSON.stringify({ name, nameUrdu, address, addressUrdu, phone, email }),
+      afterJson: JSON.stringify({ name, nameUrdu, address, addressUrdu, phone, whatsapp, email }),
     },
   });
 

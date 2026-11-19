@@ -261,6 +261,14 @@ const updates = [
       await conn.query("ALTER TABLE `doctors` ADD COLUMN `availability_schedule` VARCHAR(500) NOT NULL DEFAULT '[]'");
     },
   },
+  // Same statement as prisma/migrations/20261119180000_hospital_whatsapp/migration.sql. Starts empty.
+  {
+    name: "hospital WhatsApp number",
+    needed: async (conn) => !(await columnExists(conn, "hospital_settings", "whatsapp")),
+    run: async (conn) => {
+      await conn.query("ALTER TABLE `hospital_settings` ADD COLUMN `whatsapp` VARCHAR(100) NULL");
+    },
+  },
 ];
 
 async function connect(ssl) {

@@ -101,6 +101,7 @@ type HospitalSettings = {
   address: string | null;
   addressUrdu: string | null;
   phone: string | null;
+  whatsapp?: string | null;
   email: string | null;
   logoDataUrl: string | null;
 };
@@ -934,13 +935,19 @@ export default function OpdPage() {
                 color="#111"
               >
                 {/* Header: doctor details (left) · logo (centre) · hospital details (right) */}
-                <Grid templateColumns="minmax(0, 1fr) auto minmax(0, 1fr)" gap="5" alignItems="center" pb="2" className="slip-letterhead-header">
+                {/* Top-aligned: when the doctor's side runs long, the logo and hospital details stay at the top
+                    instead of drifting down to the middle of the header. */}
+                <Grid templateColumns="minmax(0, 1fr) auto minmax(0, 1fr)" gap="5" alignItems="start" pb="2" className="slip-letterhead-header">
                   <Box textAlign="left">
                     <Text fontSize="22px" fontWeight="900" lineHeight="1.15" color="#111">
                       {visit.doctor.name}
                     </Text>
+                    {/* Specialization sits right under the name, above the degrees. */}
+                    <Text fontSize="11px" fontWeight="800" mt="1" lineHeight="1.25">
+                      {visit.doctor.specialization}
+                    </Text>
                     {visit.doctor.qualifications && (
-                      <Text fontSize="11px" fontWeight="700" whiteSpace="pre-line" mt="1" lineHeight="1.25">
+                      <Text fontSize="11px" fontWeight="700" whiteSpace="pre-line" mt="0.5" lineHeight="1.25">
                         {visit.doctor.qualifications}
                       </Text>
                     )}
@@ -949,9 +956,6 @@ export default function OpdPage() {
                         {visit.doctor.remarks}
                       </Text>
                     )}
-                    <Text fontSize="11px" fontWeight="800" mt="0.5" lineHeight="1.25">
-                      {visit.doctor.specialization}
-                    </Text>
                     {availabilityLines(visit.doctor).length > 0 && (
                       // Each set of hours on its own line, lined up after the label.
                       <Flex fontSize="11px" fontWeight="700" mt="0.5" lineHeight="1.25" gap="1">
@@ -992,6 +996,11 @@ export default function OpdPage() {
                         Phone: {hospitalSettings.phone}
                       </Text>
                     )}
+                    {hospitalSettings?.whatsapp && (
+                      <Text fontSize="11px" fontWeight="600" lineHeight="1.3">
+                        WhatsApp: {hospitalSettings.whatsapp}
+                      </Text>
+                    )}
                   </Box>
                 </Grid>
                 <Box borderTop="1px solid #444" />
@@ -1002,7 +1011,7 @@ export default function OpdPage() {
                   templateColumns="minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)"
                   columnGap="4"
                   rowGap="0.5"
-                  py="1.5"
+                  py="2.5"
                   px="1"
                   fontSize="11px"
                   fontWeight="600"

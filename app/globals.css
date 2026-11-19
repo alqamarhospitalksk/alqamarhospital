@@ -274,6 +274,13 @@ div:has(> table) {
     margin-bottom: 4px !important;
   }
 
+  /* OPD slip patient details: a little breathing room under and above the two lines around them.
+     Needed here because the blanket `div { padding: 0 }` print rule above would otherwise remove it. */
+  .printable-slip .slip-patient-grid {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
   /* OPD letterhead slip (app/opd/page.tsx) only. The blanket `* { color: black }` above would turn the
      white text on the blue/red bars black and the hospital name black; these are more specific. The bars
      are <p>/<span> elements on purpose: the `div { background: transparent }` rule above cannot reach them. */

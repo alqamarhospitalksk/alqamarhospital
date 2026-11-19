@@ -558,6 +558,8 @@ model HospitalSettings {
   address     String?  @db.VarChar(500)
   addressUrdu String?  @map("address_urdu") @db.VarChar(500)
   phone       String?  @db.VarChar(100)
+  // Shown on the OPD doctor slip under the phone number.
+  whatsapp    String?  @db.VarChar(100)
   email       String?  @db.VarChar(150)
   logoDataUrl String?  @map("logo_data_url") @db.LongText
   updatedAt   DateTime @updatedAt @map("updated_at")

@@ -12,6 +12,7 @@ type Settings = {
   address: string;
   addressUrdu: string;
   phone: string;
+  whatsapp: string;
   email: string;
   logoDataUrl: string | null;
 };
@@ -22,6 +23,7 @@ const emptySettings: Settings = {
   address: "",
   addressUrdu: "",
   phone: "",
+  whatsapp: "",
   email: "",
   logoDataUrl: null,
 };
@@ -44,6 +46,7 @@ export default function HospitalSettingsPage() {
           address: data.settings.address ?? "",
           addressUrdu: data.settings.addressUrdu ?? "",
           phone: data.settings.phone ?? "",
+          whatsapp: data.settings.whatsapp ?? "",
           email: data.settings.email ?? "",
           logoDataUrl: data.settings.logoDataUrl ?? null,
         });
@@ -241,6 +244,18 @@ export default function HospitalSettingsPage() {
                       value={form.phone}
                       onChange={(event) => setForm({ ...form, phone: event.target.value })}
                     />
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label fontWeight="700">WhatsApp Number</Field.Label>
+                    <Input
+                      type="tel"
+                      maxLength={100}
+                      placeholder="e.g. 0300-1234567"
+                      value={form.whatsapp}
+                      onChange={(event) => setForm({ ...form, whatsapp: event.target.value })}
+                    />
+                    <Field.HelperText>Shown on the OPD doctor slip under the phone number. Leave empty to hide.</Field.HelperText>
                   </Field.Root>
 
                   <Field.Root>
