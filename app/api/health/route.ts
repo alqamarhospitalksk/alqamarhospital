@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import { db } from "../../../lib/db";
 
 // Which recent features this code has. Add a word here when you ship something you may need to confirm on the host.
-const FEATURES = ["opd-serial", "patient-city", "slip-token-no", "start-db-updates"];
+const FEATURES = [
+  "opd-serial",
+  "patient-city",
+  "slip-token-no",
+  "start-db-updates",
+  "doctor-day-schedule",
+  "hospital-whatsapp",
+  "opd-slip-2026-11-19",
+  "favicon-icon",
+];
 
 // Used by uptime monitors / the hosting panel: 200 when the app and its database are reachable.
 // "build" is when this code was built and "started" when this server process started: together they show
