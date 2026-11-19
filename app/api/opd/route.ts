@@ -144,7 +144,19 @@ export async function POST(request: Request) {
         await transaction.dailySequence.update({ where: { sequenceKey: serialKey }, data: { nextValue: opdSerial + 1 } });
       }
 
-      const opdNumber = `OPD-${dateKey.replaceAll("-", "")}-${String(doctorId).padStart(3, "0")}-${String(dailyToken).padStart(4, "0")}`;
+      // Hospital-wide running count for the calendar year (all doctors together): 1 on the first OPD visit
+      // of the year, then +1 for every slip. The yearly key makes it start again at 1 each January.
+      const yearKey = `OPDYEAR:${now.getFullYear()}`;
+      const yearSequence = await transaction.dailySequence.upsert({
+        where: { sequenceKey: yearKey },
+        create: { sequenceKey: yearKey, nextValue: 2 },
+        update: { nextValue: { increment: 1 } },
+      });
+      const yearSerial = yearSequence.nextValue - 1;
+
+      // OPD-DDMMYY-<year count>-<doctor ID, 3 digits>-<doctor's token today, 3 digits>, e.g. OPD-191126-1-007-001.
+      const slipDate = `${dateKey.slice(8, 10)}${dateKey.slice(5, 7)}${dateKey.slice(2, 4)}`;
+      const opdNumber = `OPD-${slipDate}-${yearSerial}-${String(doctorId).padStart(3, "0")}-${String(dailyToken).padStart(3, "0")}`;
       const chargedFee = paymentMethod === "FREE" ? 0 : doctor.consultationFee;
 
       const createdVisit = await transaction.opdVisit.create({ data: { opdNumber, visitDate, dailyToken, opdSerial, patientId, doctorId, consultationFee: chargedFee, createdById: user.id } });

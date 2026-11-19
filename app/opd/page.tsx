@@ -347,7 +347,7 @@ export default function OpdPage() {
       <div class="center clinic">${escapeHtml(clinicName.toUpperCase())}</div>
       <div class="center subtitle">OPD CONSULTATION SLIP</div>
       <div class="center copy-label">${escapeHtml(copyLabel.toUpperCase())}</div>
-      <div class="meta">OPD No: ${escapeHtml(String(visit.opdSerial ?? visit.opdNumber))}<br>Ref: ${escapeHtml(visit.opdNumber)}<br>Date: ${escapeHtml(date)}</div>
+      <div class="meta">OPD No: ${escapeHtml(visit.opdNumber)}<br>Date: ${escapeHtml(date)}</div>
       <div class="rule"></div>
       <div class="token">TOKEN #${escapeHtml(String(visit.dailyToken))}</div>
       <div class="patient"><strong>Patient:</strong> ${escapeHtml(visit.patient.name)}<br><strong>MR #:</strong> ${escapeHtml(visit.patient.mrNumber)}<br><strong>Father Name:</strong> ${escapeHtml(visit.patient.fatherName || "-")}<br><strong>Age:</strong> ${escapeHtml(age || "-")} &nbsp; <strong>Gender:</strong> ${escapeHtml(visit.patient.gender || "-")}</div>
@@ -1021,7 +1021,7 @@ export default function OpdPage() {
                 >
                   <Text>Name: <Box as="span" fontWeight="800">{visit.patient.name}</Box></Text>
                   <Text>MR No: <Box as="span" fontWeight="800">{visit.patient.mrNumber}</Box></Text>
-                  <Text>OPD No: <Box as="span" fontWeight="800">{visit.opdSerial ?? visit.opdNumber}</Box></Text>
+                  <Text>OPD No: <Box as="span" fontWeight="800" whiteSpace="nowrap">{visit.opdNumber}</Box></Text>
                   <Text>Age / Gender: <Box as="span" fontWeight="800">{computeAge(visit.patient.dateOfBirth) || "—"} / {visit.patient.gender || "—"}</Box></Text>
                   <Text>CNIC: <Box as="span" fontWeight="800">{visit.patient.cnic || "—"}</Box></Text>
                   <Text>Token No: <Box as="span" fontWeight="800">{visit.dailyToken}</Box></Text>
