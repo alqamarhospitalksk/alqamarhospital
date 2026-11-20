@@ -20,6 +20,13 @@ const nextConfig: NextConfig = {
   // Lets a second build (e.g. a production test run) use its own folder without touching the
   // `next dev` cache in .next. Unset in normal use.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // The host builds on top of the .next folder of an earlier build (it never runs our `prebuild` that wipes it).
+  // Webpack's disk cache then reused old page code, so the live site kept old screens while newer API routes
+  // were updated. Production builds always compile from the source files instead; dev keeps its cache.
+  webpack: (config, { dev }) => {
+    if (!dev) config.cache = false;
+    return config;
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
